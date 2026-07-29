@@ -598,6 +598,17 @@ public final class SkyMellooApiClient {
 				.exceptionally(error -> new VerifyResult(false, ChatUtil.friendlyError(error)));
 	}
 
+	/** Result of starting the "/sm link" browser-based linking flow - {@code token} is opened as {@code https://sky.melloo.me/link/<token>} in the system browser, see SkyMellooClient's "link" command. */
+	public record LinkStartResult(boolean ok, String token, String error) {
+	}
+
+	/** Starts the mirror-image of "/skymelloo verify <code>" (2026-07-30) - instead of typing a website-generated code in-game, this generates a token in-game (via the signed request, so it's tied to a proven identity) that the website consumes once opened, using whatever Discord session is already there. */
+	public static CompletableFuture<LinkStartResult> startAccountLink(ModAuthManager.ModIdentity identity) {
+		return postJson("/mod/link/start", new JsonObject(), identity)
+				.thenApply(root -> new LinkStartResult(true, root.get("token").getAsString(), null))
+				.exceptionally(error -> new LinkStartResult(false, null, ChatUtil.friendlyError(error)));
+	}
+
 	/** The cloud-synced settings blob for the account behind this identity, or null if nothing's been saved yet (or the request failed). */
 	public static CompletableFuture<JsonObject> fetchCloudSettings(ModAuthManager.ModIdentity identity) {
 		return getJson("/mod/settings", identity)

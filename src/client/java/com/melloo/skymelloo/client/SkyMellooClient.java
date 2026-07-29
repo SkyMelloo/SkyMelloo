@@ -584,6 +584,36 @@ public class SkyMellooClient implements ClientModInitializer {
 									);
 							return 1;
 						}))
+						// "/sm link" (2026-07-30, "/sm link auch wo man angemeldet sein muss im browser dann
+						// generiert der ein link der zur website leitet") - the mirror image of "/skymelloo
+						// verify <code>" above: instead of typing a website-generated code in-game, this
+						// generates a token in-game and opens sky.melloo.me/link/<token> directly in the
+						// system browser, where it completes using whatever Discord session is already there
+						// (or prompts a fresh login first) - no code to type at all.
+						.then(ClientCommands.literal("link").executes(ctx -> {
+							Minecraft client = Minecraft.getInstance();
+							if (client.player == null) {
+								return 1;
+							}
+							ctx.getSource().sendFeedback(ChatUtil.prefixed("Öffne Browser zum Verknüpfen..."));
+							ModAuthManager.getIdentity(client).thenCompose(SkyMellooApiClient::startAccountLink)
+									.whenComplete((result, error) ->
+											Minecraft.getInstance().execute(() -> {
+												Minecraft c = Minecraft.getInstance();
+												if (c.player == null) {
+													return;
+												}
+												if (error != null) {
+													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + ChatUtil.friendlyError(error)));
+												} else if (result.ok()) {
+													net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://sky.melloo.me/link/" + result.token()));
+												} else {
+													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + result.error()));
+												}
+											})
+									);
+							return 1;
+						}))
 						.then(ClientCommands.literal("contact").executes(ctx -> {
 							ctx.getSource().sendFeedback(legalLink("Contact", "https://sky.melloo.me/contact"));
 							return 1;
@@ -622,7 +652,8 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static void sendHelp(FabricClientCommandSource source) {
 		source.sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Befehle §7(auch als §f/sm§7 verfügbar) ==="));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo config §7- Einstellungen öffnen (auch Taste H)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo verify <code> §7- Account mit sky.melloo.me verbinden"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo link §7- Account per Browser verbinden (kein Code nötig)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo verify <code> §7- Account mit sky.melloo.me verbinden (Code)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo unlink §7- Verbundenen Account trennen"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo view <name> §7- Spieler-Stats als Fenster öffnen (Tabs, scrollbar)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata player <name> <stat> §7- Spieler-Stats abrufen"));
