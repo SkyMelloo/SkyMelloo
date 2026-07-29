@@ -125,6 +125,10 @@ public final class BlockedUsersManager {
 
 	public static LiteralArgumentBuilder<FabricClientCommandSource> buildUnblockCommand() {
 		return ClientCommands.literal("unblock")
+				.executes(ctx -> {
+					ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm unblock <name>"));
+					return 1;
+				})
 				.then(ClientCommands.argument("name", StringArgumentType.word())
 						.suggests(BlockedUsersManager::suggestBlocked)
 						.executes(ctx -> {

@@ -180,6 +180,10 @@ public final class RelayChatManager {
 
 	public static LiteralArgumentBuilder<FabricClientCommandSource> buildChatCommand() {
 		return ClientCommands.literal("chat")
+				.executes(ctx -> {
+					ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm chat party <message>§7 oder §f/sm chat <name> <message>"));
+					return 1;
+				})
 				.then(ClientCommands.literal("party")
 						.then(ClientCommands.argument("message", StringArgumentType.greedyString())
 								.executes(ctx -> {

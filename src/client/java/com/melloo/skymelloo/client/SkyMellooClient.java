@@ -248,7 +248,15 @@ public class SkyMellooClient implements ClientModInitializer {
 						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildRollCommand())
 						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildPollCommand())
 						.then(ClientCommands.literal("partyjoin")
+								.executes(ctx -> {
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm partyjoin test <name>"));
+									return 1;
+								})
 								.then(ClientCommands.literal("test")
+										.executes(ctx -> {
+											ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm partyjoin test <name>"));
+											return 1;
+										})
 										.then(ClientCommands.argument("name", StringArgumentType.word())
 												.suggests(SkyMellooClient::suggestOnlinePlayers)
 												.executes(ctx -> {
@@ -285,6 +293,10 @@ public class SkyMellooClient implements ClientModInitializer {
 						// bar fill state computed via the exact same HealthManaBarsHud.compute*BarState()
 						// methods the real renderer uses - so this can never drift from what's really drawn.
 						.then(ClientCommands.literal("debug")
+								.executes(ctx -> {
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm debug hm-bar§7, §f/sm debug bossroom§7, oder §f/sm debug score"));
+									return 1;
+								})
 								.then(ClientCommands.literal("hm-bar").executes(ctx -> {
 									long lastPacketMillis = com.melloo.skymelloo.client.social.ActionBarTracker.getLastPacketMillis();
 									ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== HM-Bar Debug (Health/Mana Bar) ==="));
@@ -577,20 +589,29 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo config §7- Einstellungen öffnen (auch Taste H)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo verify <code> §7- Account mit sky.melloo.me verbinden"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo unlink §7- Verbundenen Account trennen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo sync §7- Freundesliste synchronisieren"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo view <name> §7- Spieler-Stats als Fenster öffnen (Tabs, scrollbar)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata player <name> <stat> §7- Spieler-Stats abrufen"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata party <stat> §7- Party-Stats abrufen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo contact §7- Kontaktinfo (bei Whitelist-Problemen)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo info §7/ §aversion §7- Mod-Version & Update-Status"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo contact §7- Kontaktseite (sky.melloo.me/contact)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo legal §7- Impressum, Datenschutz, AGB (Links)"));
+
+		source.sendFeedback(ChatUtil.prefixed("§6--- Freunde & Party ---"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo sync §7- Party-Sync manuell anstoßen"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo friend <name>§7/§aaccept§7/§adecline§7/§aremove§7/§alist §7- SkyMelloo-Freunde verwalten"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo block <name>§7/§aunblock <name> §7- Party-Mitglied blockieren (Auto-Kick)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo chat party <msg>§7/§achat <name> <msg> §7- Relay-Chat (an Party oder direkt)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo roll <amount>§7/§aroll party§7/§aroll <word> <secs> §7- Zufallsauswahl in der Party"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo poll start <Frage;Antwort1;...>§7/§apoll close §7- Party-Umfrage"));
 
 		// Only advertise commands/menu categories tied to a specific feature permission if the
 		// account actually has it - matching the same PermissionsManager checks SkyMellooSettingsScreen
 		// already uses to hide whole tabs (visibleTabs()). Advertising a locked feature by name here
 		// was misleading (e.g. always mentioning "Highlighting" even for accounts without highlight/chestHighlight).
 		if (PermissionsManager.has("killTracker")) {
+			source.sendFeedback(ChatUtil.prefixed("§6--- Dungeons ---"));
 			source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- Spell-Kills anzeigen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- Dungeon-Session-Stats anzeigen (Runs, Ø Score, Deaths, Zeit)"));
+			source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- Dungeon-Session-Stats anzeigen (Runs, Ø Score, Deaths, Zeit)"));
 		}
 		if (PermissionsManager.has("dungeonInfo")) {
 			source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- Party-Join-Nachricht testen"));
@@ -751,9 +772,22 @@ public class SkyMellooClient implements ClientModInitializer {
 			partyLiteral.then(statLiteral);
 		}
 
+		var getdataUsage = "§cBenutzung: §f/sm getdata player <name> <stat>§7 oder §f/sm getdata party <stat>";
 		return ClientCommands.literal("getdata")
-				.then(ClientCommands.literal("player").then(playerNameArg))
-				.then(partyLiteral);
+				.executes(ctx -> {
+					ctx.getSource().sendFeedback(ChatUtil.prefixed(getdataUsage));
+					return 1;
+				})
+				.then(ClientCommands.literal("player")
+						.executes(ctx -> {
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(getdataUsage));
+							return 1;
+						})
+						.then(playerNameArg))
+				.then(partyLiteral.executes(ctx -> {
+					ctx.getSource().sendFeedback(ChatUtil.prefixed(getdataUsage));
+					return 1;
+				}));
 	}
 
 	private static void dispatchStat(String stat, String name, String profile, FabricClientCommandSource source, boolean announce) {
