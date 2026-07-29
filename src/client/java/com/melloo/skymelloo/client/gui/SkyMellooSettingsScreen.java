@@ -172,11 +172,13 @@ public class SkyMellooSettingsScreen extends Screen {
 		// This screen (opened via key H) is a separate screen from the main SkyMelloo Menu item's
 		// nav row - "Report a Bug" living only there meant it was missing from the single most-used
 		// entry point into the mod's UI (2026-07-29, "adde in mehr menus also auch in das h menu").
+		// Uses the shared SkyMellooButtonWidget (2026-07-29, "report a bug bitte überall custom
+		// button statt den standart") rather than vanilla Button - this was the one place in the
+		// mod's UI still using the plain grey Minecraft button style instead of matching everywhere
+		// else's pink-glow look.
 		int reportBugWidth = 90;
-		addRenderableWidget(net.minecraft.client.gui.components.Button
-				.builder(Component.literal("Report a Bug"), b -> SkyMellooMenuScreen.openReportBug())
-				.bounds(this.width - MARGIN - reportBugWidth, MARGIN, reportBugWidth, 18)
-				.build());
+		addRenderableWidget(new SkyMellooButtonWidget(this.width - MARGIN - reportBugWidth, MARGIN, reportBugWidth, 18,
+				"Report a Bug", SkyMellooButtonWidget.RED, SkyMellooMenuScreen::openReportBug));
 	}
 
 	/**

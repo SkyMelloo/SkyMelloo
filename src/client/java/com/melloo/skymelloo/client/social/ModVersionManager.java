@@ -38,8 +38,9 @@ import java.util.List;
 public final class ModVersionManager {
 	private static volatile boolean checkStarted = false;
 	private static volatile boolean compatible = true;
-	// Cached for "/sm version"/"/sm info" (2026-07-26) so those commands can answer instantly from
-	// whatever the one join-time check already found, instead of firing a whole new network request.
+	// Cached from the one join-time check - "/sm version" (2026-07-29, merged with the old "/sm
+	// info") now always fires its own fresh check instead of relying purely on this cache (see
+	// checkNow below), but this is still what feeds the automatic one-time join notice.
 	private static volatile String localVersion = "0.0.0";
 	// The user-facing release number (2026-07-28) - completely separate from localVersion above,
 	// which bumps on every internal change and was never meant to be shown to end users. Baked into
@@ -49,6 +50,12 @@ public final class ModVersionManager {
 	private static volatile String publicVersion = "unreleased";
 	private static volatile String localJarHash = null;
 	private static volatile SkyMellooApiClient.VersionCheckResult lastResult = null;
+	// Client-side cooldown for manual re-checks ("/sm version" - 2026-07-29, merged with the old "/sm
+	// info"), on top of whatever the server's own generic per-IP rate limit already does - a human
+	// re-running a chat command has no reason to hit either, this just stops an accidental key-repeat/
+	// double-press from firing two requests back to back.
+	private static final long MANUAL_CHECK_COOLDOWN_MS = 3000;
+	private static volatile long lastManualCheckMillis = 0;
 
 	private ModVersionManager() {
 	}
@@ -72,6 +79,35 @@ public final class ModVersionManager {
 	/** {@code null} until the one join-time check actually completes (or if it failed outright - a network hiccup). */
 	public static SkyMellooApiClient.VersionCheckResult getLastResult() {
 		return lastResult;
+	}
+
+	/**
+	 * Fires a FRESH version check against the server right now, for "/sm version" (2026-07-29,
+	 * merged with the old "/sm info") - rather than just showing whatever the one join-time check
+	 * happened to already cache, this always asks the server what the actual latest published
+	 * version is at the moment the player runs the command. Cooldown-limited client-side (see
+	 * {@link #MANUAL_CHECK_COOLDOWN_MS}); still within the join-time check's normal server-side rate
+	 * limit regardless. Returns the cooldown-remaining seconds (0 if it actually fired) via the
+	 * {@code onCooldown} callback instead of firing {@code onResult}.
+	 */
+	public static void checkNow(java.util.function.Consumer<SkyMellooApiClient.VersionCheckResult> onResult, java.util.function.Consumer<Long> onCooldown) {
+		long now = System.currentTimeMillis();
+		long remaining = MANUAL_CHECK_COOLDOWN_MS - (now - lastManualCheckMillis);
+		if (remaining > 0) {
+			onCooldown.accept((remaining + 999) / 1000);
+			return;
+		}
+		lastManualCheckMillis = now;
+		SkyMellooApiClient.checkVersion(localVersion, localJarHash).whenComplete((result, error) -> Minecraft.getInstance().execute(() -> {
+			if (error != null || result == null) {
+				DebugLog.log(DebugLog.Category.PERMISSIONS, "Manual version check failed: " + (error != null ? error.getMessage() : "null result"));
+				onResult.accept(null);
+				return;
+			}
+			lastResult = result;
+			compatible = result.compatible();
+			onResult.accept(result);
+		}));
 	}
 
 	public static void checkOnce(Minecraft client) {

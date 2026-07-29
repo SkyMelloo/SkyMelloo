@@ -6,12 +6,9 @@ import com.melloo.skymelloo.client.party.PartyTracker;
 import com.melloo.skymelloo.client.social.FriendsManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -23,11 +20,10 @@ import java.util.UUID;
 /**
  * "Social" menu (default key G) - SkyMelloo friends (separate from real Hypixel friends, see
  * {@link FriendsManager}) and the current party, side by side, so managing both doesn't mean
- * memorizing a pile of "/sm friend"/"/party" chat commands. Buttons are {@link SocialButtonWidget},
- * a small custom-drawn widget matching this mod's pink theme (see extractWidgetRenderState) instead
- * of plain vanilla {@link net.minecraft.client.gui.components.Button} styling - only the text input
- * ({@link EditBox}) stays vanilla, since a custom cursor/selection reimplementation isn't worth the
- * risk for one input box.
+ * memorizing a pile of "/sm friend"/"/party" chat commands. Buttons are {@link SkyMellooButtonWidget}
+ * (shared across every SkyMelloo screen, see that class) instead of plain vanilla
+ * {@link net.minecraft.client.gui.components.Button} styling - only the text input ({@link EditBox})
+ * stays vanilla, since a custom cursor/selection reimplementation isn't worth the risk for one input box.
  * <p>
  * Every text label's (x, y) is computed exactly once, alongside its matching button, into
  * {@link #labels} during {@link #rebuild()} - {@link #extractRenderState} then just draws from that
@@ -122,8 +118,8 @@ public class SocialMenuScreen extends Screen {
 		buildFriendsColumn(leftX, top);
 		buildPartyColumn(rightX, top);
 
-		addRenderableWidget(new SocialButtonWidget(this.width / 2 - 95, this.height - 28, 90, 20, "Report a Bug", RED, SkyMellooMenuScreen::openReportBug));
-		addRenderableWidget(new SocialButtonWidget(this.width / 2 + 5, this.height - 28, 90, 20, "Done", PINK, this::onClose));
+		addRenderableWidget(new SkyMellooButtonWidget(this.width / 2 - 95, this.height - 28, 90, 20, "Report a Bug", RED, SkyMellooMenuScreen::openReportBug));
+		addRenderableWidget(new SkyMellooButtonWidget(this.width / 2 + 5, this.height - 28, 90, 20, "Done", PINK, this::onClose));
 	}
 
 	private void buildFriendsColumn(int x, int top) {
@@ -132,7 +128,7 @@ public class SocialMenuScreen extends Screen {
 		addFriendBox.setHint(Component.literal("Add friend..."));
 		addFriendBox.setTextColor(0xFFFFB6E6);
 		addRenderableWidget(addFriendBox);
-		addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 55, y, 55, 18, "Add", PINK, () -> {
+		addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 55, y, 55, 18, "Add", PINK, () -> {
 			String name = addFriendBox.getValue().trim();
 			if (!name.isEmpty()) {
 				FriendsManager.sendRequest(Minecraft.getInstance(), name);
@@ -147,8 +143,8 @@ public class SocialMenuScreen extends Screen {
 			if (uuid != null) {
 				faces.add(new Face(uuid, x, y));
 			}
-			addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 44, y, 20, 18, "✓", GREEN, () -> FriendsManager.accept(Minecraft.getInstance(), request.username())));
-			addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 22, y, 20, 18, "✕", RED, () -> FriendsManager.decline(Minecraft.getInstance(), request.username())));
+			addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 44, y, 20, 18, "✓", GREEN, () -> FriendsManager.accept(Minecraft.getInstance(), request.username())));
+			addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 22, y, 20, 18, "✕", RED, () -> FriendsManager.decline(Minecraft.getInstance(), request.username())));
 			labels.add(new Label("§b" + request.username() + " §7(request)", x + TEXT_X_OFFSET, y + (FACE_SIZE - 8) / 2));
 			y += ROW_HEIGHT;
 		}
@@ -159,9 +155,9 @@ public class SocialMenuScreen extends Screen {
 			if (uuid != null) {
 				faces.add(new Face(uuid, x, y));
 			}
-			addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 100, y, 45, 18, "Chat", PINK, () ->
+			addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 100, y, 45, 18, "Chat", PINK, () ->
 					Minecraft.getInstance().setScreen(new ChatScreen("/sm chat " + friend.username() + " ", true))));
-			addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 52, y, 52, 18, "Remove", RED, () -> FriendsManager.remove(Minecraft.getInstance(), friend.username())));
+			addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 52, y, 52, 18, "Remove", RED, () -> FriendsManager.remove(Minecraft.getInstance(), friend.username())));
 			labels.add(new Label("§b" + friend.username(), x + TEXT_X_OFFSET, y + (FACE_SIZE - 8) / 2));
 			y += ROW_HEIGHT;
 		}
@@ -177,7 +173,7 @@ public class SocialMenuScreen extends Screen {
 			y += ROW_HEIGHT - 4;
 			for (String blockedUser : blockedUsers) {
 				labels.add(new Label("§c" + blockedUser, x, y + 5));
-				addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 62, y, 62, 18, "Unblock", PINK, () ->
+				addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 62, y, 62, 18, "Unblock", PINK, () ->
 						com.melloo.skymelloo.client.social.BlockedUsersManager.unblock(blockedUser)));
 				y += ROW_HEIGHT;
 			}
@@ -204,10 +200,10 @@ public class SocialMenuScreen extends Screen {
 				// Block works regardless of current leadership - it only takes effect on a FUTURE join
 				// once you happen to lead a party, so it's always offered even if Kick (leader-only,
 				// would just fail server-side otherwise) isn't right now.
-				addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 52, y, 52, 18, "Block", RED, () ->
+				addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 52, y, 52, 18, "Block", RED, () ->
 						com.melloo.skymelloo.client.social.BlockedUsersManager.blockAndKickIfPresent(client, memberName)));
 				if (isLeader) {
-					addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 108, y, 52, 18, "Kick", RED, () ->
+					addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 108, y, 52, 18, "Kick", RED, () ->
 							client.player.connection.sendCommand("party kick " + memberName)));
 				}
 			}
@@ -233,7 +229,7 @@ public class SocialMenuScreen extends Screen {
 					faces.add(new Face(uuid, x, y));
 				}
 				labels.add(new Label("§b" + friend.username(), x + TEXT_X_OFFSET, y + (FACE_SIZE - 8) / 2));
-				addRenderableWidget(new SocialButtonWidget(x + COLUMN_WIDTH - 55, y, 55, 18, "Invite", PINK, () ->
+				addRenderableWidget(new SkyMellooButtonWidget(x + COLUMN_WIDTH - 55, y, 55, 18, "Invite", PINK, () ->
 						client.player.connection.sendCommand("party invite " + friend.username())));
 				y += ROW_HEIGHT;
 			}
@@ -270,49 +266,5 @@ public class SocialMenuScreen extends Screen {
 	@Override
 	public boolean isPauseScreen() {
 		return false;
-	}
-
-	/**
-	 * A small flat-fill, pink-outlined button matching this mod's theme, replacing vanilla
-	 * {@link net.minecraft.client.gui.components.Button}'s default gray 3-slice texture - the same
-	 * fill+outline+centered-text pattern already used by PlayerViewScreen's TabButtonWidget, just
-	 * generalized to take an arbitrary accent color (green for Accept, red for Decline/Remove/Kick,
-	 * pink for everything else) instead of one fixed color.
-	 */
-	private static final class SocialButtonWidget extends AbstractWidget {
-		private final int accent;
-		private final Runnable onClick;
-
-		SocialButtonWidget(int x, int y, int width, int height, String label, int accent, Runnable onClick) {
-			super(x, y, width, height, Component.literal(label));
-			this.accent = accent;
-			this.onClick = onClick;
-		}
-
-		private static int withAlpha(int argb, int alpha) {
-			return (alpha << 24) | (argb & 0xFFFFFF);
-		}
-
-		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
-			int x1 = getX();
-			int y1 = getY();
-			int x2 = getX() + getWidth();
-			int y2 = getY() + getHeight();
-			boolean hovered = this.isHovered();
-			gg.fill(x1, y1, x2, y2, withAlpha(accent, hovered ? 0x55 : 0x28));
-			gg.outline(x1, y1, getWidth(), getHeight(), withAlpha(accent, hovered ? 0xFF : 0x90));
-			gg.centeredText(Minecraft.getInstance().font, getMessage().getString(), (x1 + x2) / 2, y1 + (getHeight() - 8) / 2, 0xFFFFFFFF);
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput output) {
-			this.defaultButtonNarrationText(output);
-		}
-
-		@Override
-		public void onClick(MouseButtonEvent event, boolean doubleClick) {
-			onClick.run();
-		}
 	}
 }
