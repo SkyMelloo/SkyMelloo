@@ -64,6 +64,7 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static KeyMapping openConfigKey;
 	private static KeyMapping hudEditorKey;
 	private static KeyMapping socialMenuKey;
+	private static KeyMapping mainMenuKey;
 
 	/** So the settings screen itself can offer a "rebind" row without going out to vanilla's separate Controls screen. */
 	public static KeyMapping getOpenConfigKey() {
@@ -147,6 +148,17 @@ public class SkyMellooClient implements ClientModInitializer {
 				CATEGORY
 		));
 
+		// Opens the main SkyMelloo Menu item's screen (Credits/Spells/Cosmetics/Report a Bug nav row -
+		// see SkyMellooMenuScreen/SkyMellooMenuItemManager) - previously only reachable by right-clicking
+		// the fake hotbar item, no keybind at all (2026-07-29, "kleiner fix hotkeys für die anderen
+		// menus noch adden momentan nur h und normales menu"). Defaults to K (free in vanilla).
+		mainMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.skymelloo.main_menu",
+				InputConstants.Type.KEYSYM,
+				GLFW.GLFW_KEY_K,
+				CATEGORY
+		));
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			// Runs regardless of sky.melloo.me whitelist status - this is about the actual
 			// Minecraft server connection, unrelated to any of our own gated features below.
@@ -171,6 +183,9 @@ public class SkyMellooClient implements ClientModInitializer {
 				if (client.screen == null) {
 					client.setScreen(new com.melloo.skymelloo.client.gui.SocialMenuScreen());
 				}
+			}
+			while (mainMenuKey.consumeClick()) {
+				com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.openMenu(client);
 			}
 
 			WhitelistManager.checkOnce(client);
