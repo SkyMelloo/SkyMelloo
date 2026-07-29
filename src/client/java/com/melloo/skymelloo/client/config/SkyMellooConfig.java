@@ -24,16 +24,6 @@ public class SkyMellooConfig {
 					.build())
 			.build();
 
-	/**
-	 * True if this device has never saved its own local config file - used by
-	 * {@link com.melloo.skymelloo.client.social.CloudSyncManager} to decide whether pulling cloud
-	 * settings is safe (a fresh device/reinstall) or would silently clobber settings the user
-	 * already configured here (an existing install that just hasn't joined a server yet this run).
-	 */
-	public static boolean hasNoLocalConfigFile() {
-		return !java.nio.file.Files.exists(YACLPlatform.getConfigDir().resolve("skymelloo.json5"));
-	}
-
 	// Everything below was drastically simplified from a fully customizable mob/player highlighting
 	// system (name filters, friendly-mob toggle, self/friend/other/NPC player colors, a separate
 	// general "Mob Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
@@ -979,10 +969,7 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "Automatically decline optional server resource packs on Hypixel instead of showing the prompt - avoids the pack download/load step that sometimes crashes or freezes the game and forces a restart. Packs the server marks as required (ones that could get you kicked for declining) are never touched.")
 	public boolean autoDeclineHypixelResourcePacks = true;
 
-	@SerialEntry(comment = "Sync your SkyMelloo settings to sky.melloo.me, so a new device/reinstall with the same account can start from your existing settings instead of all defaults.")
-	public boolean cloudSyncEnabled = false;
-
-	@SerialEntry(comment = "Master switch for showing up as \"online\" to anyone else - other SkyMelloo users' mod-user ESP detection, the in-game Credits menu's online dot, and the website's public online-user count all depend on this. Off means you still report NOTHING about yourself, but you can still see/detect others who have it on. Doesn't affect Cloud Sync (that's private, never shown to anyone else).")
+	@SerialEntry(comment = "Master switch for showing up as \"online\" to anyone else - other SkyMelloo users' mod-user detection, the in-game Credits menu's online dot, and the website's public online-user count all depend on this. Off means you still report NOTHING about yourself, but you can still see/detect others who have it on. Doesn't affect Cloud Sync (that's private, never shown to anyone else).")
 	public boolean presenceSharingEnabled = false;
 
 	@SerialEntry(comment = "Custom status text shown next to your name to other SkyMelloo users nearby (via sky.melloo.me presence). Leave empty to show nothing. Requires presenceSharingEnabled above.")

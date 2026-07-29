@@ -537,9 +537,9 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(infoRow("sky.melloo.me", this::connectionStatusLabel, this::connectionStatusColor));
 
 				rows.add(headerRow("Cloud Sync"));
-				rows.add(tip(boolRow("Cloud Sync", () -> c.cloudSyncEnabled, v -> c.cloudSyncEnabled = v, 0xFF5599FF), "Sync your settings to sky.melloo.me - a new device/reinstall with this account starts from your existing settings instead of all defaults."));
-				rows.add(tip(actionRow("Push Now", "Upload", () -> CloudSyncManager.push(Minecraft.getInstance())), "Upload your current settings right now, without waiting for this menu to close."));
-				rows.add(tip(actionRow("Pull Now", "Download", () -> CloudSyncManager.forcePull(Minecraft.getInstance(), this::buildRows)), "Download your cloud settings right now and overwrite everything here - use this if you want to discard local changes."));
+				rows.add(tip(infoRow("Cloud Sync", this::cloudSyncStatusLabel, this::cloudSyncStatusColor), "Automatic once your account is linked - no separate toggle needed. Your settings push to sky.melloo.me whenever this menu closes, and pull down on any device/reinstall under this same linked account."));
+				rows.add(tip(actionRow("Push Now", "Upload", () -> CloudSyncManager.push(Minecraft.getInstance())), "Upload your current settings right now, without waiting for this menu to close. Requires a linked account."));
+				rows.add(tip(actionRow("Pull Now", "Download", () -> CloudSyncManager.forcePull(Minecraft.getInstance(), this::buildRows)), "Download your cloud settings right now and overwrite everything here - use this if you want to discard local changes. Requires a linked account."));
 
 				// Everything below is stuff other people (or the public sky.melloo.me website) can see
 				// about you - grouped here together rather than scattered under Dungeons/General, so
@@ -633,6 +633,14 @@ public class SkyMellooSettingsScreen extends Screen {
 
 	private int connectionStatusColor() {
 		return WhitelistManager.isAllowed() ? 0xFF55FF55 : 0xFFFF5555;
+	}
+
+	private String cloudSyncStatusLabel() {
+		return PermissionsManager.isAccountLinked() ? "Active (account linked)" : "Inactive - link your account to enable";
+	}
+
+	private int cloudSyncStatusColor() {
+		return PermissionsManager.isAccountLinked() ? 0xFF55FF55 : 0xFFFF5555;
 	}
 
 	/** Wraps any row factory with a hover tooltip explaining what the setting does. */
