@@ -23,7 +23,7 @@ import net.minecraft.client.Minecraft;
  */
 public final class DebugLog {
 	public enum Category {
-		SYNC, PERMISSIONS, CLOUD_SYNC, PRESENCE, PARTY, DUNGEON
+		SYNC, PERMISSIONS, CLOUD_SYNC, PRESENCE, PARTY, DUNGEON, STAFF
 	}
 
 	private static final long CHAT_THROTTLE_MILLIS = 250;
@@ -40,6 +40,7 @@ public final class DebugLog {
 			case PRESENCE -> config.debugPresence;
 			case PARTY -> config.debugParty;
 			case DUNGEON -> config.debugDungeon;
+			case STAFF -> config.debugStaff;
 		};
 	}
 
@@ -52,6 +53,7 @@ public final class DebugLog {
 			case PRESENCE -> config.debugPresenceDelivery;
 			case PARTY -> config.debugPartyDelivery;
 			case DUNGEON -> config.debugDungeonDelivery;
+			case STAFF -> config.debugStaffDelivery;
 		};
 	}
 

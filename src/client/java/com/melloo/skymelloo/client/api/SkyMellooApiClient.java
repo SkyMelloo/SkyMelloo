@@ -495,7 +495,6 @@ public final class SkyMellooApiClient {
 		});
 	}
 
-	/** Whether this UUID is on the admin-managed whitelist (sky.melloo.me/set) - the mod refuses to run any feature otherwise. */
 	/** Lightweight, cheap endpoint used purely to measure round-trip latency to sky.melloo.me itself (see SkyMellooPingMonitor) - not for anything else. */
 	public static CompletableFuture<Void> ping() {
 		return getJson("/health").thenApply(root -> null);
@@ -743,7 +742,7 @@ public final class SkyMellooApiClient {
 		}).exceptionally(error -> List.of());
 	}
 
-	/** One credited contributor - shown on the menu's Credits page as a player head. {@code online} is live (same presence system behind the mod-user ESP/badge), not baked into the cached list - see SkyMellooMenuScreen's CreditsPage, which re-fetches on a timer to keep it current while the page is open. */
+	/** One credited contributor - shown on the menu's Credits page as a player head. {@code online} is live (same presence system behind the mod-user highlight/badge), not baked into the cached list - see SkyMellooMenuScreen's CreditsPage, which re-fetches on a timer to keep it current while the page is open. */
 	public record CreditEntry(String username, String role, boolean online) {
 	}
 
@@ -768,6 +767,49 @@ public final class SkyMellooApiClient {
 			}
 			return result;
 		});
+	}
+
+	/** One nearby player, as seen in the tab list - all the server needs to check them against the staff/owner roster. */
+	public record StaffCheckEntry(String uuid, String username) {
+	}
+
+	/** Reports everyone currently visible in the tab list so the server can record an encounter for any of them that resolve to a real SkyMelloo staff/owner role - fire-and-forget, the mod doesn't need anything back here (see StaffEncounterTracker, which calls this on a timer regardless of server). */
+	public static CompletableFuture<Void> reportStaffEncounters(List<StaffCheckEntry> players, ModAuthManager.ModIdentity identity) {
+		JsonObject body = new JsonObject();
+		JsonArray playersArr = new JsonArray();
+		for (StaffCheckEntry p : players) {
+			JsonObject entry = new JsonObject();
+			entry.addProperty("uuid", p.uuid());
+			entry.addProperty("username", p.username());
+			playersArr.add(entry);
+		}
+		body.add("players", playersArr);
+		return postJson("/mod/staff-encounters", body, identity).thenApply(root -> null);
+	}
+
+	/** One SkyMelloo staff/owner member this account has ever been seen alongside, per the server's own encounter log - see the "/sm hitstaff" command. */
+	public record StaffEncounterEntry(String uuid, String username, String role, long firstSeenMillis, long lastSeenMillis) {
+	}
+
+	public static CompletableFuture<List<StaffEncounterEntry>> fetchStaffEncounters(ModAuthManager.ModIdentity identity) {
+		return getJson("/mod/staff-encounters", identity).thenApply(root -> {
+			List<StaffEncounterEntry> result = new ArrayList<>();
+			if (root.has("encounters") && root.get("encounters").isJsonArray()) {
+				for (JsonElement el : root.getAsJsonArray("encounters")) {
+					if (!el.isJsonObject()) {
+						continue;
+					}
+					JsonObject o = el.getAsJsonObject();
+					result.add(new StaffEncounterEntry(
+							o.get("uuid").getAsString(),
+							o.get("username").getAsString(),
+							o.get("role").getAsString(),
+							o.get("firstSeenMillis").getAsLong(),
+							o.get("lastSeenMillis").getAsLong()));
+				}
+			}
+			return result;
+		}).exceptionally(error -> List.of());
 	}
 
 	private static String encode(String value) {
