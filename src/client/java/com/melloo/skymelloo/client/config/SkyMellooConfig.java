@@ -24,6 +24,15 @@ public class SkyMellooConfig {
 					.build())
 			.build();
 
+	/** When this device's own settings file was last written, in epoch millis - 0 if it's never been saved at all. Used by CloudSyncManager to compare against the cloud copy's own updatedAt and decide which side is actually newer, rather than always blindly preferring one. */
+	public static long localSettingsLastModifiedMillis() {
+		try {
+			return java.nio.file.Files.getLastModifiedTime(YACLPlatform.getConfigDir().resolve("skymelloo.json5")).toMillis();
+		} catch (java.io.IOException e) {
+			return 0L;
+		}
+	}
+
 	// Everything below was drastically simplified from a fully customizable mob/player highlighting
 	// system (name filters, friendly-mob toggle, self/friend/other/NPC player colors, a separate
 	// general "Mob Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
@@ -968,6 +977,9 @@ public class SkyMellooConfig {
 	@TickBox
 	@SerialEntry(comment = "Automatically decline optional server resource packs on Hypixel instead of showing the prompt - avoids the pack download/load step that sometimes crashes or freezes the game and forces a restart. Packs the server marks as required (ones that could get you kicked for declining) are never touched.")
 	public boolean autoDeclineHypixelResourcePacks = true;
+
+	@SerialEntry(comment = "Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults. Off by default - an explicit opt-in, separate from account-linking itself.")
+	public boolean cloudSyncEnabled = false;
 
 	@SerialEntry(comment = "Master switch for showing up as \"online\" to anyone else - other SkyMelloo users' mod-user detection, the in-game Credits menu's online dot, and the website's public online-user count all depend on this. Off means you still report NOTHING about yourself, but you can still see/detect others who have it on. Doesn't affect Cloud Sync (that's private, never shown to anyone else).")
 	public boolean presenceSharingEnabled = false;
