@@ -217,7 +217,7 @@ public final class PartyHud implements HudElement {
 			}
 
 			// A small marker after the name for party members also detected running SkyMelloo (via
-			// sky.melloo.me presence, same detection Highlighting already uses for its own mod-user color) -
+			// sky.melloo.me presence, same detection the highlight system already uses for its own mod-user color) -
 			// embedded §-code, honored regardless of the base color passed to gg.text below.
 			String nameText = member.username() + (ModPresenceManager.isModUser(entry.getKey()) ? " §b◆" : "");
 			gg.text(client.font, nameText, textX, rowY, 0xFFFFFFFF);

@@ -582,7 +582,7 @@ public final class DungeonRoomTracker {
 	 * only an approximation ({@code referenceY} +/- {@code verticalMargin}), since neither our own
 	 * map-color reading nor Skyblocker's room database expose a room's actual vertical extent (room
 	 * ceiling heights vary by template) - good enough for a cosmetic "which mobs are in this room"
-	 * Highlighting distinction, not meant to be pixel-exact. {@code null} if no room is currently confirmed.
+	 * highlight distinction, not meant to be pixel-exact. {@code null} if no room is currently confirmed.
 	 */
 	public static AABB getCurrentRoomBounds(double referenceY, double verticalMargin) {
 		if (currentPhysicalRoomPos == null) {

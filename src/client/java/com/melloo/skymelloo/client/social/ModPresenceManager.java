@@ -119,7 +119,7 @@ public final class ModPresenceManager {
 			return;
 		}
 		// Privacy master switch - if off, we send NOTHING about ourselves at all (not even a
-		// stripped-down report), so we simply never appear in anyone else's mod-user Highlighting, the Credits
+		// stripped-down report), so we simply never appear in anyone else's mod-user highlighting, the Credits
 		// online dot, or the website's public online-user count. Querying OTHERS below is untouched -
 		// this only controls what we report about ourselves, not what we can see.
 		if (!SkyMellooConfig.HANDLER.instance().presenceSharingEnabled) {

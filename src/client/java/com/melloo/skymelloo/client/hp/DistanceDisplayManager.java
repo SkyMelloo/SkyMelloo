@@ -7,13 +7,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.Entity;
 
-/** Appends a "(12m)" distance suffix to Highlighting'd entities' nametags. */
+/** Appends a "(12m)" distance suffix to highlighted entities' nametags. */
 public final class DistanceDisplayManager {
 	private DistanceDisplayManager() {
 	}
 
 	public static Component apply(Entity entity, Component original) {
-		if (!SkyMellooConfig.HANDLER.instance().highlightShowDistance) {
+		if (!SkyMellooConfig.HANDLER.instance().showDistanceEnabled) {
 			return original;
 		}
 		var player = Minecraft.getInstance().player;

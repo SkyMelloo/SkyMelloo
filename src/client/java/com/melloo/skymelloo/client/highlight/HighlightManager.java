@@ -66,7 +66,7 @@ public final class HighlightManager {
 		if (MagicMissileManager.isTemporarilyInvisible(entity)) {
 			// A player briefly hidden by a magic-missile hit should actually disappear from this
 			// user's view, not turn into a glowing silhouette (which is what invisible+glowing
-			// normally renders as) - suppress all Highlighting treatment for the duration.
+			// normally renders as) - suppress all highlighting for the duration.
 			return false;
 		}
 
@@ -101,6 +101,12 @@ public final class HighlightManager {
 		}
 
 		if (living instanceof Player player) {
+			// /sm search - a deliberate one-off command action, lobby-only (see LobbySearchManager),
+			// always glows regardless of the playerHighlightEnabled toggle below, which only gates the
+			// passive party/staff/friend highlighting.
+			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
+				return true;
+			}
 			// Player highlighting (party members and staff) is a SkyBlock-specific feature - it
 			// shouldn't apply on other Hypixel game modes or the lobby.
 			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
@@ -111,7 +117,7 @@ public final class HighlightManager {
 			if (!config.playerHighlightEnabled) {
 				return false;
 			}
-			if (player.isInvisible() && !config.showInvisiblePlayers) {
+			if (player.isInvisible() && !config.showInvisiblePlayersEnabled) {
 				// Off by default - forcing the glow-outline on a REAL vanilla-invisible player
 				// defeats their invisibility entirely (glowing+invisible renders as a visible
 				// colored silhouette through walls, see EntityGlowMixin) - a much more
@@ -127,7 +133,7 @@ public final class HighlightManager {
 			// Forcing the glow-outline pass on players can hide cosmetic layers from mods
 			// like Lunar Client (capes/wings) for some players, so it's opt-in; the colored
 			// nametag (see colorizeName) already gives a see-through indicator on its own.
-			return config.playerGlowOutline;
+			return config.playerGlowOutlineEnabled;
 		}
 
 		// Only the dungeon current-room mob highlight remains - isInCurrentDungeonRoom already
@@ -138,7 +144,7 @@ public final class HighlightManager {
 				&& living instanceof Enemy && isInCurrentDungeonRoom(living);
 	}
 
-	/** Whether this entity gets ANY Highlighting treatment right now (glow, colored name, or item name) - used to gate the distance display. */
+	/** Whether this entity gets ANY highlight treatment right now (glow, colored name, or item name) - used to gate the distance display. */
 	public static boolean isHighlightTarget(Entity entity) {
 		if (!WhitelistManager.isAllowed()) {
 			return false;
@@ -150,13 +156,16 @@ public final class HighlightManager {
 			if (isKillFlashing(player.getUUID())) {
 				return true;
 			}
+			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
+				return true;
+			}
 			// Same SkyBlock-only restriction as shouldGlow's player branch above - party/staff
 			// player highlighting shouldn't apply on other Hypixel game modes or the lobby.
 			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
 				return false;
 			}
 			SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-			if (player.isInvisible() && !config.showInvisiblePlayers) {
+			if (player.isInvisible() && !config.showInvisiblePlayersEnabled) {
 				return false;
 			}
 			if (!config.playerHighlightEnabled) {
@@ -223,9 +232,12 @@ public final class HighlightManager {
 			if (isKillFlashing(player.getUUID())) {
 				return KILL_FLASH_COLOR;
 			}
+			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
+				return toRgb(config.lobbySearchColor);
+			}
 			return switch (classifyPlayer(player)) {
 				case PARTY -> lowHpBlinkColor(player, config, toRgb(config.partyHighlightColor));
-				case STAFF -> toRgb(config.adminHighlightColor);
+				case STAFF -> toRgb(config.staffHighlightColor);
 				case FRIEND -> toRgb(config.friendHighlightColor);
 				// Unreachable in practice - shouldGlow/isHighlightTarget already refuse NONE before a
 				// color is ever needed for it.
@@ -241,7 +253,7 @@ public final class HighlightManager {
 	private static final double LOW_HP_BLINK_THRESHOLD = 0.25;
 
 	/**
-	 * A party member's Highlighting normally stays their fixed party color, but blinks bright red once their
+	 * A party member's highlight normally stays their fixed party color, but blinks bright red once their
 	 * HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a fight,
 	 * using the same HP data already read for the Party HUD's own display. Blinks (alternates every
 	 * ~400ms) rather than just going solid red, so it's noticeably distinct from a static color choice.
@@ -276,7 +288,7 @@ public final class HighlightManager {
 	}
 
 	/**
-	 * Appends a small colored Highlighting-category marker after a player's nametag, instead of the old
+	 * Appends a small colored highlight-category marker after a player's nametag, instead of the old
 	 * behavior of overwriting the whole name's style - Hypixel bakes rank color (MVP+/VIP/etc.)
 	 * into the name via the scoreboard team style, and flattening the whole component to one
 	 * color wiped that out. This way the real rank color stays intact and only a marker is added.
@@ -290,10 +302,11 @@ public final class HighlightManager {
 		}
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		boolean flashing = isKillFlashing(player.getUUID());
-		if (!flashing && !config.playerHighlightEnabled) {
+		boolean searched = LobbySearchManager.isSearchedPlayer(player.getUUID());
+		if (!flashing && !searched && !config.playerHighlightEnabled) {
 			return original;
 		}
-		if (!flashing && classifyPlayer(player) == PlayerCategory.NONE) {
+		if (!flashing && !searched && classifyPlayer(player) == PlayerCategory.NONE) {
 			return original;
 		}
 		TextColor color = TextColor.fromRgb(getGlowColor(player) & 0xFFFFFF);

@@ -299,17 +299,20 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(boolRow("Player Highlighting", () -> c.playerHighlightEnabled, v -> c.playerHighlightEnabled = v, 0xFF5599FF), "Highlight your party members, SkyMelloo staff, and SkyMelloo Friends."));
 				rows.add(tip(colorRow("Party Color", () -> c.partyHighlightColor, v -> c.partyHighlightColor = v), "Glow color for your current Hypixel party members."));
 				rows.add(tip(boolRow("Low HP Blink", () -> c.lowHpBlinkEnabled, v -> c.lowHpBlinkEnabled = v, 0xFFFF5555), "A party member's highlight (glow outline and nametag marker) blinks bright red once their HP drops under 25% - an urgent \"someone needs help\" signal readable at a glance."));
-				rows.add(tip(colorRow("SkyMelloo Staff Color", () -> c.adminHighlightColor, v -> c.adminHighlightColor = v), "Glow color for players whose linked sky.melloo.me account is the owner, an admin, or a developer - resolved server-side from their real linked account, not something a player can fake for themselves. Works everywhere, not just in dungeons."));
+				rows.add(tip(colorRow("SkyMelloo Staff Color", () -> c.staffHighlightColor, v -> c.staffHighlightColor = v), "Glow color for players whose linked sky.melloo.me account is the owner, an admin, or a developer - resolved server-side from their real linked account, not something a player can fake for themselves. Works everywhere, not just in dungeons."));
 				rows.add(tip(colorRow("SkyMelloo Friend Color", () -> c.friendHighlightColor, v -> c.friendHighlightColor = v), "Glow color for confirmed SkyMelloo Friends (Social menu, key G) - not Hypixel's own /friend list."));
-				rows.add(tip(boolRow("Player Glow Outline", () -> c.playerGlowOutline, v -> c.playerGlowOutline = v, 0xFF5599FF), "Also force the glow outline (visible through walls), not just colored names."));
+				rows.add(tip(boolRow("Player Glow Outline", () -> c.playerGlowOutlineEnabled, v -> c.playerGlowOutlineEnabled = v, 0xFF5599FF), "Also force the glow outline (visible through walls), not just colored names."));
 				rows.add(tip(boolRow("Party Join Stats", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFFFFAA00), "When someone joins your party, look up their SkyBlock stats (sky.melloo.me/api) and post a summary in chat."));
 
+				rows.add(headerRow("Lobby Player Search"));
+				rows.add(tip(colorRow("Search Highlight Color", () -> c.lobbySearchColor, v -> c.lobbySearchColor = v), "Glow color for the player targeted with /sm search <name> - only works in a Hypixel lobby, not SkyBlock (which has its own party/staff/friend highlighting above). /sm search clear removes it."));
+
 				rows.add(headerRow("Misc"));
-				rows.add(tip(boolRow("Show Invisible Players", () -> c.showInvisiblePlayers, v -> c.showInvisiblePlayers = v, 0xFF888888), "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not a highlight effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden."));
+				rows.add(tip(boolRow("Show Invisible Players", () -> c.showInvisiblePlayersEnabled, v -> c.showInvisiblePlayersEnabled = v, 0xFF888888), "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not a highlight effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden."));
 			}
 			case HP -> {
 				rows.add(headerRow("Distance"));
-				rows.add(tip(boolRow("Show Distance", () -> c.highlightShowDistance, v -> c.highlightShowDistance = v, 0xFF55FFFF), "Show distance in blocks next to highlighted mobs/players/items."));
+				rows.add(tip(boolRow("Show Distance", () -> c.showDistanceEnabled, v -> c.showDistanceEnabled = v, 0xFF55FFFF), "Show distance in blocks next to highlighted mobs/players/items."));
 			}
 			case FISHING -> {
 				rows.add(headerRow("Fishing"));
@@ -507,6 +510,9 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(boolRow("Side By Side", () -> c.healthManaBarsSideBySide, v -> c.healthManaBarsSideBySide = v, 0xFFAAAAAA), "Mana bar next to the health bar instead of stacked below it."));
 				rows.add(tip(boolRow("Hide Hypixel's Native Bar", () -> c.hideNativeStatusActionBarEnabled, v -> c.hideNativeStatusActionBarEnabled = v, 0xFFAAAAAA), "Hides Hypixel's own plain Health/Defense/Mana actionbar text above the hotbar, since the custom bars above already show the same info. Turn off to see both at once."));
 				rows.add(tip(boolRow("Player Info HUD", () -> c.playerInfoHudEnabled, v -> c.playerInfoHudEnabled = v, 0xFF66DDFF), "FPS, ping, server address, area, coordinates, and facing direction. Position set via the HUD layout editor (default J)."));
+				rows.add(headerRow("Chat"));
+				rows.add(tip(boolRow("Mention Highlight", () -> c.chatMentionHighlightEnabled, v -> c.chatMentionHighlightEnabled = v, 0xFFFFD700), "Highlight (bold + colored marker) any chat message that mentions your own username, and play a short sound - so a mention doesn't slip by unnoticed."));
+				rows.add(tip(colorRow("Mention Highlight Color", () -> c.chatMentionHighlightColor, v -> c.chatMentionHighlightColor = v), "Marker color for a chat mention of your own username."));
 			}
 			case DEBUG -> {
 				rows.add(headerRow("Debug Messages"));

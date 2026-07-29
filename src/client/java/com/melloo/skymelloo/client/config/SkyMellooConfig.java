@@ -38,19 +38,21 @@ public class SkyMellooConfig {
 	// general "Mob Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
 	// highlights: party members (green), SkyMelloo staff (pink, everywhere - not dungeon-specific),
 	// and hostile mobs in your CURRENT dungeon room only (red, dungeon-only). Regular other players and NPCs get no highlight at all anymore.
-	// Removed entirely, not just defaulted off: highlightEnabled/highlightNameFilters/defaultHighlightColor/
-	// namedHighlightColor/friendlyMobsHighlightEnabled/friendlyHighlightColor (the general mob highlighting toggle), selfHighlightColor,
-	// friendHighlightNames/friendHighlightColor (see FriendListSync.java's deletion), otherPlayerHighlightColor,
-	// modUserHighlightColor (regular non-staff SkyMelloo users no longer get a color at all),
-	// showNpcHighlights/npcHighlightColor, autoSyncFriendsAndParty (only ever served the now-removed friend
-	// highlighting - party detection itself already comes from HypixelModAPI, see PartyTracker).
+	// Removed entirely, not just defaulted off: the general "highlight every hostile mob everywhere"
+	// toggle/name-filters/default-color/named-color, the friendly-mob toggle+color, the self color,
+	// the old Hypixel-/friend-list-based friend highlighting (name list + color, see
+	// FriendListSync.java's deletion - NOT the same as the current, still-live SkyMelloo-Friends
+	// color re-added below with its own key), the plain "other player" color, the "regular SkyMelloo
+	// user" color (non-staff users no longer get a color at all), and NPC highlighting + its color.
+	// autoSyncFriendsAndParty is gone too (only ever served the now-removed friend highlighting -
+	// party detection itself already comes from HypixelModAPI, see PartyTracker).
 
-	@AutoGen(category = "highlight", group = "highlight")
+	@AutoGen(category = "highlight", group = "mobs")
 	@TickBox
 	@SerialEntry(comment = "Highlight hostile mobs inside your CURRENT dungeon room in red, so the ones you still need to clear stand out from mobs elsewhere on the floor. Only active during an active dungeon run.")
 	public boolean dungeonRoomMobHighlightEnabled = false;
 
-	@AutoGen(category = "highlight", group = "highlight")
+	@AutoGen(category = "highlight", group = "mobs")
 	@ColorField
 	@SerialEntry(comment = "Glow color for hostile mobs inside your current dungeon room (see above).")
 	public Color dungeonRoomMobHighlightColor = new Color(0xFFFF0000, true);
@@ -76,7 +78,7 @@ public class SkyMellooConfig {
 	// color everywhere - resolved server-side from the player's real linked account/team-role
 	// (see server.js's roleForUuid), never something another client could self-report to fake.
 	@SerialEntry(comment = "Glow color for players whose linked sky.melloo.me account is the owner, an admin, or a developer - works everywhere, not just in dungeons.")
-	public Color adminHighlightColor = new Color(0xFFFF66CC, true);
+	public Color staffHighlightColor = new Color(0xFFFF66CC, true);
 
 	@AutoGen(category = "highlight", group = "players")
 	@ColorField
@@ -90,7 +92,12 @@ public class SkyMellooConfig {
 	@AutoGen(category = "highlight", group = "players")
 	@TickBox
 	@SerialEntry(comment = "Also force the glow outline (visible through walls) on players, not just colored names. Off by default: forcing glow on every player can hide cosmetic layers from mods like Lunar Client (capes/wings) for some players.")
-	public boolean playerGlowOutline = false;
+	public boolean playerGlowOutlineEnabled = false;
+
+	@AutoGen(category = "highlight", group = "search")
+	@ColorField
+	@SerialEntry(comment = "Glow color for the player targeted with /sm search - only works in a Hypixel lobby (not SkyBlock, which has its own party/staff/friend highlighting above).")
+	public Color lobbySearchColor = new Color(0xFF55FF55, true);
 
 	@AutoGen(category = "highlight", group = "players")
 	@TickBox
@@ -100,7 +107,17 @@ public class SkyMellooConfig {
 	// override, which makes them render as a completely normal, visible player instead, still
 	// blocked by walls/line-of-sight.
 	@SerialEntry(comment = "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not a highlighting effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden.")
-	public boolean showInvisiblePlayers = false;
+	public boolean showInvisiblePlayersEnabled = false;
+
+	@AutoGen(category = "general", group = "chat")
+	@TickBox
+	@SerialEntry(comment = "Highlight (bold + colored marker) any chat message that mentions your own username, and play a short sound - so a mention doesn't slip by unnoticed.")
+	public boolean chatMentionHighlightEnabled = true;
+
+	@AutoGen(category = "general", group = "chat")
+	@ColorField
+	@SerialEntry(comment = "Marker color for a chat mention of your own username (see above).")
+	public Color chatMentionHighlightColor = new Color(0xFFFFD700, true);
 
 	@AutoGen(category = "dungeons", group = "info")
 	@TickBox
@@ -625,8 +642,8 @@ public class SkyMellooConfig {
 
 	@AutoGen(category = "hp", group = "hp")
 	@TickBox
-	@SerialEntry(comment = "Show distance in blocks next to Highlighting'd mobs/players/items.")
-	public boolean highlightShowDistance = true;
+	@SerialEntry(comment = "Show distance in blocks next to highlighted mobs/players/items.")
+	public boolean showDistanceEnabled = true;
 
 	@AutoGen(category = "fishing", group = "fishing")
 	@TickBox

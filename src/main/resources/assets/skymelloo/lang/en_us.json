@@ -1,6 +1,6 @@
 {
 	"key.categories.skymelloo": "SkyMelloo",
-	"key.skymelloo.toggle_highlight": "Toggle Mob Highlighting",
+	"key.skymelloo.toggle_mob_highlight": "Toggle Mob Highlighting",
 	"key.skymelloo.open_config": "Open SkyMelloo Settings",
 	"key.skymelloo.hud_editor": "Open HUD Layout Editor",
 	"key.skymelloo.social_menu": "Open Social Menu",
@@ -9,7 +9,7 @@
 	"yacl3.config.skymelloo:config.title": "SkyMelloo",
 
 	"yacl3.config.skymelloo:config.category.highlight": "Highlighting",
-	"yacl3.config.skymelloo:config.category.highlight.group.highlight": "Mobs",
+	"yacl3.config.skymelloo:config.category.highlight.group.mobs": "Mobs",
 	"yacl3.config.skymelloo:config.category.highlight.group.players": "Players",
 
 	"yacl3.config.skymelloo:config.category.item": "Items",
@@ -27,14 +27,14 @@
 	"yacl3.config.skymelloo:config.category.block.group.block": "General",
 
 	"yacl3.config.skymelloo:config.partyHighlightColor": "Party Color",
-	"yacl3.config.skymelloo:config.playerGlowOutline": "Force Glow Outline on Players",
+	"yacl3.config.skymelloo:config.playerGlowOutlineEnabled": "Force Glow Outline on Players",
 	"yacl3.config.skymelloo:config.partyJoinStatsEnabled": "Announce Party-Join Stats",
 
 	"yacl3.config.skymelloo:config.itemHighlightEnabled": "Item Highlighting",
 	"yacl3.config.skymelloo:config.itemHighlightNameFilters": "Item Name Filters",
 	"yacl3.config.skymelloo:config.itemHighlightColor": "Item Color",
 
-	"yacl3.config.skymelloo:config.highlightShowDistance": "Show Distance",
+	"yacl3.config.skymelloo:config.showDistanceEnabled": "Show Distance",
 
 	"yacl3.config.skymelloo:config.fishingHelperEnabled": "Fishing Bite Alert",
 	"yacl3.config.skymelloo:config.fishingHelperSound": "Fishing Alert Sound",
