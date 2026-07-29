@@ -150,6 +150,11 @@ public final class HighlightManager {
 			if (isKillFlashing(player.getUUID())) {
 				return true;
 			}
+			// Same SkyBlock-only restriction as shouldGlow's player branch above - party/staff
+			// player highlighting shouldn't apply on other Hypixel game modes or the lobby.
+			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
+				return false;
+			}
 			SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 			if (player.isInvisible() && !config.showInvisiblePlayers) {
 				return false;
