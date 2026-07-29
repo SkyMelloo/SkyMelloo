@@ -49,7 +49,7 @@ public final class FriendsManager {
 	}
 
 	public static void refresh(Minecraft client) {
-		if (refreshInFlight || !PermissionsManager.has("friendChat")) {
+		if (refreshInFlight) {
 			return;
 		}
 		refreshInFlight = true;
@@ -189,14 +189,6 @@ public final class FriendsManager {
 		return SharedSuggestionProvider.suggest(incomingRequests.stream().map(SkyMellooApiClient.FriendRequestEntry::username), builder);
 	}
 
-	private static boolean checkPermission(FabricClientCommandSource source) {
-		if (!PermissionsManager.has("friendChat")) {
-			source.sendError(ChatUtil.prefixed("§cSkyMelloo Friends isn't enabled for your account."));
-			return false;
-		}
-		return true;
-	}
-
 	// ---- command tree ----
 
 	public static LiteralArgumentBuilder<FabricClientCommandSource> buildFriendCommand() {
@@ -213,9 +205,6 @@ public final class FriendsManager {
 						.then(ClientCommands.argument("name", StringArgumentType.word())
 								.suggests(FriendsManager::suggestIncomingRequests)
 								.executes(ctx -> {
-									if (!checkPermission(ctx.getSource())) {
-										return 1;
-									}
 									accept(Minecraft.getInstance(), StringArgumentType.getString(ctx, "name"));
 									return 1;
 								})))
@@ -223,9 +212,6 @@ public final class FriendsManager {
 						.then(ClientCommands.argument("name", StringArgumentType.word())
 								.suggests(FriendsManager::suggestIncomingRequests)
 								.executes(ctx -> {
-									if (!checkPermission(ctx.getSource())) {
-										return 1;
-									}
 									decline(Minecraft.getInstance(), StringArgumentType.getString(ctx, "name"));
 									return 1;
 								})))
@@ -233,18 +219,12 @@ public final class FriendsManager {
 						.then(ClientCommands.argument("name", StringArgumentType.word())
 								.suggests(FriendsManager::suggestFriends)
 								.executes(ctx -> {
-									if (!checkPermission(ctx.getSource())) {
-										return 1;
-									}
 									remove(Minecraft.getInstance(), StringArgumentType.getString(ctx, "name"));
 									return 1;
 								})))
 				.then(ClientCommands.argument("name", StringArgumentType.word())
 						.suggests(SkyMellooClient::suggestOnlinePlayers)
 						.executes(ctx -> {
-							if (!checkPermission(ctx.getSource())) {
-								return 1;
-							}
 							sendRequest(Minecraft.getInstance(), StringArgumentType.getString(ctx, "name"));
 							return 1;
 						}));

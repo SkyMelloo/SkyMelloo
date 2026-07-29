@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Reports this build's version + jar hash to sky.melloo.me for admin-visible build tracking - run
-// automatically by Gradle's "reportBuild" task right after every build (2026-07-26), so builds and
+// automatically by Gradle's "reportBuild" task right after every build, so builds and
 // their versions can be managed from the admin panel.
 //
 // Purely informational/for admin visibility - does NOT grant runtime trust by itself. The hash

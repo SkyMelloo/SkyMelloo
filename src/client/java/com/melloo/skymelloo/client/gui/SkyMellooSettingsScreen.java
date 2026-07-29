@@ -54,11 +54,9 @@ public class SkyMellooSettingsScreen extends Screen {
 	};
 
 	public enum Tab {
-		// PARTY added / ITEMS removed (2026-07-27):
 		// Item/Chest/Mob highlighting all relocated into DUNGEONS (see rowsFor), Player highlighting
-		// (now "Party Highlighting", including the new admin/dev/owner gold color) moved here instead.
-		// ESP removed entirely the same day - HP Armor Stand highlighting (the only thing left in it
-		// after Ore ESP was removed) is gone too, not relocated.
+		// (now "Party Highlighting", including the admin/dev/owner gold color) moved here instead.
+		// HP Armor Stand highlighting is gone entirely, not relocated.
 		COSMETICS("Cosmetics"), PARTY("Party"), FUN("Fun"), HP("HP & Distance"), FISHING("Fishing"), DUNGEONS("Dungeons"), GENERAL("General"), CLOUD("Cloud"), DEBUG("Debug");
 
 		final String label;
@@ -98,17 +96,15 @@ public class SkyMellooSettingsScreen extends Screen {
 		List<Tab> tabs = new ArrayList<>();
 		for (Tab tab : Tab.values()) {
 			boolean visible = switch (tab) {
-				case HP -> PermissionsManager.has("mobHighlight") || PermissionsManager.has("playerHighlight");
-				// Party highlighting is its own permission, split off from the dungeon mob highlight
-				// (2026-07-27) - previously granting one silently granted the other.
-				case PARTY -> PermissionsManager.has("playerHighlight");
-				case FISHING -> PermissionsManager.has("fishingHelper");
-				// Chest/Item/Mob highlighting moved in here too (2026-07-27), and Death Recap moved in
-				// from Fun the same day - the tab shows if any of the five permissions below unlocks
-				// something inside it.
-				case DUNGEONS -> PermissionsManager.has("dungeonInfo") || PermissionsManager.has("chestEsp") || PermissionsManager.has("itemEsp") || PermissionsManager.has("mobHighlight") || PermissionsManager.has("killTracker");
+				case HP -> true;
+				case PARTY -> true;
+				case FISHING -> true;
+				// Chest/Item/Mob highlighting moved in here too, and Death Recap moved in from Fun
+				// the same day - this tab always shows since every feature it contains is available
+				// to everyone now.
+				case DUNGEONS -> true;
 				case COSMETICS -> PermissionsManager.has("cosmetics");
-				// Only Spell/Spell Essence live here now (2026-07-27: Kill Tracker/Death Double removed
+				// Only Spell/Spell Essence live here now (Kill Tracker/Death Double removed
 				// entirely, Death Recap moved to Dungeons) - both need "cosmetics".
 				case FUN -> PermissionsManager.has("cosmetics");
 				case GENERAL, CLOUD, DEBUG -> true;
@@ -170,12 +166,11 @@ public class SkyMellooSettingsScreen extends Screen {
 		buildRows();
 
 		// This screen (opened via key H) is a separate screen from the main SkyMelloo Menu item's
-		// nav row - "Report a Bug" living only there meant it was missing from the single most-used
-		// entry point into the mod's UI (2026-07-29, "adde in mehr menus also auch in das h menu").
-		// Uses the shared SkyMellooButtonWidget (2026-07-29, "report a bug bitte überall custom
-		// button statt den standart") rather than vanilla Button - this was the one place in the
-		// mod's UI still using the plain grey Minecraft button style instead of matching everywhere
-		// else's pink-glow look.
+		// nav row - Report a Bug living only there meant it was missing from the single most-used
+		// entry point into the mod's UI, so it's added here too. Uses the shared
+		// SkyMellooButtonWidget rather than vanilla Button - this was the one place in the mod's UI
+		// still using the plain grey Minecraft button style instead of matching everywhere else's
+		// pink-glow look.
 		int reportBugWidth = 90;
 		addRenderableWidget(new SkyMellooButtonWidget(this.width - MARGIN - reportBugWidth, MARGIN, reportBugWidth, 18,
 				"Report a Bug", SkyMellooButtonWidget.RED, SkyMellooMenuScreen::openReportBug));
@@ -297,11 +292,9 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(cosmeticRow("Radiant Pulse", () -> c.radiantPulseEnabled, v -> c.radiantPulseEnabled = v, 0xFFEEEEFF), "A ring of end-rod sparkles that periodically pulses outward from your chest."));
 			}
 			case PARTY -> {
-				// Drastically simplified (2026-07-27, "generell kein esp mehr und komplett umbauen
-				// dann und alte sachen davon entfernen") - party (green), SkyMelloo staff (pink,
-				// everywhere - not dungeon-specific), and SkyMelloo Friends (aqua, added back the
-				// same day) are the only categories that get highlighted now. Self/regular-other-
-				// player/NPC colors are gone entirely, not just defaulted off.
+				// Party (green), SkyMelloo staff (pink, everywhere - not dungeon-specific), and
+				// SkyMelloo Friends (aqua) are the only categories that get highlighted. Self/regular-
+				// other-player/NPC colors are gone entirely, not just defaulted off.
 				rows.add(headerRow("Party Highlighting"));
 				rows.add(tip(boolRow("Player Highlighting", () -> c.playerEspEnabled, v -> c.playerEspEnabled = v, 0xFF5599FF), "Highlight your party members, SkyMelloo staff, and SkyMelloo Friends."));
 				rows.add(tip(colorRow("Party Color", () -> c.espPartyColor, v -> c.espPartyColor = v), "Glow color for your current Hypixel party members."));
@@ -312,11 +305,11 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(boolRow("Party Join Stats", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFFFFAA00), "When someone joins your party, look up their SkyBlock stats (sky.melloo.me/api) and post a summary in chat."));
 
 				rows.add(headerRow("Misc"));
-				rows.add(tip(boolRow("Show Invisible Players", () -> c.espShowInvisiblePlayers, v -> c.espShowInvisiblePlayers = v, 0xFF888888), "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. NOT a glow/ESP effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden."));
+				rows.add(tip(boolRow("Show Invisible Players", () -> c.espShowInvisiblePlayers, v -> c.espShowInvisiblePlayers = v, 0xFF888888), "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not a highlight effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden."));
 			}
 			case HP -> {
 				rows.add(headerRow("Distance"));
-				rows.add(tip(boolRow("Show Distance", () -> c.espShowDistance, v -> c.espShowDistance = v, 0xFF55FFFF), "Show distance in blocks next to ESP'd mobs/players/items."));
+				rows.add(tip(boolRow("Show Distance", () -> c.espShowDistance, v -> c.espShowDistance = v, 0xFF55FFFF), "Show distance in blocks next to highlighted mobs/players/items."));
 			}
 			case FISHING -> {
 				rows.add(headerRow("Fishing"));
@@ -330,45 +323,33 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(colorRow("Minigame Glow Color", () -> c.fishingMinigameColor, v -> c.fishingMinigameColor = v), "Extra glow tint on the fishing minigame targets."));
 			}
 			case DUNGEONS -> {
-				// Chest/Item/Mob highlighting all relocated here from their old ESP/Items tabs
-				// (2026-07-27, "chest esp nach dungeons verschieben und chest highlight nennen item
-				// esp auch dahin ... mob esp auch mob highlighting nach dungeons verschieben") -
-				// purely a settings-screen reorg, the underlying scan/render logic (EspManager,
+				// Chest/Item/Mob highlighting all relocated here from their previous tabs - purely a
+				// settings-screen reorg, the underlying scan/render logic (EspManager,
 				// BlockEspRenderer) is unchanged and still works everywhere in-game, not just dungeons.
-				if (PermissionsManager.has("chestEsp")) {
-					rows.add(headerRow("Chest Highlight"));
-					rows.add(tip(boolRow("Chest Highlight", () -> c.chestEspEnabled, v -> c.chestEspEnabled = v, 0xFFFFD700), "Highlight chests with a glowing box outline, visible through walls."));
-					rows.add(tip(colorRow("Chest Highlight Color", () -> c.chestEspColor, v -> c.chestEspColor = v), "Box color for chests."));
-					rows.add(tip(intStepRow("Block Scan Range", () -> c.blockEspRange, v -> c.blockEspRange = v, 8, 48, 8), "Scan radius (in blocks) around you for Chest Highlight."));
-				}
+				rows.add(headerRow("Chest Highlight"));
+				rows.add(tip(boolRow("Chest Highlight", () -> c.chestEspEnabled, v -> c.chestEspEnabled = v, 0xFFFFD700), "Highlight chests with a glowing box outline (only when actually in view, not through walls)."));
+				rows.add(tip(colorRow("Chest Highlight Color", () -> c.chestEspColor, v -> c.chestEspColor = v), "Box color for chests."));
+				rows.add(tip(intStepRow("Block Scan Range", () -> c.blockEspRange, v -> c.blockEspRange = v, 8, 48, 8), "Scan radius (in blocks) around you for Chest Highlight."));
 
-				if (PermissionsManager.has("itemEsp")) {
-					rows.add(headerRow("Item Highlighting"));
-					rows.add(tip(boolRow("Item Highlighting", () -> c.itemEspEnabled, v -> c.itemEspEnabled = v, 0xFF55FF55), "Highlight dropped items with a glowing outline and show their name, visible through walls."));
-					rows.add(tip(stringRow("Item Name Filters", () -> c.itemEspNameFilters, v -> c.itemEspNameFilters = v), "Comma-separated, case-insensitive item name filters. Leave empty to highlight all dropped items."));
-					rows.add(tip(colorRow("Item Highlighting Color", () -> c.itemEspColor, v -> c.itemEspColor = v), "Glow color for dropped items."));
-				}
+				rows.add(headerRow("Item Highlighting"));
+				rows.add(tip(boolRow("Item Highlighting", () -> c.itemEspEnabled, v -> c.itemEspEnabled = v, 0xFF55FF55), "Highlight dropped items with a glowing outline and show their name (only when actually in view, not through walls)."));
+				rows.add(tip(stringRow("Item Name Filters", () -> c.itemEspNameFilters, v -> c.itemEspNameFilters = v), "Comma-separated, case-insensitive item name filters. Leave empty to highlight all dropped items."));
+				rows.add(tip(colorRow("Item Highlighting Color", () -> c.itemEspColor, v -> c.itemEspColor = v), "Glow color for dropped items."));
 
-				// Drastically simplified (2026-07-27, "und mobs im dungeon rot aber nur im selben raum
-				// ... generell kein esp mehr") - the old general "highlight every hostile mob
-				// everywhere" system (name filters, friendly mobs, default/named colors) is gone
-				// entirely. Only the current-room highlight remains, and it's dungeon-only by nature
+				// Drastically simplified - the old general "highlight every hostile mob everywhere"
+				// system (name filters, friendly mobs, default/named colors) is gone entirely. Only
+				// the current-room highlight remains, and it's dungeon-only by nature
 				// (isInCurrentDungeonRoom requires an active run).
-				if (PermissionsManager.has("mobHighlight")) {
-					rows.add(headerRow("Mob Highlighting"));
-					rows.add(tip(boolRow("Mob Highlighting", () -> c.dungeonRoomMobHighlightEnabled, v -> c.dungeonRoomMobHighlightEnabled = v, 0xFFFF0000), "During a dungeon run, highlight hostile mobs inside your CURRENT room, so the ones you still need to clear stand out from mobs elsewhere on the floor."));
-					rows.add(tip(colorRow("Mob Highlight Color", () -> c.dungeonRoomMobHighlightColor, v -> c.dungeonRoomMobHighlightColor = v), "Glow color for hostile mobs inside your current dungeon room."));
-				}
+				rows.add(headerRow("Mob Highlighting"));
+				rows.add(tip(boolRow("Mob Highlighting", () -> c.dungeonRoomMobHighlightEnabled, v -> c.dungeonRoomMobHighlightEnabled = v, 0xFFFF0000), "During a dungeon run, highlight hostile mobs inside your CURRENT room, so the ones you still need to clear stand out from mobs elsewhere on the floor."));
+				rows.add(tip(colorRow("Mob Highlight Color", () -> c.dungeonRoomMobHighlightColor, v -> c.dungeonRoomMobHighlightColor = v), "Glow color for hostile mobs inside your current dungeon room."));
 
-				// Moved here from Fun (2026-07-27, "death recap zu dungeions schieben") - still gated by
-				// the same "killTracker" permission as before, just relocated in the menu.
-				if (PermissionsManager.has("killTracker")) {
-					rows.add(headerRow("Death Recap"));
-					rows.add(tip(boolRow("Death Recap", () -> c.deathRecapEnabled, v -> c.deathRecapEnabled = v, 0xFFFF5555), "When you die, post a short chat recap of the last few hits you took and what/who dealt them - real damage-source data, not a proximity guess."));
-					rows.add(tip(boolRow("Death Recap Party Announce", () -> c.deathRecapPartyAnnounceEnabled, v -> c.deathRecapPartyAnnounceEnabled = v, 0xFFFF5555), "Also share a short one-line version with the party (who/what killed you) - independent of the local Death Recap above."));
-					rows.add(tip(stringRow("Message Text", () -> c.deathRecapPartyAnnounceTemplate, v -> c.deathRecapPartyAnnounceTemplate = v), "Placeholders: {player} {cause}"));
-					rows.add(tip(cycleRow("Delivery", () -> c.deathRecapPartyAnnounceDelivery, v -> c.deathRecapPartyAnnounceDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
-				}
+				// Moved here from Fun, just relocated in the menu.
+				rows.add(headerRow("Death Recap"));
+				rows.add(tip(boolRow("Death Recap", () -> c.deathRecapEnabled, v -> c.deathRecapEnabled = v, 0xFFFF5555), "When you die, post a short chat recap of the last few hits you took and what/who dealt them - real damage-source data, not a proximity guess."));
+				rows.add(tip(boolRow("Death Recap Party Announce", () -> c.deathRecapPartyAnnounceEnabled, v -> c.deathRecapPartyAnnounceEnabled = v, 0xFFFF5555), "Also share a short one-line version with the party (who/what killed you) - independent of the local Death Recap above."));
+				rows.add(tip(stringRow("Message Text", () -> c.deathRecapPartyAnnounceTemplate, v -> c.deathRecapPartyAnnounceTemplate = v), "Placeholders: {player} {cause}"));
+				rows.add(tip(cycleRow("Delivery", () -> c.deathRecapPartyAnnounceDelivery, v -> c.deathRecapPartyAnnounceDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
 
 				rows.add(headerRow("Dungeon Info"));
 				rows.add(tip(boolRow("Dungeon Info", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFF5599FF), "When someone joins your dungeon party finder group, look up their stats and post a summary in chat."));
@@ -488,10 +469,9 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(stringRow("Message Text", () -> c.dungeonFloorKickMaxMessageTemplate, v -> c.dungeonFloorKickMaxMessageTemplate = v), "Placeholders: {player} {value} {threshold}"));
 				rows.add(tip(cycleRow("Delivery", () -> c.dungeonFloorKickMaxDelivery, v -> c.dungeonFloorKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
 
-				// "nicht nur max und min catacomb level aber auch so completion welchen höchsten floor
-				// die schon haben also completed" (2026-07-27) - Floor Requirement above only checks
-				// whether a member currently MEETS the level requirements; this checks whether they've
-				// actually COMPLETED that floor before (Hypixel's own record), an independent signal.
+				// Floor Requirement above only checks whether a member currently MEETS the level
+				// requirements; this checks whether they've actually COMPLETED that floor before
+				// (Hypixel's own record), an independent signal.
 				rows.add(headerRow("Floor Completion"));
 				rows.add(tip(boolRow("Floor Completion Auto-Kick", () -> c.dungeonFloorCompletionKickEnabled, v -> c.dungeonFloorCompletionKickEnabled = v, 0xFFFF5555), "Automatically /party kick a member who hasn't ACTUALLY COMPLETED the Required Floor below yet - unlike Floor Auto-Kick above, this checks real completion, not just current level-eligibility."));
 				rows.add(tip(intStepRow("Required Floor", () -> c.dungeonFloorCompletionKickThreshold, v -> c.dungeonFloorCompletionKickThreshold = v, 0, 7, 1), "Minimum floor a member needs to have ACTUALLY COMPLETED before (0 = Entrance, 7 = Floor VII)."));
@@ -503,12 +483,12 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(cycleRow("Delivery", () -> c.dungeonFloorCompletionKickMaxDelivery, v -> c.dungeonFloorCompletionKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
 			}
 			case FUN -> {
-				// Kill Tracker's toggle/delivery choice and Death Double (both variants) removed entirely
-				// (2026-07-27) - the
-				// Spell kill announcement is always on and always LOCAL now, hardcoded at its call site
-				// (MagicMissileManager#announceMissileKill) rather than user-configurable, and Death
-				// Double no longer exists at all (see combat/DeathDoubleManager.java's deletion). Death
-				// Recap moved to the Dungeons tab (see case DUNGEONS below).
+				// Kill Tracker's toggle/delivery choice and Death Double (both variants) removed
+				// entirely - the Spell kill announcement is always on and always LOCAL now, hardcoded
+				// at its call site (MagicMissileManager#announceMissileKill) rather than
+				// user-configurable, and Death Double no longer exists at all (see
+				// combat/DeathDoubleManager.java's deletion). Death Recap moved to the Dungeons tab
+				// (see case DUNGEONS below).
 				if (PermissionsManager.has("cosmetics")) {
 					rows.add(headerRow("Spell"));
 					rows.add(tip(cosmeticColorRow("Spell", () -> c.magicMissileEnabled, v -> c.magicMissileEnabled = v, () -> c.magicMissileColor, v -> c.magicMissileColor = v), "Cast via the \"Cast Spell\" button in the SkyMelloo Menu item's Spells page - shoots a small particle projectile that bursts on impact. Drops a collectible \"Spell Essence\" item on a kill too - always on, no separate toggle."));
@@ -564,16 +544,15 @@ public class SkyMellooSettingsScreen extends Screen {
 				// it's obvious at a glance everything this account shares and there's one place to shut
 				// it all off for privacy.
 				rows.add(headerRow("Sharing & Privacy"));
-				// Renamed from "Presence Sharing" (2026-07-28, "mach sync trennen in 2 features dungeon
-				// sync und normaler sync") - this and Dungeon Sync below are now presented as the two
-				// peer halves of sharing: this one is the lightweight "general sync" (online status +
-				// which world/island/dungeon floor you're in), Dungeon Sync is the heavy per-tick
-				// dungeon-run detail. The underlying field is still presenceSharingEnabled - only the
-				// label/description changed, not the config key.
-				rows.add(tip(boolRow("Sync", () -> c.presenceSharingEnabled, v -> c.presenceSharingEnabled = v, 0xFFAA33FF), "Master switch for showing up as \"online\" to anyone else, and sharing which world/island/dungeon floor you're currently in - other SkyMelloo users' mod-user ESP detection, the Credits online dot, the website's public online-user count, and your friends list entry on sky.melloo.me all depend on this. Off hides you from all of these, but you can still see OTHERS who have this on. Doesn't affect Cloud Sync above (that's just your own settings, never shown to anyone else)."));
+				// Renamed from "Presence Sharing" - this and Dungeon Sync below are now presented as
+				// the two peer halves of sharing: this one is the lightweight "general sync" (online
+				// status + which world/island/dungeon floor you're in), Dungeon Sync is the heavy
+				// per-tick dungeon-run detail. The underlying field is still presenceSharingEnabled -
+				// only the label/description changed, not the config key.
+				rows.add(tip(boolRow("Sync", () -> c.presenceSharingEnabled, v -> c.presenceSharingEnabled = v, 0xFFAA33FF), "Master switch for showing up as \"online\" to anyone else, and sharing which world/island/dungeon floor you're currently in - other SkyMelloo users' mod-user detection, the Credits online dot, the website's public online-user count, and your friends list entry on sky.melloo.me all depend on this. Off hides you from all of these, but you can still see OTHERS who have this on. Doesn't affect Cloud Sync above (that's just your own settings, never shown to anyone else)."));
 				rows.add(tip(stringRow("Status", () -> c.customStatusText, v -> c.customStatusText = v),
 						"Shown next to your name to other SkyMelloo users nearby, via sky.melloo.me. Leave empty to show nothing. Requires Sync above."));
-				rows.add(tip(boolRow("Dungeon Sync", () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, 0xFF66DDFF), "Share your current room/floor/secrets/score with party members also running SkyMelloo, and with the sky.melloo.me Dungeon lookup page - relayed over sky.melloo.me, invisible to anyone not running the mod. Room/secrets detail needs Skyblocker installed too (see Show Room Secrets under Dungeons). Requires Sync above. Reports once a second, fixed - not adjustable (2026-07-27, see SkyMellooConfig's own comment on why)."));
+				rows.add(tip(boolRow("Dungeon Sync", () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, 0xFF66DDFF), "Share your current room/floor/secrets/score with party members also running SkyMelloo, and with the sky.melloo.me Dungeon lookup page - relayed over sky.melloo.me, invisible to anyone not running the mod. Room/secrets detail needs Skyblocker installed too (see Show Room Secrets under Dungeons). Requires Sync above. Reports once a second, fixed - not adjustable (see SkyMellooConfig's own comment on why)."));
 			}
 		}
 		return rows;

@@ -1155,8 +1155,8 @@ public final class CosmeticsRenderer {
 	 * being a thin bone with sparse spikes). The two wings aren't a perfect mirror of each other - a
 	 * slightly different flap phase per side.
 	 * <p>
-	 * The flap itself is a genuine TRAVELING WAVE along the spine now, not a rigid fan
-	 * (2026-07-26): the old version used ONE shared phase for the whole wing, just scaled by
+	 * The flap itself is a genuine TRAVELING WAVE along the spine, not a rigid fan: an earlier
+	 * version used ONE shared phase for the whole wing, just scaled by
 	 * distance from the root, which meant every point on the spine moved in perfect lockstep (only the
 	 * amplitude differed) - reading as a stiff fan opening/closing rather than a real wing. A real
 	 * wing's tip lags behind its root during a flap (the classic S-curve/whip shape) - modeled here by
@@ -1246,8 +1246,7 @@ public final class CosmeticsRenderer {
 	 * of smoke escaping outward. A real "tear in reality" with actual structure and motion to it, not
 	 * just sparse random drift near the player.
 	 * <p>
-	 * Made noticeably denser/busier (2026-07-26, "viel cooler machen mehr partikel mehr animieren mehr
-	 * füllen"): nearly double the points along the crack itself, a second haze layer just off to the
+	 * Made noticeably denser/busier: nearly double the points along the crack itself, a second haze layer just off to the
 	 * side of the line so it reads as an actual torn OPENING with some width to it (not a single-pixel
 	 * line), up to 2 simultaneous suction pulls per tick instead of one 50%-chance pull, and more
 	 * frequent/bigger unstable puffs.
@@ -1325,9 +1324,7 @@ public final class CosmeticsRenderer {
 	}
 
 	/**
-	 * Full redesign (2026-07-26) - the old
-	 * version was just two flat tilted rings spinning at chest height, which didn't read as anything
-	 * "woven" at all. Now a genuine 3-strand BRAID of star sparkles running the whole body height
+	 * A genuine 3-strand BRAID of star sparkles running the whole body height
 	 * (feet to above the head): each strand orbits the player at the same vertical rate but offset
 	 * 120° apart, so at any given height the 3 strands are evenly spaced and visibly swap positions as
 	 * they rise - the actual over/under crossing look of a real braid, not just a static ring shape.

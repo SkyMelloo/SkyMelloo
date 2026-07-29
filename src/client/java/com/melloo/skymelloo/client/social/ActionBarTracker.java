@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  * right there, not anything derivable from {@code experienceProgress} (that read the player's
  * actual vanilla XP bar, which Hypixel does NOT repurpose for mana here - a wrong assumption).
  * <p>
- * THREE separate bugs found and fixed here (2026-07-26), each confirmed against real evidence from a
+ * THREE separate bugs found and fixed here, each confirmed against real evidence from a
  * live report rather than guessed:
  * <ol>
  *     <li>Wrong hook entirely - this used to rely on {@code ActionBarTextMixin}, a custom
@@ -82,7 +82,7 @@ public final class ActionBarTracker {
 			}
 			onActionBarText(message);
 			// Optionally suppresses Hypixel's own plain Health/Defense/Mana readout once the custom
-			// bars already show the same info (2026-07-26).
+			// bars already show the same info.
 			// Only while the custom bars themselves are actually on and in SkyBlock - never touches
 			// the actionbar anywhere else (a lobby/minigame actionbar has nothing to do with this).
 			com.melloo.skymelloo.client.config.SkyMellooConfig config = com.melloo.skymelloo.client.config.SkyMellooConfig.HANDLER.instance();
@@ -109,7 +109,7 @@ public final class ActionBarTracker {
 		}, Style.EMPTY);
 		lastSegments = segments;
 
-		// Fourth real bug found here (2026-07-27), same "trust real evidence, not an assumption" MO as
+		// Fourth real bug found here, same "trust real evidence, not an assumption" approach as
 		// the three in the class doc comment above: matching used to run over component.getString()
 		// instead of the segment text just captured by visit() right above. Confirmed as the actual
 		// root cause of a real "62901/2526" health-bar bug from a live report - getString() and visit()
@@ -117,8 +117,7 @@ public final class ActionBarTracker {
 		// getString() was including corrupted specifically the FIRST fraction match (health) with a
 		// stray leading digit, while the debug view (built from these same segments) showed the correct
 		// "2,901/2,526" the whole time. Matching over the exact same text the debug view already proved
-		// correct (2026-07-27)
-		// guarantees both can never again disagree about what the actionbar actually said.
+		// correct guarantees both can never again disagree about what the actionbar actually said.
 		StringBuilder flattened = new StringBuilder();
 		for (Segment seg : segments) {
 			flattened.append(seg.text());
@@ -136,8 +135,7 @@ public final class ActionBarTracker {
 				// Malformed number in this particular match - just skip it, not fatal to the rest.
 			}
 		}
-		// Health is position 0, same reasoning - "der soll hp nicht von herzen sondern auch aus der
-		// leiste nehmen" (2026-07-26): vanilla's own health attribute doesn't necessarily match
+		// Health is position 0, same reasoning as the mana fix: vanilla's own health attribute doesn't necessarily match
 		// Hypixel's real SkyBlock HP number 1:1 (the screenshot evidence for the mana fix already
 		// showed "current" exceeding "max" here, e.g. absorption/overheal), so both bars now read from
 		// the same source instead of mixing a vanilla attribute (health) with actionbar text (mana).

@@ -27,12 +27,10 @@ public final class HealthManaBarsHud implements HudElement {
 	private static final int BAR_GAP = 4;
 	// How fast the white "recently lost" trailing segment catches down to the real value - fraction
 	// of the bar drained per tick, tuned so a big hit takes roughly half a second to fully catch up.
-	// Also reused for the mirrored "gain" fill-in below (same speed both directions, "animiert
-	// aufgefüllt wie wenn es weggeht" - 2026-07-27).
+	// Also reused for the mirrored "gain" fill-in below (same speed in both directions).
 	private static final float DAMAGE_TRAIL_DECAY_PER_TICK = 0.03F;
-	// The gained-but-not-yet-filled-in gap - "erst direkt mit rot angezeigt wird und dann animiert
-	// aufgefüllt" (2026-07-27): a heal/mana-regen shows the FULL new amount instantly in this color,
-	// while the real green/blue fill only animates up to meet it.
+	// The gained-but-not-yet-filled-in gap: a heal/mana-regen shows the FULL new amount instantly in
+	// this color, while the real green/blue fill only animates up to meet it.
 	private static final int GAIN_HIGHLIGHT_COLOR = 0xFFFF5555;
 
 	private float displayedHealthFraction = 1F;
@@ -41,9 +39,8 @@ public final class HealthManaBarsHud implements HudElement {
 	// chunk stays visible as the gain-highlight colour until this animates up to meet it.
 	private float risingHealthFraction = 1F;
 	private boolean initializedTrail = false;
-	// Same "flash white, then catch down a second later" trail the health bar already had - "die
-	// manabar auch animiert wenn was verliert erst weiß färben und sekunde später dann so animiert
-	// runtergehen lassen wie bei hp" (2026-07-26).
+	// Same "flash white, then catch down a second later" trail the health bar already had, applied
+	// to the mana bar as well.
 	private float displayedManaFraction = 1F;
 	private float risingManaFraction = 1F;
 	private boolean initializedManaTrail = false;
@@ -163,8 +160,7 @@ public final class HealthManaBarsHud implements HudElement {
 
 	private void renderHealthBar(GuiGraphicsExtractor gg, Minecraft client, LocalPlayer player, int x, int y) {
 		// Reads real SkyBlock HP from the same actionbar text the mana bar already uses, not vanilla's
-		// own health attribute
-		// (2026-07-26): vanilla health doesn't necessarily match Hypixel's real HP number 1:1 (e.g.
+		// own health attribute: vanilla health doesn't necessarily match Hypixel's real HP number 1:1 (e.g.
 		// absorption/overheal can push "current" past "max", same as the mana pattern already handles).
 		// Falls back to the vanilla attribute only if no actionbar reading has arrived yet this session.
 		HealthBarState state = computeHealthBarState(player);
@@ -214,7 +210,7 @@ public final class HealthManaBarsHud implements HudElement {
 			gg.fill(x + healthPx, y, x + healthPx + absorptionPx, y + BAR_HEIGHT, 0xFFFFD700);
 		}
 		gg.outline(x, y, BAR_WIDTH, BAR_HEIGHT, 0xFF000000);
-		// Numeric current/max HP label added alongside the bar (2026-07-26) - not counting absorption
+		// Numeric current/max HP label added alongside the bar - not counting absorption
 		// (that's already visually distinct as the gold segment above).
 		String healthText = Math.round(health) + "/" + Math.round(maxHealth);
 		int healthTextX = x + BAR_WIDTH / 2 - client.font.width(healthText) / 2;
@@ -224,9 +220,8 @@ public final class HealthManaBarsHud implements HudElement {
 	private void renderManaBar(GuiGraphicsExtractor gg, Minecraft client, LocalPlayer player, int x, int y) {
 		Float manaFraction = ActionBarTracker.getManaFraction();
 		float safeManaFraction = manaFraction != null ? manaFraction : displayedManaFraction;
-		// Same white "just lost" trail the health bar has - "die manabar auch animiert wenn was
-		// verliert erst weiß färben und sekunde später dann so animiert runtergehen lassen wie bei
-		// hp" (2026-07-26). Same mirrored gain fill-in as the health bar too (2026-07-27).
+		// Same white "just lost" trail the health bar has, applied to the mana bar as well. Same
+		// mirrored gain fill-in as the health bar too.
 		if (!initializedManaTrail) {
 			displayedManaFraction = safeManaFraction;
 			risingManaFraction = safeManaFraction;

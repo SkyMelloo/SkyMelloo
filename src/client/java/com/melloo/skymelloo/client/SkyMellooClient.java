@@ -112,8 +112,8 @@ public class SkyMellooClient implements ClientModInitializer {
 
 		// Unbound by default (no reasonable universal default across keyboard layouts) -
 		// bind it yourself under Controls > Key Binds > SkyMelloo, or toggle Mob Highlighting from
-		// the settings screen (key H by default) instead. Repurposed (2026-07-27) to toggle the
-		// dungeon current-room mob highlight, since that's the only mob highlighting left at all.
+		// the settings screen (key H by default) instead. Repurposed to toggle the dungeon
+		// current-room mob highlight, since that's the only mob highlighting left at all.
 		toggleEspKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.toggle_esp",
 				InputConstants.Type.KEYSYM,
@@ -150,8 +150,7 @@ public class SkyMellooClient implements ClientModInitializer {
 
 		// Opens the main SkyMelloo Menu item's screen (Credits/Spells/Cosmetics/Report a Bug nav row -
 		// see SkyMellooMenuScreen/SkyMellooMenuItemManager) - previously only reachable by right-clicking
-		// the fake hotbar item, no keybind at all (2026-07-29, "kleiner fix hotkeys für die anderen
-		// menus noch adden momentan nur h und normales menu"). Defaults to K (free in vanilla).
+		// the fake hotbar item, no keybind at all. Defaults to K (free in vanilla).
 		mainMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.main_menu",
 				InputConstants.Type.KEYSYM,
@@ -192,8 +191,8 @@ public class SkyMellooClient implements ClientModInitializer {
 			WhitelistManager.tickPeriodicRecheck(client);
 			com.melloo.skymelloo.client.social.ModVersionManager.checkOnce(client);
 			// Used to hard-stop the ENTIRE mod here for an unverified/outdated build, same as the old
-			// whitelist gate - removed 2026-07-28 ("generell nix mehr blocken über permissions das
-			// komplett ausbauen"). ModVersionManager now only ever sends an informational chat warning
+			// whitelist gate - permission-based blocking was removed project-wide. ModVersionManager
+			// now only ever sends an informational chat warning
 			// (see its own checkOnce), never disables anything.
 			PermissionsManager.fetchIfNeeded(client);
 			PermissionsManager.tickPeriodicRecheck(client);
@@ -242,9 +241,8 @@ public class SkyMellooClient implements ClientModInitializer {
 						}))
 						.then(ClientCommands.literal("sync")
 								// Bare "/sm sync" == "/sm sync party" now - friend-list sync was removed
-								// entirely (2026-07-27) along with Friend highlighting, the only thing it
-								// ever fed (see FriendListSync.java's deletion). Party sync is the only
-								// thing left to sync.
+								// entirely along with Friend highlighting, the only thing it ever fed (see
+								// FriendListSync.java's deletion). Party sync is the only thing left to sync.
 								.executes(ctx -> {
 									PartyTracker.requestRefreshNow();
 									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party-Sync angefragt..."));
@@ -301,8 +299,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									+ "§7  ·  §dZeit in Dungeons: §f" + timeText));
 							return 1;
 						}))
-						// "/sm debug hm-bar" (renamed from "mana", 2026-07-27 - "nenne mana zu hm-bar um
-						// health mana bar") - dumps the FULL pipeline to chat: the raw actionbar segments,
+						// "/sm debug hm-bar" (renamed from "mana") - dumps the FULL pipeline to chat: the raw actionbar segments,
 						// every "cur/max" fraction parsed out of them (labeled by position, health=0/mana=1
 						// per ActionBarTracker's own positional matching), and then the actual on-screen
 						// bar fill state computed via the exact same HealthManaBarsHud.compute*BarState()
@@ -378,8 +375,8 @@ public class SkyMellooClient implements ClientModInitializer {
 									return 1;
 								}))
 								// "/sm debug bossroom" - diagnostic for the boss-room 3D scanner prototype
-								// (2026-07-27) after a real report that it "doesn't work" with no error in the
-								// log - this exposes whether it's even active and how many blocks it's found,
+								// after a real report of it silently not working, with no error in the log -
+								// this exposes whether it's even active and how many blocks it's found,
 								// instead of it working (or not) completely silently.
 								.then(ClientCommands.literal("bossroom").executes(ctx -> {
 									ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== Boss Room Scanner Debug ==="));
@@ -394,11 +391,10 @@ public class SkyMellooClient implements ClientModInitializer {
 									} else {
 										ctx.getSource().sendFeedback(ChatUtil.prefixed("§7Not scanning - walk into an active (not yet cleared) boss room first."));
 									}
-									// "der sendet halt nix ... adde im debug sent dazu ... successful sent ned
-									// nur sent und gegenteil von successful" (2026-07-27) - "queued: 0" above only
-									// proves the data was drained LOCALLY, never that the HTTP report carrying
-									// it actually reached the server. This is what answers "did it arrive" -
-									// counts only presence reports that genuinely had ≥1 boss-room block in them.
+									// "Queued, not yet sent: 0" above only proves the data was drained LOCALLY,
+									// never that the HTTP report carrying it actually reached the server - these
+									// counts answer whether it actually arrived, tracking only presence reports
+									// that genuinely had ≥1 boss-room block in them.
 									long attempts = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendAttempts();
 									long successes = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendSuccesses();
 									long failures = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendFailures();
@@ -409,7 +405,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									}
 									return 1;
 								}))
-								// "/sm debug score" - real bugfix (2026-07-27): the
+								// "/sm debug score" - real bugfix: the
 								// live/recorded score stayed frozen at 120 for an entire run regardless of
 								// real progress. Dumps every input the formula uses, PLUS a scan of every
 								// reconstructed tab-list line (not just the fixed index 43 the formula
@@ -440,15 +436,14 @@ public class SkyMellooClient implements ClientModInitializer {
 									}
 									return 1;
 								})))
-						// "/sm version" and "/sm info" merged into one command (2026-07-29, "/sm info bzw
-						// version zusammen machen") - always fires a FRESH check against the server (see
-						// ModVersionManager#checkNow) rather than just showing whatever the one join-time
-						// check happened to cache, so this always reflects the real latest published
-						// version right now, cooldown-limited client-side against accidental spam. Dropped
-						// the buildKind/"official"/"unofficial" trust framing entirely (2026-07-28, see the
-						// extended back-and-forth on why a self-reported build check can't actually prove
-						// anything to anyone but yourself) - plain informational, version numbers and a
-						// reminder of where the real thing comes from, nothing more.
+						// "/sm version" and "/sm info" merged into one command - always fires a FRESH check
+						// against the server (see ModVersionManager#checkNow) rather than just showing
+						// whatever the one join-time check happened to cache, so this always reflects the
+						// real latest published version right now, cooldown-limited client-side against
+						// accidental spam. Dropped the buildKind/"official"/"unofficial" trust framing
+						// entirely - a self-reported build check can't actually prove anything to anyone but
+						// yourself - plain informational, version numbers and a reminder of where the real
+						// thing comes from, nothing more.
 						.then(ClientCommands.literal("version").executes(ctx -> {
 							String version = com.melloo.skymelloo.client.social.ModVersionManager.getLocalVersion();
 							String publicVersion = com.melloo.skymelloo.client.social.ModVersionManager.getPublicVersion();
@@ -467,8 +462,8 @@ public class SkyMellooClient implements ClientModInitializer {
 											c.player.sendSystemMessage(ChatUtil.prefixed("§cCouldn't reach sky.melloo.me to check for updates - try again shortly."));
 											return;
 										}
-										if (result.latestVersion() != null) {
-											c.player.sendSystemMessage(ChatUtil.prefixed("§dLatest published: §fv" + result.latestVersion()));
+										if (result.latestPublicVersion() != null) {
+											c.player.sendSystemMessage(ChatUtil.prefixed("§dLatest published: §fv" + result.latestPublicVersion()));
 										}
 										if (result.upToDate()) {
 											c.player.sendSystemMessage(ChatUtil.prefixed("§aYou're on the latest version."));
@@ -489,27 +484,24 @@ public class SkyMellooClient implements ClientModInitializer {
 							return 1;
 						}))
 						// German data-protection law expects the legal pages to actually be reachable from
-						// the mod itself, not just buried in the website's footer (2026-07-27, "legal part
-						// zur mod... /sm legal ein der alle links zu den ganzen legal seiten schickt").
-						// Moved fully server-side (2026-07-28, "/sm legal in private builds entfernt werden
-						// muss weil es nicht durch mich gecovered ist... einen api anruf... der überprüft
-						// erst ob das überhaupt unser build ist") - the URLs are no longer hardcoded here at
-						// all, and the server refuses to hand them out to a build it can't verify as an
-						// official/dev SkyMelloo release, since a modified build genuinely isn't legally
-						// covered by the maintainer's own imprint/privacy/terms.
+						// the mod itself, not just buried in the website's footer. Fetched fully server-side
+						// (rather than hardcoded here) so the server can refuse to hand them out to a build
+						// it can't verify as an official/dev SkyMelloo release, since a modified build
+						// genuinely isn't legally covered by the maintainer's own imprint/privacy/terms.
 						.then(ClientCommands.literal("legal").executes(ctx -> {
 							String jarHash = com.melloo.skymelloo.client.social.ModVersionManager.getLocalJarHash();
 							com.melloo.skymelloo.client.api.SkyMellooApiClient.fetchLegalInfo(jarHash).whenComplete((info, error) -> Minecraft.getInstance().execute(() -> {
 								if (error != null || info == null) {
-									// Addressed partly to whoever actually built this (2026-07-28, "sagt der you
-									// forgot to remove this from your private version") - a test/private build is
+									// Addressed partly to whoever actually built this - a test/private build is
 									// almost always someone's own compile, so it's worth telling them directly that
-									// this command still points at the MAINTAINER's own legal pages and probably
-									// shouldn't ship as-is in a real fork, not just a generic refusal.
+									// this command still points at the real maintainer's own legal pages and
+									// probably shouldn't ship as-is in a real fork, not just a generic refusal.
+									var lastResult = com.melloo.skymelloo.client.social.ModVersionManager.getLastResult();
+									String maintainer = lastResult != null && lastResult.maintainerUsername() != null ? lastResult.maintainerUsername() : "the maintainer";
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(
 											"§cThis isn't an official SkyMelloo version, so legal info isn't shown here."));
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(
-											"§7If you built this yourself: you forgot to remove/customize \"/sm legal\" - it points to hexedmaya's own legal pages, not yours."));
+											"§7If you built this yourself: you forgot to remove/customize \"/sm legal\" - it points to " + maintainer + "'s own legal pages, not yours."));
 									return;
 								}
 								ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Legal ==="));
@@ -519,7 +511,7 @@ public class SkyMellooClient implements ClientModInitializer {
 							}));
 							return 1;
 						}))
-						// "/sm trust" removed entirely (2026-07-28) - a self-reported build-hash check can
+						// "/sm trust" removed entirely - a self-reported build-hash check can
 						// never actually prove anything to anyone but yourself (a modified client can just
 						// lie about which hash it reports), so it was giving a false sense of security
 						// rather than a real one. See "/sm version" above for what's left:
@@ -584,12 +576,11 @@ public class SkyMellooClient implements ClientModInitializer {
 									);
 							return 1;
 						}))
-						// "/sm link" (2026-07-30, "/sm link auch wo man angemeldet sein muss im browser dann
-						// generiert der ein link der zur website leitet") - the mirror image of "/skymelloo
-						// verify <code>" above: instead of typing a website-generated code in-game, this
-						// generates a token in-game and opens sky.melloo.me/link/<token> directly in the
-						// system browser, where it completes using whatever Discord session is already there
-						// (or prompts a fresh login first) - no code to type at all.
+						// "/sm link" - the mirror image of "/skymelloo verify <code>" above: instead of typing
+						// a website-generated code in-game, this generates a token in-game and opens
+						// sky.melloo.me/link/<token> directly in the system browser, where it completes using
+						// whatever Discord session is already there (or prompts a fresh login first) - no
+						// code to type at all.
 						.then(ClientCommands.literal("link").executes(ctx -> {
 							Minecraft client = Minecraft.getInstance();
 							if (client.player == null) {
@@ -670,40 +661,19 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo roll <amount>§7/§aroll party§7/§aroll <word> <secs> §7- Zufallsauswahl in der Party"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo poll start <Frage;Antwort1;...>§7/§apoll close §7- Party-Umfrage"));
 
-		// Only advertise commands/menu categories tied to a specific feature permission if the
-		// account actually has it - matching the same PermissionsManager checks SkyMellooSettingsScreen
-		// already uses to hide whole tabs (visibleTabs()). Advertising a locked feature by name here
-		// was misleading (e.g. always mentioning "ESP" even for accounts without esp/chestEsp).
-		if (PermissionsManager.has("killTracker")) {
-			source.sendFeedback(ChatUtil.prefixed("§6--- Dungeons ---"));
-			source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- Spell-Kills anzeigen"));
-			source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- Dungeon-Session-Stats anzeigen (Runs, Ø Score, Deaths, Zeit)"));
-		}
-		if (PermissionsManager.has("dungeonInfo")) {
-			source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- Party-Join-Nachricht testen"));
-		}
+		source.sendFeedback(ChatUtil.prefixed("§6--- Dungeons ---"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- Spell-Kills anzeigen"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- Dungeon-Session-Stats anzeigen (Runs, Ø Score, Deaths, Zeit)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- Party-Join-Nachricht testen"));
 
-		java.util.List<String> unlockedFeatures = new java.util.ArrayList<>();
-		// No standalone "ESP" entry (2026-07-27, never write "ESP" in anything user-facing) - Mob
-		// Highlighting (the "esp" permission) already surfaces under "Dungeons" below, since that's
-		// where it actually lives in the menu now.
-		if (PermissionsManager.has("playerHighlight")) {
-			unlockedFeatures.add("Party");
-		}
+		// Every feature is unlocked for everyone now except Cosmetics, which genuinely still needs a
+		// linked sky.melloo.me account (the server has to know who's who to broadcast a cosmetic to
+		// nearby players).
+		java.util.List<String> unlockedFeatures = new java.util.ArrayList<>(java.util.List.of("Party", "Fishing", "Dungeons"));
 		if (PermissionsManager.has("cosmetics")) {
 			unlockedFeatures.add("Cosmetics");
 		}
-		if (PermissionsManager.has("fishingHelper")) {
-			unlockedFeatures.add("Fishing");
-		}
-		if (PermissionsManager.has("dungeonInfo") || PermissionsManager.has("chestEsp") || PermissionsManager.has("itemEsp") || PermissionsManager.has("mobHighlight")) {
-			unlockedFeatures.add("Dungeons");
-		}
-		if (!unlockedFeatures.isEmpty()) {
-			source.sendFeedback(ChatUtil.prefixed("§7Weitere Einstellungen (" + String.join(", ", unlockedFeatures) + ") laufen über das Menü (Taste H)."));
-		} else {
-			source.sendFeedback(ChatUtil.prefixed("§7Für deinen Account sind noch keine Extra-Features freigeschaltet - siehe §f/skymelloo contact§7."));
-		}
+		source.sendFeedback(ChatUtil.prefixed("§7Weitere Einstellungen (" + String.join(", ", unlockedFeatures) + ") laufen über das Menü (Taste H)."));
 	}
 
 	public static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestOnlinePlayers(

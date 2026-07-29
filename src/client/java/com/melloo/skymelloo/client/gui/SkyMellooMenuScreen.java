@@ -735,7 +735,7 @@ public class SkyMellooMenuScreen extends Screen {
 			return list;
 		}
 
-		/** Casting moved here entirely (2026-07-27) - punching
+		/** Casting moved here entirely - punching
 		 * empty air no longer fires anything; this is now the only way to actually cast. Closes the
 		 * menu on click so the cast is immediately visible instead of hidden behind the GUI. */
 		private static MenuAction castSpellAction(SkyMellooConfig c, SkyMellooMenuScreen screen) {
@@ -765,8 +765,8 @@ public class SkyMellooMenuScreen extends Screen {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
 			// Previously the only way to stop casting entirely was the separate full settings screen's
-			// "Spell" toggle, not reachable from this quick menu at all - "mach spells auch dass man
-			// ausschalten kann". Off is just another selectable entry here, same as any spell type.
+			// "Spell" toggle, not reachable from this quick menu at all.
+			// Off is just another selectable entry here, same as any spell type.
 			list.add(offAction(c, screen));
 			list.add(spellTypeAction(Items.SNOWBALL, "Icy", "MISSILE", "Traditional travelling particle projectile.", c, screen));
 			list.add(spellTypeAction(Items.TRIDENT, "Lightning", "LIGHTNING", "Instant - only fires if a player is right under your crosshair. Strikes them with a lightning bolt.", c, screen));

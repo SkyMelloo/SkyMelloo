@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * a left-click on Hypixel's own SkyBlock Menu item would (not just right-click). Read-only: never
  * touches the callback's return value, so real attack behavior is untouched.
  * <p>
- * Used to also trigger the Magic Missile cosmetic on any empty-hand punch - removed (2026-07-27)
+ * Used to also trigger the Magic Missile cosmetic on any empty-hand punch - removed
  * in favor of a "Cast Spell" button in
  * {@link com.melloo.skymelloo.client.gui.SkyMellooMenuScreen}'s Spells page, so casting is a
  * deliberate menu action instead of an incidental side effect of punching air with nothing held.

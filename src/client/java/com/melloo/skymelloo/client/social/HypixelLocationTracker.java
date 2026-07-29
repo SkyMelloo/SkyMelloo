@@ -19,7 +19,7 @@ import java.util.Objects;
  * still logs the raw fields (see the debug HUD) so a wrong guess can be confirmed/fixed from a real
  * run. {@link #isLikelyInDungeon()} (currently just a "dungeon" substring match on mode/map) now
  * DOES gate real behavior ({@link com.melloo.skymelloo.client.party.PartyHud}'s "only show in
- * Dungeons" restriction, 2026-07-25) - if that turns out unreliable in practice, check the debug
+ * Dungeons" restriction) - if that turns out unreliable in practice, check the debug
  * HUD's raw mode/map values first before assuming the gating logic itself is wrong.
  */
 public final class HypixelLocationTracker {

@@ -26,8 +26,8 @@ import java.util.List;
  * <p>
  * Also reports this build's own jar SHA-256 hash alongside the version - the backend cross-checks it
  * against a list of cryptographically-signed official releases (plus a smaller admin-managed
- * dev-build whitelist) and flags anything else as unverified ("mod damit auch signieren... wenn
- * falsche also ganz anders dann wird mod komplett disabled", 2026-07-26). This is honest about what
+ * dev-build whitelist) and flags anything else as unverified, fully disabling the mod if the
+ * fingerprint doesn't match. This is honest about what
  * it actually proves: it can't stop someone with the source from ALSO recompiling and re-signing
  * their own fork if they somehow got the private key, but it does mean an unmodified recompile from
  * the public source - even byte-identical - has no valid signature at all, since that's only ever
@@ -38,22 +38,22 @@ import java.util.List;
 public final class ModVersionManager {
 	private static volatile boolean checkStarted = false;
 	private static volatile boolean compatible = true;
-	// Cached from the one join-time check - "/sm version" (2026-07-29, merged with the old "/sm
-	// info") now always fires its own fresh check instead of relying purely on this cache (see
-	// checkNow below), but this is still what feeds the automatic one-time join notice.
+	// Cached from the one join-time check - "/sm version" (merged with the old "/sm info") now
+	// always fires its own fresh check instead of relying purely on this cache (see checkNow
+	// below), but this is still what feeds the automatic one-time join notice.
 	private static volatile String localVersion = "0.0.0";
-	// The user-facing release number (2026-07-28) - completely separate from localVersion above,
-	// which bumps on every internal change and was never meant to be shown to end users. Baked into
+	// The user-facing release number - completely separate from localVersion above, which bumps on
+	// every internal change and was never meant to be shown to end users. Baked into
 	// fabric.mod.json's custom "skymelloo:publicVersion" field by build.gradle's processResources
 	// (see gradle.properties#public_version for the full reasoning). "unreleased" is the honest
 	// answer for a dev/exploded classpath run (no packaged jar, so no custom value was ever expanded).
 	private static volatile String publicVersion = "unreleased";
 	private static volatile String localJarHash = null;
 	private static volatile SkyMellooApiClient.VersionCheckResult lastResult = null;
-	// Client-side cooldown for manual re-checks ("/sm version" - 2026-07-29, merged with the old "/sm
-	// info"), on top of whatever the server's own generic per-IP rate limit already does - a human
-	// re-running a chat command has no reason to hit either, this just stops an accidental key-repeat/
-	// double-press from firing two requests back to back.
+	// Client-side cooldown for manual re-checks ("/sm version"), on top of whatever the server's
+	// own generic per-IP rate limit already does - a human re-running a chat command has no reason
+	// to hit either, this just stops an accidental key-repeat/double-press from firing two requests
+	// back to back.
 	private static final long MANUAL_CHECK_COOLDOWN_MS = 3000;
 	private static volatile long lastManualCheckMillis = 0;
 
@@ -82,9 +82,9 @@ public final class ModVersionManager {
 	}
 
 	/**
-	 * Fires a FRESH version check against the server right now, for "/sm version" (2026-07-29,
-	 * merged with the old "/sm info") - rather than just showing whatever the one join-time check
-	 * happened to already cache, this always asks the server what the actual latest published
+	 * Fires a FRESH version check against the server right now, for "/sm version" (merged with the
+	 * old "/sm info") - rather than just showing whatever the one join-time check happened to
+	 * already cache, this always asks the server what the actual latest published
 	 * version is at the moment the player runs the command. Cooldown-limited client-side (see
 	 * {@link #MANUAL_CHECK_COOLDOWN_MS}); still within the join-time check's normal server-side rate
 	 * limit regardless. Returns the cooldown-remaining seconds (0 if it actually fired) via the
@@ -139,18 +139,18 @@ public final class ModVersionManager {
 			compatible = result.compatible();
 			DebugLog.log(DebugLog.Category.PERMISSIONS, "Mod version: " + (compatible ? (result.upToDate() ? "up to date" : "behind latest, still compatible") : "outdated/unverified (min " + result.minVersion() + ")") + ", integrityOk=" + result.integrityOk() + ", buildKind=" + result.buildKind() + ", jarHash=" + jarHash);
 			// Used to hard-disable every SkyMelloo feature here for an unverified build or too-old
-			// version - removed 2026-07-28 ("generell nix mehr blocken über permissions das komplett
-			// ausbauen"). Now purely informational: an unverified build (not signed/registered by the
+			// version - permission-based blocking was removed project-wide. Now purely informational:
+			// an unverified build (not signed/registered by the
 			// maintainer - private builds included, since anyone can compile the now-open-source mod
 			// themselves) gets a one-time handshake chat notice, nothing is ever disabled.
 			if (!result.integrityOk() && client.player != null) {
+				String maintainer = result.maintainerUsername() != null ? result.maintainerUsername() : "the maintainer";
 				client.player.sendSystemMessage(ChatUtil.prefixed(
-						"§eYou're on an unofficial SkyMelloo build (not one hexedmaya built/signed) - everything still works, this is just so you know. Official builds: §fsky.melloo.me/download"));
+						"§eYou're on an unofficial SkyMelloo build (not one " + maintainer + " built/signed) - everything still works, this is just so you know. Official builds: §fsky.melloo.me/download"));
 			} else if (!compatible && client.player != null) {
 				client.player.sendSystemMessage(ChatUtil.prefixed("§e" + result.message()));
 			} else if (compatible && !result.upToDate() && client.player != null && result.updateAvailableMessage() != null) {
-				// Soft nudge for being behind the latest release. "wenn nur alte sagt der im chat youre
-				// running an old skymelloo version..." (2026-07-26).
+				// Soft nudge for being behind the latest release, shown in chat.
 				client.player.sendSystemMessage(ChatUtil.prefixed("§e" + result.updateAvailableMessage()));
 			}
 		}));
@@ -162,10 +162,11 @@ public final class ModVersionManager {
 	 * runClient dev environment before anything's compiled; or an origin shape this doesn't
 	 * confidently recognize).
 	 * <p>
-	 * Scoped to just the {@code com/melloo/skymelloo} package on purpose (2026-07-26, "es geht darum
-	 * dass die mod verifiziert ist nicht lunar oder so"): an earlier version hashed the ENTIRE
-	 * resolved root, which under Lunar Client's own Genesis loading is whatever container/merged
-	 * representation Lunar's loader builds around the jar, not the plain jar file itself - that made
+	 * Scoped to just the {@code com/melloo/skymelloo} package on purpose - the goal is verifying
+	 * this mod's own code specifically, not anything Lunar Client bundles alongside it. An earlier
+	 * version hashed the ENTIRE resolved root, which under Lunar Client's own Genesis loading is
+	 * whatever container/merged representation Lunar's loader builds around the jar, not the plain
+	 * jar file itself - that made
 	 * the "verified" hash depend on Lunar's own repackaging behavior rather than purely on this mod's
 	 * actual code, which is the whole reason it never matched a plain file hash of the built jar.
 	 * Hashing only this mod's own class files - opening the packaged jar as its own zip filesystem
@@ -176,7 +177,7 @@ public final class ModVersionManager {
 	 * <p>
 	 * Goes through Fabric Loader's own {@code Path}-based {@link net.fabricmc.loader.api.ModContainer#getRootPaths()}
 	 * rather than raw {@code CodeSource}/{@code File}/{@code URI} conversion - confirmed as the real
-	 * cause of an actual game crash (2026-07-26, {@code IllegalArgumentException: URI is not
+	 * cause of an actual game crash ({@code IllegalArgumentException: URI is not
 	 * hierarchical}): Lunar Client's own mod-loading wraps this mod's jar in a URI scheme
 	 * {@code java.io.File}'s constructor can't handle at all. Broadly catches {@code Throwable}, not
 	 * just the specific exceptions expected here - this runs on the render thread on every launch and

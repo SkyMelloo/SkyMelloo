@@ -40,7 +40,7 @@ public final class RelayChatManager {
 	}
 
 	public static void tick(Minecraft client) {
-		if (client.player == null || !PermissionsManager.has("friendChat")) {
+		if (client.player == null) {
 			return;
 		}
 		tickCounter++;
@@ -149,7 +149,7 @@ public final class RelayChatManager {
 	 * duplicated and don't need that restriction at all.
 	 */
 	public static void sendPartyAnnouncement(Minecraft client, String text) {
-		if (client.player == null || !PermissionsManager.has("friendChat")) {
+		if (client.player == null) {
 			return;
 		}
 		List<String> recipients = PartyTracker.getMembers().stream()
@@ -168,14 +168,6 @@ public final class RelayChatManager {
 				});
 	}
 
-	private static boolean checkPermission(FabricClientCommandSource source) {
-		if (!PermissionsManager.has("friendChat")) {
-			source.sendError(ChatUtil.prefixed("§cSkyMelloo Friends isn't enabled for your account."));
-			return false;
-		}
-		return true;
-	}
-
 	// ---- command tree ----
 
 	public static LiteralArgumentBuilder<FabricClientCommandSource> buildChatCommand() {
@@ -187,18 +179,12 @@ public final class RelayChatManager {
 				.then(ClientCommands.literal("party")
 						.then(ClientCommands.argument("message", StringArgumentType.greedyString())
 								.executes(ctx -> {
-									if (!checkPermission(ctx.getSource())) {
-										return 1;
-									}
 									sendPartyBroadcast(Minecraft.getInstance(), StringArgumentType.getString(ctx, "message"));
 									return 1;
 								})))
 				.then(ClientCommands.argument("name", StringArgumentType.word())
 						.then(ClientCommands.argument("message", StringArgumentType.greedyString())
 								.executes(ctx -> {
-									if (!checkPermission(ctx.getSource())) {
-										return 1;
-									}
 									sendDirect(Minecraft.getInstance(), StringArgumentType.getString(ctx, "name"), StringArgumentType.getString(ctx, "message"));
 									return 1;
 								})));

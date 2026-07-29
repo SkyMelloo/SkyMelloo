@@ -1,7 +1,6 @@
 package com.melloo.skymelloo.client.combat;
 
 import com.melloo.skymelloo.client.esp.EspManager;
-import com.melloo.skymelloo.client.social.PermissionsManager;
 import com.melloo.skymelloo.client.social.WhitelistManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -35,9 +34,6 @@ public final class PlayerKillTracker {
 	/** Called from {@link com.melloo.skymelloo.client.mixin.PlayerKillMixin} whenever any player entity dies. */
 	public static void onPlayerDied(Player victim, Entity killer) {
 		if (!WhitelistManager.isAllowed()) {
-			return;
-		}
-		if (!PermissionsManager.has("killTracker")) {
 			return;
 		}
 		Minecraft client = Minecraft.getInstance();

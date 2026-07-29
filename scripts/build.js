@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-// Friendly wrapper around gradlew (2026-07-28) - asks what kind of build this is instead of
+// Friendly wrapper around gradlew - asks what kind of build this is instead of
 // expecting -Pchangelog/-Ptest Gradle property syntax to already be known. Run with:
 //   node scripts/build.js
 //
-// Three tiers ("dev etc nicht gebaut werden können weil die ja nen key und verifizierung
-// brauchen... leute können nur test bauen dann brauchen sie gar nix und dev sowie public kann nur
-// ich weil das per website geht"):
+// Three tiers - dev/public builds need a signing key and verification only the maintainer has,
+// while anyone else can only produce a test build:
 //   - test: anyone, zero requirements, never signed/registered, always shows as unofficial.
 //   - dev:  a real signed+registered build - requires the maintainer's own private key. If you
 //           don't have it, this script (and the Gradle build itself) refuses outright rather than

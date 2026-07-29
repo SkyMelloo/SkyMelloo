@@ -44,18 +44,16 @@ public final class DungeonSyncManager {
 	}
 
 	// Sampled every client tick (see sampleTick, called from SkyMellooClient's tick handler) rather
-	// than once per presence-report cycle (fixed at 1s, see ModPresenceManager#REPORT_INTERVAL_TICKS)
-	// - "der mod sammelt ganz viele positionen ... dann jede sekunde schickt der die gebündelten
-	// informationen ... kann dadurch nen extrem smoothen path machen" (2026-07-27): a single position
+	// than once per presence-report cycle (fixed at 1s, see ModPresenceManager#REPORT_INTERVAL_TICKS):
+	// a single position
 	// per report is too sparse for the website to draw anything smoother than a rough guess between
 	// two far-apart points - sampling every tick (20/s) and bundling the whole buffer into the NEXT
 	// report instead gives it a real, dense recorded path to draw through. Cleared every time
 	// buildOutgoingPayload() actually drains it into a report.
 	private static final List<PositionSample> selfHistory = new ArrayList<>();
 	private static final Map<UUID, List<PositionSample>> otherHistory = new LinkedHashMap<>();
-	// Reworked (2026-07-27, "damals hat es funktioniert mit jeden tick nen snap alle daten jede
-	// halbe sekunde der letzten sekunde schicken website smoothed es dann") back to the original
-	// working design after the "drain only the newly-added samples" version looked broken in
+	// Reworked back to the original
+	// working design after a "drain only the newly-added samples" version looked broken in
 	// practice: every report now resends the last HISTORY_SEND_WINDOW_MS of samples (overlapping
 	// with the previous report, not just the delta since then), and the buffer itself is never
 	// fully drained - only time-trimmed - so a single delayed/dropped report can't create a gap.
@@ -139,7 +137,7 @@ public final class DungeonSyncManager {
 	 */
 	public static JsonObject buildOutgoingPayload() {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-		if (!config.dungeonSyncEnabled || !PermissionsManager.has("dungeonInfo")) {
+		if (!config.dungeonSyncEnabled) {
 			return null;
 		}
 		SkyblockerBridge.RoomSecrets current = SkyblockerBridge.getCurrentRoomSecrets();
@@ -174,10 +172,10 @@ public final class DungeonSyncManager {
 		}
 		payload.addProperty("floor", DungeonRunTracker.getFloor());
 		payload.addProperty("runActive", runActive);
-		// Real wall-clock start time of THIS specific run - added (2026-07-26) so the run-recording
-		// backend can tell "still the same run" from "a genuinely new run started" independent of
+		// Real wall-clock start time of THIS specific run - lets the run-recording
+		// backend tell "still the same run" from "a genuinely new run started" independent of
 		// runActive's own timing, which no longer flips false right away (see DungeonRunTracker's
-		// change to only end a run after leaving the dungeon and waiting 20s, made earlier the same day).
+		// choice to only end a run after leaving the dungeon and waiting 20s).
 		// Root-caused as a real bug from a live report: with runActive staying true through that whole
 		// wait, a fast requeue into a brand new run could start being recorded as a continuation of the
 		// PREVIOUS run's still-open recording, making a replay look like it "starts mid-run" - the new
@@ -193,9 +191,8 @@ public final class DungeonSyncManager {
 		payload.addProperty("clearedPercent", DungeonRunTracker.getClearedPercent());
 		payload.addProperty("secretsPercentage", DungeonRunTracker.getSecretsPercentage());
 		payload.addProperty("deaths", DungeonRunTracker.getTotalDeaths());
-		// Every death this run so far, with position/death-number - "wenn wer died da wo der
-		// gestorben ist ein x machen ... mit namen drüber und zahl der wie vielte tod das ist"
-		// (2026-07-27). The FULL list every report (not a delta) - same pattern as roomNames/
+		// Every death this run so far, with position/death-number, for the website's "X" death
+		// markers on the map. The FULL list every report (not a delta) - same pattern as roomNames/
 		// secretsLog below, small enough that this isn't a real storage concern.
 		JsonArray deathMarkersArr = new JsonArray();
 		for (DungeonRunTracker.DeathMarker marker : DungeonRunTracker.getDeathMarkers()) {
@@ -247,7 +244,7 @@ public final class DungeonSyncManager {
 		List<Boolean> witherDoors = DungeonRunTracker.getWitherDoors();
 		payload.addProperty("witherKeysObtained", witherDoors.size());
 		payload.addProperty("witherDoorsOpened", (int) witherDoors.stream().filter(Boolean::booleanValue).count());
-		// Per-door state, not just the aggregate count above - "wither door 1 etc" (2026-07-27), the
+		// Per-door state, not just the aggregate count above - the
 		// same individual breakdown the local Dungeon Debug HUD already shows, now also on the website.
 		JsonArray witherDoorsArr = new JsonArray();
 		for (boolean opened : witherDoors) {
@@ -259,10 +256,10 @@ public final class DungeonSyncManager {
 		payload.addProperty("bossRoomEntered", DungeonRunTracker.isBossRoomEntered());
 		payload.addProperty("bossRoomCleared", DungeonRunTracker.isBossRoomCleared());
 		// "Run failed" state - same local-death/party-wipe distinction the Dungeon Debug HUD already
-		// shows (2026-07-27).
+		// shows.
 		payload.addProperty("localPlayerDied", DungeonRunTracker.hasLocalPlayerDied());
 		payload.addProperty("partyWiped", DungeonRunTracker.isEntirePartyDead());
-		// Client performance stats - fps and ping (2026-07-27). Real Hypixel
+		// Client performance stats - fps and ping. Real Hypixel
 		// server TPS is NOT included - unlike FPS/ping, there's no vanilla-client-visible source for it
 		// (Hypixel doesn't expose it to the client the way it does latency), so sending a made-up number
 		// would just be wrong; leaving it out rather than guessing.
@@ -274,7 +271,7 @@ public final class DungeonSyncManager {
 				payload.addProperty("pingMs", playerInfo.getLatency());
 			}
 		}
-		// First 3D boss-room viewer prototype (2026-07-27, see BossRoomScanner's own doc comment) -
+		// First 3D boss-room viewer prototype (see BossRoomScanner's own doc comment) -
 		// only present while actively scanning, and only the NEWLY discovered blocks since the last
 		// report (delta-encoded, drained), not the whole accumulated set every time.
 		if (BossRoomScanner.isActive()) {
@@ -363,7 +360,7 @@ public final class DungeonSyncManager {
 			payload.addProperty("yaw", exactPos.yaw());
 		}
 		// reportIntervalMs used to be sent here so the website could size its render delay per player
-		// - removed 2026-07-27 alongside making the report interval itself fixed (not adjustable, see
+		// - removed alongside making the report interval itself fixed (not adjustable, see
 		// ModPresenceManager#REPORT_INTERVAL_TICKS) - every client reports at the same fixed rate
 		// now, so the website just uses one matching fixed delay instead (see app.js).
 		// The dense per-tick history buffer (see sampleTick) - kept SEPARATE from exactMapX/Y/yaw
@@ -383,8 +380,7 @@ public final class DungeonSyncManager {
 			}
 		}
 		payload.add("roster", rosterArr);
-		// Mutual party attestation (2026-07-26, "ne party fixen indem... server matched diese spieler
-		// dann und schaut ob die sich gegenseitig melden") - which of the roster above this client can
+		// Mutual party attestation - which of the roster above this client can
 		// currently ALSO confirm seeing as a real, server-confirmed connected player (not just a
 		// self-reported name) - see DungeonRunTracker#getVisibleTeammates. The backend only trusts a
 		// teammate's live data if BOTH sides' independently-computed reports agree on seeing each other.
@@ -393,9 +389,8 @@ public final class DungeonSyncManager {
 			visibleArr.add(visible.toString());
 		}
 		payload.add("visibleTeammates", visibleArr);
-		// Exact map positions for OTHER roster members too, not just self - "wenn ich mit mehreren
-		// spiele die keine mod nutzen deren standorte und alles trotzdem auch gesendet werden"
-		// (2026-07-26): this client already knows every visible party member's real world position
+		// Exact map positions for OTHER roster members too, not just self - this client already
+		// knows every visible party member's real world position
 		// (that's how their entity renders at all), so it can report positions for teammates who don't
 		// have SkyMelloo installed themselves, as long as THIS client can see them. The backend merges
 		// these in as a fallback wherever a teammate has no exactMapX/Y of their own to report (see

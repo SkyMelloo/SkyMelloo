@@ -40,8 +40,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Purely cosmetic "magic missile": cast via the "Cast Spell" button in the SkyMelloo Menu item's
- * Spells page (2026-07-27 - previously any empty-hand punch
- * at empty air triggered it), fires a slow particle projectile from the player's eyes that bursts
+ * Spells page (previously any empty-hand punch at empty air triggered it), fires a slow particle projectile from the player's eyes that bursts
  * into a small particle explosion on impact with a solid block or another player. Client-side-only,
  * no gameplay effect (no real damage, no packets) beyond the deliberate arm swing {@link #trigger}
  * sends so other SkyMelloo users can still see it (see RemoteMissileTriggerMixin).
@@ -134,7 +133,7 @@ public final class MagicMissileManager {
 		// Casting used to ride along on a real vanilla attack (punching empty air), which already
 		// swung the arm and sent the network packet other clients need to mirror it (see
 		// RemoteMissileTriggerMixin) for free. Now that casting is a menu click instead, that swing
-		// has to be triggered manually or remote players would never see it (2026-07-27).
+		// has to be triggered manually or remote players would never see it.
 		player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 		config.totalSpellsCast++;
 		SkyMellooConfig.HANDLER.save();
@@ -185,8 +184,7 @@ public final class MagicMissileManager {
 	 * Called right when {@code deadTarget} is confirmed hit/killed (by anything, not just an arrow) -
 	 * any OTHER in-flight homing arrows still chasing that same now-invisible player immediately look
 	 * for a new target instead of waiting for their own next scheduled re-scan tick (up to
-	 * {@link #HOMING_REACQUIRE_INTERVAL_TICKS} ticks later) - "sucht der direkt das nächste... die
-	 * anderen die auf das getargeted waren".
+	 * {@link #HOMING_REACQUIRE_INTERVAL_TICKS} ticks later).
 	 */
 	private static void reassignArrowsTargeting(AbstractClientPlayer deadTarget) {
 		Minecraft client = Minecraft.getInstance();
@@ -480,8 +478,7 @@ public final class MagicMissileManager {
 					Vec3 steeredDir;
 					// Close-range terminal guidance: the wall-clearance cost used to be able to swerve
 					// the arrow wide right at the last second and fly straight over/past a target
-					// standing near a wall - "bricht er dann ab und fliegt drüber und dann passiert
-					// nix". Once genuinely close, ignore wall-proximity entirely and beeline straight at
+					// standing near a wall, missing entirely. Once genuinely close, ignore wall-proximity entirely and beeline straight at
 					// them instead - UNLESS there's an actual solid block directly on that line (not
 					// just nearby), in which case it still needs to steer around it as usual.
 					if (toTarget.lengthSqr() < HOMING_DIRECT_APPROACH_DISTANCE_SQ
@@ -634,7 +631,7 @@ public final class MagicMissileManager {
 	 * they're in range, unlike real kills, which can only happen once per life anyway.
 	 */
 	private static void announceMissileKill(Minecraft client, AbstractClientPlayer hitPlayer) {
-		if (!PermissionsManager.has("killTracker") || client.player == null) {
+		if (client.player == null) {
 			return;
 		}
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
@@ -650,8 +647,8 @@ public final class MagicMissileManager {
 		String text = template
 				.replace("{player}", hitPlayer.getName().getString())
 				.replace("{count}", String.valueOf(config.totalPlayersKilled));
-		// Always local now (2026-07-27) - a kill message used to be
-		// optionally sent to the real party via /pc, removed since it's always LOCAL-only now.
+		// Always local - a kill message used to be optionally sent to the real party via /pc,
+		// removed since it's always LOCAL-only now.
 		client.player.sendSystemMessage(ChatUtil.prefixed(text));
 	}
 
@@ -707,7 +704,7 @@ public final class MagicMissileManager {
 		return chosen;
 	}
 
-	/** 1-3 fake, collectible-by-walking-near "Spell Essence" items scattered at the kill spot - see {@link #tickEssenceCollection}. Always on now (2026-07-27) - no toggle anymore. */
+	/** 1-3 fake, collectible-by-walking-near "Spell Essence" items scattered at the kill spot - see {@link #tickEssenceCollection}. Always on - no toggle anymore. */
 	private static void spawnCollectibleEssence(Minecraft client, Vec3 pos) {
 		if (!PermissionsManager.has("cosmetics") || !(client.level instanceof ClientLevel level)) {
 			return;
@@ -1005,8 +1002,8 @@ public final class MagicMissileManager {
 			// nearby rather than actually needing to become hittable again first. Also excludes anyone
 			// already mid-Plasma/mid-Levitate - those don't set the invisibility flag until the very
 			// end of their multi-second sequence, so without this a second hit during that window
-			// would start an overlapping second sequence on the same target - "wenn in der animation
-			// sind dann ned nochmal hitbar".
+			// would start an overlapping second sequence on the same target - not hittable again
+			// while already mid-animation.
 			if (other == shooter || EspManager.isNpc(other) || isTemporarilyInvisible(other) || isInActiveSequence(other)) {
 				continue;
 			}

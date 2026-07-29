@@ -91,7 +91,7 @@ public final class SkyblockerBridge {
 			// Skyblocker isn't installed, or a future version renamed/removed one of these methods -
 			// either way, just report unavailable rather than crashing anything. Previously logged
 			// NOTHING on this path at all - a real "score frozen at 120 the whole run" bug report
-			// (2026-07-27) turned out to trace back to currentDisplayedScore() silently falling
+			// turned out to trace back to currentDisplayedScore() silently falling
 			// through to our OWN (also broken, see DungeonTabList's doc comment) tab-list-based
 			// calculation, and there was zero evidence anywhere to tell whether that was because
 			// Skyblocker genuinely wasn't detected, or because it WAS detected and its own score just

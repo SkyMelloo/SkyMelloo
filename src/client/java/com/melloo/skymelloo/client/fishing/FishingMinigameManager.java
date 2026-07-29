@@ -1,7 +1,6 @@
 package com.melloo.skymelloo.client.fishing;
 
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
-import com.melloo.skymelloo.client.social.PermissionsManager;
 import com.melloo.skymelloo.client.util.ChatUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -96,7 +95,7 @@ public final class FishingMinigameManager {
 
 	public static void tick(Minecraft client) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-		if (!config.fishingMinigameEnabled || !PermissionsManager.has("fishingHelper") || client.player == null || client.level == null) {
+		if (!config.fishingMinigameEnabled || client.player == null || client.level == null) {
 			clearAll(client);
 			return;
 		}

@@ -45,9 +45,9 @@ import java.util.regex.Pattern;
  * as the puzzle-fail correction below. Lesson: SkyHanni's catalog is what THEY chose to catalog for
  * message-hiding, not proof a message doesn't exist. The Blood Door's own message was WRONGLY
  * guessed to follow the same "&lt;name&gt; opened a ..." shape (marked "presumably" in an earlier
- * version, never actually verified) - confirmed otherwise directly from a real report/log
- * (2026-07-26): it's a nameless broadcast, "The BLOOD DOOR has been opened!", not attributed to
- * whoever opened it at all. See BLOOD_DOOR_OPENED_PATTERN.
+ * version, never actually verified) - confirmed otherwise directly from a real report/log: it's a
+ * nameless broadcast, "The BLOOD DOOR has been opened!", not attributed to whoever opened it at
+ * all. See BLOOD_DOOR_OPENED_PATTERN.
  * Boss room entry is tracked differently, at the position level rather than from chat: the entrance
  * is a real Nether Portal block, and the client already knows every visible player's exact position
  * (that's how their entity renders at all), so watching who walks into those block positions needs
@@ -87,7 +87,7 @@ public final class DungeonRunTracker {
 	private static final Pattern PUZZLE_FAIL_PATTERN = Pattern.compile("^PUZZLE FAIL! .*?([A-Za-z0-9_]{2,16}) ");
 	private static final Pattern CRYPT_PATTERN = Pattern.compile("found a Wither Essence! Everyone gains an extra essence!");
 	private static final Pattern DOOR_OPENED_PATTERN = Pattern.compile("^([A-Za-z0-9_]{1,16}) opened a (WITHER|BLOOD) door!$");
-	// The Blood Door's REAL message - confirmed directly from a real log/screenshot (2026-07-26) that
+	// The Blood Door's REAL message - confirmed directly from a real log/screenshot that
 	// DOOR_OPENED_PATTERN's guessed "BLOOD" branch above never actually fires: unlike the Wither Door
 	// (attributed to whoever opened it), Hypixel sends this as a plain, nameless broadcast. Root cause
 	// of a real reported bug: the debug HUD kept showing "Blood door not opened yet" even well after
@@ -100,7 +100,7 @@ public final class DungeonRunTracker {
 	// see witherDoorKeys.
 	private static final Pattern WITHER_KEY_OBTAINED_PATTERN = Pattern.compile("has obtained Wither Key!$");
 	private static final Pattern WITHER_KEY_PICKED_GENERIC_PATTERN = Pattern.compile("^A Wither Key was picked up!$");
-	// Confirmed directly from a real log (2026-07-26): "[rank]Name has obtained Blood Key!" - unlike
+	// Confirmed directly from a real log: "[rank]Name has obtained Blood Key!" - unlike
 	// the Wither Key pattern above, this captures the player's name (".*?" skips over the rank tag),
 	// for the end-of-run report's "who opened the Blood Room" line.
 	private static final Pattern BLOOD_KEY_OBTAINED_PATTERN = Pattern.compile("^.*?([A-Za-z0-9_]{2,16}) has obtained Blood Key!$");
@@ -210,7 +210,7 @@ public final class DungeonRunTracker {
 	private static int puzzlesFailed = 0;
 	private static int cryptsFound = 0;
 	private static final Map<String, Integer> deaths = new LinkedHashMap<>();
-	/** Where (and which numbered death for that player) each death this run happened, shown as an "X" marker with name and death number on the live/replay map (2026-07-27). Position is a best-effort snapshot of the dying player's entity at the moment their death message is seen - null if they're not currently visible (e.g. already de-rendered) rather than skipping the marker's name/number entirely. */
+	/** Where (and which numbered death for that player) each death this run happened, shown as an "X" marker with name and death number on the live/replay map. Position is a best-effort snapshot of the dying player's entity at the moment their death message is seen - null if they're not currently visible (e.g. already de-rendered) rather than skipping the marker's name/number entirely. */
 	public record DeathMarker(String username, Double mapX, Double mapY, int deathNumber, long atMillis) {
 	}
 	private static final List<DeathMarker> deathMarkers = new java.util.ArrayList<>();
@@ -239,7 +239,7 @@ public final class DungeonRunTracker {
 	// True once Hypixel's own completion chat sequence (header + re-queue line) has finished and
 	// finishRun() has already captured the final snapshot/sent the report - but runActive/the HUD
 	// deliberately stay untouched until the player actually leaves (see SENDING_TO_SERVER_PATTERN's
-	// handler). Confirmed as a real bug from a live report (2026-07-26): the run/HUD used to
+	// handler). Confirmed as a real bug from a live report: the run/HUD used to
 	// disappear a few seconds after the boss died, well before anyone had actually left the
 	// dungeon - that only happens now once the player leaves, plus another 20s on top.
 	private static boolean runReportSentAwaitingLeave = false;
@@ -255,12 +255,11 @@ public final class DungeonRunTracker {
 	// flags it used before.
 	private static boolean bloodDoorOpened = false;
 	// Who obtained the Blood Key this run, from BLOOD_KEY_OBTAINED_PATTERN - null if nobody has (yet),
-	// or if the run never reached the Blood Room. For the end-of-run report's Blood Room line - "im
-	// report am ende auch blood room erwähnen wer opened" (2026-07-26).
+	// or if the run never reached the Blood Room. For the end-of-run report's Blood Room line.
 	private static String bloodKeyPlayer = null;
 	// Real wall-clock timestamps (not elapsedSeconds, which the sidebar stops updating for the whole
 	// boss fight - see the FLOOR_NULL_END_RUN_TICKS comment on tick()) bracketing the boss fight, for
-	// the report's "time in boss room" line - "genauzeit im boss room bis boss tot" (2026-07-26). 0 =
+	// the report's "time in boss room" line. 0 =
 	// not set yet. Set the moment bossRoomEntered/bossRoomCleared each FIRST flip true, from whichever
 	// of the two independent detection paths (chat fallback or the authoritative position-based one)
 	// gets there first.
@@ -272,8 +271,8 @@ public final class DungeonRunTracker {
 	// getWitherDoors().
 	private static final List<Boolean> witherDoorKeys = new java.util.ArrayList<>();
 	// Wall-clock timestamp each witherDoorKeys entry was actually OPENED (0 = not opened yet), same
-	// index/order as witherDoorKeys - for the debug HUD's per-event elapsed-time display ("timestamps
-	// immer also wie viele minuten sekunden millisekunde es gerade war", 2026-07-26). Real wall-clock
+	// index/order as witherDoorKeys - for the debug HUD's per-event elapsed-time display, always
+	// shown as minutes/seconds/milliseconds. Real wall-clock
 	// millis rather than the scoreboard's own elapsedSeconds, which freezes for the whole boss fight
 	// (see FLOOR_NULL_END_RUN_TICKS's own comment) - not useful for anything happening during it.
 	private static final List<Long> witherDoorOpenedMillis = new java.util.ArrayList<>();
@@ -309,8 +308,7 @@ public final class DungeonRunTracker {
 	// tracking (deaths, puzzles, ...) for a run that's still actually going - confirmed directly from a
 	// real log that even 60 ticks (3s) was too eager (Hypixel's sidebar doesn't show the normal
 	// Floor/cleared% lines during the boss fight itself, wrongly firing mid-fight). Bumped 3s -> 10s
-	// -> 20s (2026-07-26, "run erst beenden wenn dann der dungeon verlassen wird ... 20 sekunden
-	// extra warten") for further margin - the tick() gate additionally never fires this at all once
+	// -> 20s for further margin - the tick() gate additionally never fires this at all once
 	// the boss room's been entered (see FLOOR_NULL_END_RUN_TICKS's use in tick()), which is the
 	// actual fix for the boss-fight false positive; this timeout is purely the fallback for
 	// genuinely leaving without a cleaner signal (e.g. a hard disconnect).
@@ -347,7 +345,7 @@ public final class DungeonRunTracker {
 	// Set the moment the LOCAL player's own death is seen (see handleDeath) - deliberately separate
 	// from bossRoomCleared/bloodRoomCompleted/etc: those reflect real, independent chat events and can
 	// legitimately still end up true even after a personal death (the PARTY can finish a run around a
-	// dead/ghosted player) - confirmed as a real, confusing case from a live report (2026-07-26): the
+	// dead/ghosted player) - confirmed as a real, confusing case from a live report: the
 	// debug HUD showed "Boss room cleared ✔" with a real timestamp while "Boss room entered ✖" was
 	// still red, because the party genuinely did finish the floor while this player never personally
 	// got to witness entering/clearing the boss room. Rather than hacking one of those existing flags
@@ -410,7 +408,7 @@ public final class DungeonRunTracker {
 			// depend on which announcements happen to be turned on.
 			if (runActive && !leaveEndScheduled && SENDING_TO_SERVER_PATTERN.matcher(colorless).find()) {
 				leaveEndScheduled = true;
-				// Fallback for a real, confirmed bug (2026-07-26, live log): the report used to be gated
+				// Fallback for a real, confirmed bug (live log): the report used to be gated
 				// on BOTH the "The Catacombs - Floor X" header AND the later "Click HERE to re-queue into
 				// ...!" line (see the REQUEUE_PATTERN handler below) - but Hypixel doesn't always send
 				// that second line. Confirmed directly from a real log: the header printed normally, the
@@ -437,14 +435,13 @@ public final class DungeonRunTracker {
 
 			SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 			boolean anyToggleOn = config.dungeonRunReportEnabled || config.dungeonBossRoomAnnounceEnabled || config.dungeonDeathKickEnabled || config.dungeonScoreHudEnabled || config.dungeonSelfReadyReminderEnabled;
-			boolean hasPermission = PermissionsManager.has("dungeonInfo");
-			if (!hasPermission || !anyToggleOn) {
+			if (!anyToggleOn) {
 				// Throttled to once per 30s (not per-message) - this gate is evaluated on every single
 				// chat line, and most of Hypixel's own dungeon spam would otherwise flood the debug log.
 				long now = System.currentTimeMillis();
 				if (now - lastGateLogMillis > 30_000) {
 					lastGateLogMillis = now;
-					DebugLog.log(DebugLog.Category.DUNGEON, "Chat listener gated off (dungeonInfo permission=" + hasPermission + ", any relevant toggle on=" + anyToggleOn + ")");
+					DebugLog.log(DebugLog.Category.DUNGEON, "Chat listener gated off (no relevant toggle on)");
 				}
 				return;
 			}
@@ -640,7 +637,7 @@ public final class DungeonRunTracker {
 				// report reliably lands after ALL of Hypixel's own summary, not just most of it.
 				// finishRun() captures the final score/report right here (while the data's still live) but
 				// deliberately no longer flips runActive/hides the HUD itself anymore - confirmed as a real
-				// bug from a live report (2026-07-26): the run/HUD used to disappear a few seconds after
+				// bug from a live report: the run/HUD used to disappear a few seconds after
 				// the boss died, well before anyone had actually left the dungeon. That now only happens
 				// once the player actually leaves (see SENDING_TO_SERVER_PATTERN's handler above), plus
 				// another 20s on top of that.
@@ -731,9 +728,9 @@ public final class DungeonRunTracker {
 	// Which OTHER roster members are currently visible as REAL, server-confirmed connected players in
 	// this Minecraft session's own tab list (Minecraft.getConnection().getOnlinePlayers(), the actual
 	// join/leave-packet-driven player list - not Hypixel's fake dungeon-stat tab entries, which never
-	// match a real runRoster UUID anyway) - the basis for the backend's mutual party-attestation check
-	// (2026-07-26, "ne party fixen indem... server matched diese spieler dann und schaut ob die sich
-	// gegenseitig melden"). See getVisibleTeammates()/DungeonSyncManager.
+	// match a real runRoster UUID anyway) - the basis for the backend's mutual party-attestation
+	// check (the server cross-checks that both sides of a claimed party relationship actually
+	// report seeing each other). See getVisibleTeammates()/DungeonSyncManager.
 	private static Set<UUID> visibleTeammates = new LinkedHashSet<>();
 
 	private static void updateVisibleTeammates(Minecraft client) {
@@ -1589,8 +1586,8 @@ public final class DungeonRunTracker {
 
 	/**
 	 * Best-effort position snapshot at the moment of death, for the "X" death marker on the website's
-	 * map (both live and replay) - "wenn wer died da wo der gestorben ist ein x machen ... mit namen
-	 * drüber und zahl der wie vielte tod das ist" (2026-07-27). The dying player's entity typically
+	 * map (both live and replay), labeled with the player's name and which death number this is for
+	 * them. The dying player's entity typically
 	 * still resolves right after their death message (they become a ghost, not despawn), but this is
 	 * deliberately tolerant of it not being found - a death with no position still records the
 	 * name/death-number, just with a null spot, rather than dropping the marker entirely.
@@ -1756,7 +1753,7 @@ public final class DungeonRunTracker {
 	/**
 	 * Whether EVERY current roster member has been confirmed dead this run - covers the case
 	 * {@link #localPlayerDied} alone can't (the local player personally survives, but the rest of the
-	 * party wiped) - a full party wipe (2026-07-27). Catacombs
+	 * party wiped) - a full party wipe. Catacombs
 	 * has no mid-run respawn, so one death entry per name reliably means "still a ghost", not
 	 * "was dead, then came back". Deliberately conservative: a roster member whose real username
 	 * hasn't resolved yet (still showing PartyHudManager's placeholder) can never match a death
@@ -1949,7 +1946,7 @@ public final class DungeonRunTracker {
 
 	/**
 	 * The score value actually shown/announced right now - Skyblocker's live score when available,
-	 * ALWAYS (2026-07-27, no more opt-out toggle),
+	 * ALWAYS (no opt-out toggle),
 	 * otherwise our own estimate (also still the only source for the Skill/Explore/Speed/Bonus
 	 * breakdown, which Skyblocker doesn't expose individually). Used by every chat announcement that
 	 * includes a {score} placeholder, so the number a player sees in chat always matches what the
@@ -2003,7 +2000,7 @@ public final class DungeonRunTracker {
 	private static final double[] GRADE_THRESHOLDS = {100, 160, 230, 269.5, 300};
 	private static final String[] GRADE_LABELS = {"C", "B", "A", "S", "S+"};
 
-	/** How many more total-score points until the next grade up, and what it's called (2026-07-27). {@code null} if already at the top grade (S+) - there's no "next" one. */
+	/** How many more total-score points until the next grade up, and what it's called. {@code null} if already at the top grade (S+) - there's no "next" one. */
 	public record NextGrade(String label, int pointsNeeded) {
 	}
 
@@ -2217,10 +2214,9 @@ public final class DungeonRunTracker {
 		}
 		// Checkpoints fire based on how much longer S+ can ACTUALLY stay reachable
 		// ({@link #getExtraSecondsForSPlus}), not the floor's raw nominal time limit (used to be
-		// `remaining` here) - real bug report (2026-07-27): "wir haben S+ [comfortably secured] aber
-		// der meldet trotzdem [hurry-or-S+-impossible] ... obwohl der selber anzeigt wie viel zeit man
-		// extra haben kann" - S+ was already locked in with a huge time buffer (Skill/Explore/Bonus
-		// alone nearly covered 300, Speed barely mattered) and the warning fired anyway purely because
+		// `remaining` here) - a real reported bug: S+ was already locked in with a huge time buffer
+		// (Skill/Explore/Bonus alone nearly covered 300, Speed barely mattered) and the warning fired
+		// anyway purely because
 		// the floor's OWN par-time countdown hit 60/30/15/10s remaining - completely unrelated to
 		// whether hurrying actually still mattered for the score, directly contradicting the Score
 		// HUD's own "Possible"/extra-seconds display at the same moment.
@@ -2266,7 +2262,7 @@ public final class DungeonRunTracker {
 
 	/**
 	 * Every input {@link #calculateScore()} actually used, for {@code /sm debug score} - a real bugfix
-	 * (2026-07-27) traced to the live score staying frozen at exactly 20+0+
+	 * traced to the live score staying frozen at exactly 20+0+
 	 * 100+0=120 for an ENTIRE run regardless of real progress, across many different runs/floors. That
 	 * total matches calculateSkillScore()/calculateExploreScore() both reading ZERO completed rooms the
 	 * whole time - meaning either {@link #getTotalRooms()} divided by a real clearedPercent still came
@@ -2467,7 +2463,7 @@ public final class DungeonRunTracker {
 			String tag = puzzle.outcome() == PuzzleOutcome.SOLVED ? "§a✓" : "§c✖";
 			emit.accept("  " + tag + " §f" + puzzle.player() + " §7" + puzzle.detail());
 		}
-		// Blood Room summary line, added to the run report (2026-07-26) - only shown if the
+		// Blood Room summary line - only shown if the
 		// Blood Room was actually reached this run, same as the mimic/prince lines above.
 		if (watcherEncountered) {
 			emit.accept("§dBlood Room: §f" + (bloodRoomCompleted ? "cleared" : "entered")
@@ -2480,15 +2476,15 @@ public final class DungeonRunTracker {
 		if (!playersEnteredBossRoom.isEmpty()) {
 			emit.accept("§dEntered boss room: §f" + String.join("§7, §f", playersEnteredBossRoom));
 		}
-		// Real wall-clock duration spent in the boss room until the boss died (2026-07-26) (elapsedSeconds
+		// Real wall-clock duration spent in the boss room until the boss died (elapsedSeconds
 		// itself is frozen for the whole boss fight, see FLOOR_NULL_END_RUN_TICKS's own comment on why).
 		if (bossRoomEnteredMillis > 0 && bossRoomClearedMillis > 0) {
 			int bossSeconds = (int) Math.max(0, (bossRoomClearedMillis - bossRoomEnteredMillis) / 1000);
 			emit.accept("§dTime in boss room: §f" + formatElapsed(bossSeconds));
 		}
 		if (!doorsOpened.isEmpty()) {
-			// Renamed from the old generic "Doors opened" to specifically "Wither Doors opened"
-			// (2026-07-26): this map is only ever actually populated from Wither Door opens (the Blood
+			// Renamed from the old generic "Doors opened" to specifically "Wither Doors opened":
+			// this map is only ever actually populated from Wither Door opens (the Blood
 			// Door's real chat message is a nameless broadcast, see BLOOD_DOOR_OPENED_PATTERN, so it can
 			// never attribute a player here), so the old generic label was misleading.
 			StringBuilder doorsLine = new StringBuilder("§dWither Doors opened: ");

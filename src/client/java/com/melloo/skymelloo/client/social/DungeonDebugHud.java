@@ -29,7 +29,7 @@ public final class DungeonDebugHud implements HudElement {
 
 	/**
 	 * " [Xm Ys Zms]" - elapsed real time since the run started, for the moment {@code eventMillis}
-	 * happened (2026-07-26). Empty string if the event hasn't happened yet (0) or no run is timed. Real
+	 * happened. Empty string if the event hasn't happened yet (0) or no run is timed. Real
 	 * wall-clock millis, not the scoreboard's own elapsed time, which freezes for the whole boss fight
 	 * (see DungeonRunTracker's FLOOR_NULL_END_RUN_TICKS comment) - not useful for anything happening
 	 * during it, which is exactly when most of these events (Blood/Boss room) happen.
@@ -85,7 +85,7 @@ public final class DungeonDebugHud implements HudElement {
 		// for a literal Blood Key the way Wither Essence drops one, so entering the Blood Room (the
 		// Watcher speaking) is the real-world equivalent of "having the key" here. Once that's true,
 		// the actual Blood door-opened event (a real "X opened a BLOOD door!" chat line, same pattern
-		// as Wither's) is now shown too (2026-07-26), mirroring Wither Door's exact "opened/not opened
+		// as Wither's) is now shown too, mirroring Wither Door's exact "opened/not opened
 		// yet (key obtained)" wording instead of the old flat "Blood key obtained" line. Blood room
 		// cleared stays its own separate line.
 		boolean bloodEntered = DungeonRunTracker.isBloodRoomEntered();
@@ -103,9 +103,9 @@ public final class DungeonDebugHud implements HudElement {
 		// "Boss room cleared" look like a contradiction (it can legitimately still go green even after
 		// this, since the PARTY can finish the floor around a dead/ghosted player - see
 		// DungeonRunTracker#localPlayerDied's own doc comment) instead gets its own dedicated line here,
-		// rather than forcing some unrelated flag to (incorrectly) read as green (2026-07-26). Covers
+		// rather than forcing some unrelated flag to (incorrectly) read as green. Covers
 		// BOTH ways a run can fail: the local player personally dying, and the local player surviving
-		// while the rest of the party wipes (2026-07-27).
+		// while the rest of the party wipes.
 		if (DungeonRunTracker.hasLocalPlayerDied()) {
 			lines.add(flag("Run failed (you died)", true));
 		} else if (DungeonRunTracker.isEntirePartyDead()) {
