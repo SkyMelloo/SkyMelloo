@@ -182,7 +182,7 @@ public final class PartyJoinWatcher {
 			Minecraft.getInstance().execute(() -> {
 				Minecraft client = Minecraft.getInstance();
 				if (client.player != null) {
-					client.player.sendSystemMessage(ChatUtil.prefixed("§7Couldn't load stats for §f" + username + "§7 (" + error.getMessage() + ")."));
+					client.player.sendSystemMessage(ChatUtil.prefixed("§7Couldn't load stats for §f" + username + "§7 (" + ChatUtil.friendlyError(error) + ")."));
 				}
 			});
 			return null;
