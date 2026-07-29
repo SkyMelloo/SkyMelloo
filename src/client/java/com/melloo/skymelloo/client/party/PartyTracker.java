@@ -1,6 +1,7 @@
 package com.melloo.skymelloo.client.party;
 
 import com.melloo.skymelloo.client.util.DebugLog;
+import com.melloo.skymelloo.client.util.HypixelDetector;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.hypixel.modapi.HypixelModAPI;
@@ -8,7 +9,6 @@ import net.hypixel.modapi.error.BuiltinErrorReason;
 import net.hypixel.modapi.packet.impl.clientbound.ClientboundPartyInfoPacket;
 import net.hypixel.modapi.packet.impl.serverbound.ServerboundPartyInfoPacket;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ServerData;
 
 import java.util.Collections;
 import java.util.Locale;
@@ -93,7 +93,7 @@ public final class PartyTracker {
 		});
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-			if (isHypixel(client)) {
+			if (HypixelDetector.isHypixel(client)) {
 				joinDelayTicks = JOIN_DELAY_TICKS;
 			}
 		});
@@ -156,8 +156,4 @@ public final class PartyTracker {
 		return client.player != null && client.player.getUUID().equals(leaderUuid);
 	}
 
-	private static boolean isHypixel(Minecraft client) {
-		ServerData server = client.getCurrentServer();
-		return server != null && server.ip != null && server.ip.toLowerCase(Locale.ROOT).contains("hypixel");
-	}
 }

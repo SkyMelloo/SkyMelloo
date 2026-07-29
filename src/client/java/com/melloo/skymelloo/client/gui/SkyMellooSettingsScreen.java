@@ -524,6 +524,8 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(cycleRow("Party Log Delivery", () -> c.debugPartyDelivery, v -> c.debugPartyDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Party debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
 				rows.add(tip(boolRow("Dungeon Debug Log", () -> c.debugDungeon, v -> c.debugDungeon = v, 0xFFAA33FF), "Prints the dungeon run tracker's floor/cleared%/time detection and run start/end to chat. Does NOT toggle the Score HUD/Run Report/etc. themselves - those are their own options under Dungeons."));
 				rows.add(tip(cycleRow("Dungeon Log Delivery", () -> c.debugDungeonDelivery, v -> c.debugDungeonDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Dungeon debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(tip(boolRow("Staff Debug Log", () -> c.debugStaff, v -> c.debugStaff = v, 0xFFFFD700), "Prints staff-encounter scanning activity (/sm hitstaff) to chat."));
+				rows.add(tip(cycleRow("Staff Log Delivery", () -> c.debugStaffDelivery, v -> c.debugStaffDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Staff debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
 				rows.add(tip(boolRow("Mana Debug", () -> c.manaDebugEnabled, v -> c.manaDebugEnabled = v, 0xFF55CCFF), "Shows every (color, text) run actually seen in Hypixel's actionbar below the mana bar - for tracking down why mana detection isn't matching."));
 
 				rows.add(headerRow("Connection"));

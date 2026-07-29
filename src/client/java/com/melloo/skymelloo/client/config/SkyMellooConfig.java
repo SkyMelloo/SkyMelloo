@@ -960,6 +960,11 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "Where Dungeon debug messages above go - \"LOCAL\" or \"PARTY\". Falls back to LOCAL automatically if you're not actually in a party.")
 	public String debugDungeonDelivery = "LOCAL";
 
+	@SerialEntry(comment = "Debug messages for staff-encounter scanning (/sm hitstaff).")
+	public boolean debugStaff = false;
+	@SerialEntry(comment = "Where Staff debug messages above go - \"LOCAL\" or \"PARTY\". Falls back to LOCAL automatically if you're not actually in a party.")
+	public String debugStaffDelivery = "LOCAL";
+
 	@TickBox
 	@SerialEntry(comment = "Shows every (color, text) run actually seen in Hypixel's actionbar below the mana bar - for tracking down why mana detection isn't matching.")
 	public boolean manaDebugEnabled = false;

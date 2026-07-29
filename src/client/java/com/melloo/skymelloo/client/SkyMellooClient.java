@@ -159,8 +159,10 @@ public class SkyMellooClient implements ClientModInitializer {
 		));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			// Runs regardless of sky.melloo.me whitelist status - this is about the actual
-			// Minecraft server connection, unrelated to any of our own gated features below.
+			// Runs regardless of sky.melloo.me whitelist status AND regardless of whether we're even
+			// on Hypixel - this is about the actual Minecraft server connection (or, for
+			// StaffEncounterTracker, recognizing SkyMelloo staff wherever they're encountered),
+			// unrelated to any of the Hypixel-only SkyBlock features gated below.
 			ConnectionQualityMonitor.tick(client);
 			com.melloo.skymelloo.client.util.SkyblockDetector.tick(client);
 			com.melloo.skymelloo.client.util.AfkDetector.tick(client);
@@ -168,10 +170,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			com.melloo.skymelloo.client.util.ServerPingMonitor.tick(client);
 			com.melloo.skymelloo.client.gui.FpsMonitor.tick(client);
 			com.melloo.skymelloo.client.util.AutoReconnect.tick(client);
-			PartyHudManager.tick(client);
-			DungeonTabList.tick(client);
-			DungeonRunTracker.tick(client);
-			DungeonRoomTracker.tick(client);
+			com.melloo.skymelloo.client.social.StaffEncounterTracker.tick(client);
 
 			while (hudEditorKey.consumeClick()) {
 				if (client.screen == null) {
@@ -186,6 +185,24 @@ public class SkyMellooClient implements ClientModInitializer {
 			while (mainMenuKey.consumeClick()) {
 				com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.openMenu(client);
 			}
+			while (openConfigKey.consumeClick()) {
+				if (client.screen == null) {
+					com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL);
+				}
+			}
+
+			// Everything else is Hypixel-only - the whole rest of the mod (SkyBlock features, party,
+			// friends, cloud sync, the whitelist/version/permission checks that gate them) has no
+			// reason to run on any other server.
+			if (!com.melloo.skymelloo.client.util.HypixelDetector.isHypixel(client)) {
+				TickDelay.tick();
+				return;
+			}
+
+			PartyHudManager.tick(client);
+			DungeonTabList.tick(client);
+			DungeonRunTracker.tick(client);
+			DungeonRoomTracker.tick(client);
 
 			WhitelistManager.checkOnce(client);
 			WhitelistManager.tickPeriodicRecheck(client);
@@ -201,11 +218,6 @@ public class SkyMellooClient implements ClientModInitializer {
 				boolean showFeedback = SkyMellooConfig.HANDLER.instance().debugMessagesEnabled && client.player != null;
 				setHighlightEnabled(!SkyMellooConfig.HANDLER.instance().dungeonRoomMobHighlightEnabled,
 						showFeedback ? client.player::sendSystemMessage : null);
-			}
-			while (openConfigKey.consumeClick()) {
-				if (client.screen == null) {
-					com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL);
-				}
 			}
 			FishingHelper.tick(client);
 			FishingMinigameManager.tick(client);
@@ -280,6 +292,38 @@ public class SkyMellooClient implements ClientModInitializer {
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(
 									"Spells Cast: §e" + SkyMellooConfig.HANDLER.instance().totalSpellsCast + "§r  ·  §dKills: §e" + SkyMellooConfig.HANDLER.instance().totalPlayersKilled + "§r  ·  §dSpell Essence: §e" + SkyMellooConfig.HANDLER.instance().totalSpellEssenceCollected
 							));
+							return 1;
+						}))
+						// Named after the German "Staff getroffen" ("met/encountered staff") - a running
+						// list of every real SkyMelloo staff/owner member you've ever shared a tab list
+						// with, anywhere (see StaffEncounterTracker, the one part of the mod that keeps
+						// scanning regardless of server).
+						.then(ClientCommands.literal("hitstaff").executes(ctx -> {
+							var source = ctx.getSource();
+							Minecraft client = Minecraft.getInstance();
+							ModAuthManager.getIdentity(client)
+									.exceptionally(error -> null)
+									.thenCompose(SkyMellooApiClient::fetchStaffEncounters)
+									.thenAccept(encounters -> client.execute(() -> {
+										if (encounters.isEmpty()) {
+											source.sendFeedback(ChatUtil.prefixed("§7Noch keine SkyMelloo-Staff getroffen."));
+											return;
+										}
+										var sorted = new java.util.ArrayList<>(encounters);
+										sorted.sort((a, b) -> Long.compare(b.lastSeenMillis(), a.lastSeenMillis()));
+										source.sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo-Staff getroffen (" + sorted.size() + ") ==="));
+										long now = System.currentTimeMillis();
+										for (var entry : sorted) {
+											String roleLabel = switch (entry.role()) {
+												case "owner" -> "Owner";
+												case "admin" -> "Admin";
+												case "developer" -> "Developer";
+												case "moderator" -> "Moderator";
+												default -> entry.role();
+											};
+											source.sendFeedback(ChatUtil.prefixed("§6[" + roleLabel + "] §f" + entry.username() + " §7- zuletzt gesehen vor " + formatAgo(now - entry.lastSeenMillis())));
+										}
+									}));
 							return 1;
 						}))
 						.then(ClientCommands.literal("session").executes(ctx -> {
@@ -665,6 +709,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- Spell-Kills anzeigen"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- Dungeon-Session-Stats anzeigen (Runs, Ø Score, Deaths, Zeit)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- Party-Join-Nachricht testen"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo hitstaff §7- SkyMelloo-Staff anzeigen, die du schon getroffen hast"));
 
 		// Every feature is unlocked for everyone now except Cosmetics, which genuinely still needs a
 		// linked sky.melloo.me account (the server has to know who's who to broadcast a cosmetic to
@@ -674,6 +719,24 @@ public class SkyMellooClient implements ClientModInitializer {
 			unlockedFeatures.add("Cosmetics");
 		}
 		source.sendFeedback(ChatUtil.prefixed("§7Weitere Einstellungen (" + String.join(", ", unlockedFeatures) + ") laufen über das Menü (Taste H)."));
+	}
+
+	/** Rough "vor X" duration for /sm hitstaff - coarsest unit only (a last-seen from 2 days ago doesn't need minute precision). */
+	private static String formatAgo(long millisAgo) {
+		long seconds = millisAgo / 1000;
+		if (seconds < 60) {
+			return "gerade eben";
+		}
+		long minutes = seconds / 60;
+		if (minutes < 60) {
+			return minutes + " Minute" + (minutes == 1 ? "" : "n");
+		}
+		long hours = minutes / 60;
+		if (hours < 24) {
+			return hours + " Stunde" + (hours == 1 ? "" : "n");
+		}
+		long days = hours / 24;
+		return days + " Tag" + (days == 1 ? "" : "en");
 	}
 
 	public static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestOnlinePlayers(
