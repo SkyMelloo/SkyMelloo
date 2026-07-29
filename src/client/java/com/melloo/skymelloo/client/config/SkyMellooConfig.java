@@ -679,6 +679,12 @@ public class SkyMellooConfig {
 	// Cosmetics are intentionally NOT exposed via @AutoGen/YACL - they live exclusively in the
 	// Cosmetics tab of SkyMellooSettingsScreen (opened with J/H or /skymelloo cosmetics/config),
 	// not the YACL menu. These fields still persist normally via @SerialEntry.
+	// Master switch, set under General instead of here - off hides the Cosmetics tab entirely (both
+	// in the settings screen and the SkyMelloo Menu item) and stops rendering cosmetics altogether,
+	// yours and everyone else's, rather than just hiding the tab while effects keep running.
+	@SerialEntry(comment = "Master switch for cosmetics - off hides the Cosmetics tab everywhere and stops rendering any cosmetic effect, yours or anyone else's.")
+	public boolean cosmeticsEnabled = true;
+
 	@SerialEntry(comment = "Rotating ring of particles above your head.")
 	public boolean haloEnabled = false;
 
@@ -980,6 +986,13 @@ public class SkyMellooConfig {
 
 	@SerialEntry(comment = "Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults. Off by default - an explicit opt-in, separate from account-linking itself.")
 	public boolean cloudSyncEnabled = false;
+
+	// Internal, not shown in the settings screen - true once this device has ever picked Local or
+	// Cloud from CloudSyncManager's conflict-choice screen. That choice only ever needs asking once:
+	// afterward local and cloud are in sync, so every later launch just needs a plain "whichever side
+	// is newer wins" comparison, not another prompt.
+	@SerialEntry(comment = "Internal - true once this device has resolved a Cloud Sync conflict at least once. Not meant to be edited by hand.")
+	public boolean cloudSyncConflictResolved = false;
 
 	@SerialEntry(comment = "Master switch for showing up as \"online\" to anyone else - other SkyMelloo users' mod-user detection, the in-game Credits menu's online dot, and the website's public online-user count all depend on this. Off means you still report NOTHING about yourself, but you can still see/detect others who have it on. Doesn't affect Cloud Sync (that's private, never shown to anyone else).")
 	public boolean presenceSharingEnabled = false;

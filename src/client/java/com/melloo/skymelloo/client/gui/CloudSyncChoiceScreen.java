@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter;
  */
 public class CloudSyncChoiceScreen extends Screen {
 	private static final int PANEL_WIDTH = 360;
-	private static final int PANEL_HEIGHT = 150;
+	private static final int PANEL_HEIGHT = 165;
 	private static final int BUTTON_WIDTH = 150;
 	private static final int BUTTON_HEIGHT = 24;
 	private static final int BORDER_COLOR = 0xFFFF6EC7;
@@ -56,12 +56,12 @@ public class CloudSyncChoiceScreen extends Screen {
 		int cloudX = panelX + PANEL_WIDTH - 16 - BUTTON_WIDTH;
 
 		addRenderableWidget(new ChoiceButton(localX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
-				"Lokal behalten (" + formatTime(localMillis) + ")", LOCAL_ACCENT, () -> {
+				"Keep Local", LOCAL_ACCENT, () -> {
 			onUseLocal.run();
 			Minecraft.getInstance().setScreen(null);
 		}));
 		addRenderableWidget(new ChoiceButton(cloudX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
-				"Cloud laden (" + formatTime(cloudMillis) + ")", CLOUD_ACCENT, () -> {
+				"Load Cloud", CLOUD_ACCENT, () -> {
 			onUseCloud.run();
 			Minecraft.getInstance().setScreen(null);
 		}));
@@ -85,15 +85,28 @@ public class CloudSyncChoiceScreen extends Screen {
 
 		int panelX = (this.width - PANEL_WIDTH) / 2;
 		int panelY = (this.height - PANEL_HEIGHT) / 2;
+		int buttonY = panelY + PANEL_HEIGHT - BUTTON_HEIGHT - 16;
+		int localX = panelX + 16;
+		int cloudX = panelX + PANEL_WIDTH - 16 - BUTTON_WIDTH;
 
 		gg.fill(panelX - 2, panelY - 2, panelX + PANEL_WIDTH + 2, panelY + PANEL_HEIGHT + 2, BORDER_COLOR);
 		gg.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, PANEL_COLOR);
 
 		gg.text(this.font, "§6Cloud Sync", panelX + 16, panelY + 14, 0xFFFFD700);
-		gg.text(this.font, "§7Sowohl dieses Gerät als auch die Cloud haben", panelX + 16, panelY + 32, 0xFFAAAAAA);
-		gg.text(this.font, "§7gespeicherte Einstellungen. Welche behalten?", panelX + 16, panelY + 44, 0xFFAAAAAA);
+		gg.text(this.font, "§7Both this device and the cloud have saved", panelX + 16, panelY + 32, 0xFFAAAAAA);
+		gg.text(this.font, "§7settings. Which one do you want to keep?", panelX + 16, panelY + 44, 0xFFAAAAAA);
+
+		// Captions above each button instead of crammed into the label itself - "last saved" is
+		// secondary info, not part of the action name.
+		drawCenteredCaption(gg, "Saved " + formatTime(localMillis), localX, localX + BUTTON_WIDTH, buttonY - 12);
+		drawCenteredCaption(gg, "Saved " + formatTime(cloudMillis), cloudX, cloudX + BUTTON_WIDTH, buttonY - 12);
 
 		super.extractRenderState(gg, mouseX, mouseY, partialTick);
+	}
+
+	private void drawCenteredCaption(GuiGraphicsExtractor gg, String text, int x1, int x2, int y) {
+		int width = this.font.width(text);
+		gg.text(this.font, "§7" + text, x1 + (x2 - x1 - width) / 2, y, 0xFF888888);
 	}
 
 	/** Same styled-button look as StringInputScreen's Save/Cancel, just with two neutral accent colors instead of green/red since neither choice here is "correct". */

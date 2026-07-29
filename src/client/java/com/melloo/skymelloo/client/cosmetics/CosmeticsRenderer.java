@@ -35,10 +35,12 @@ public final class CosmeticsRenderer {
 	}
 
 	public static void tick(Minecraft client) {
-		if (client.player == null || client.level == null || !PermissionsManager.has("cosmetics")) {
+		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
+		// Master switch (General tab) - off means no cosmetic effect renders at all, yours or anyone
+		// else's, not just "hide the tab while effects keep running in the background".
+		if (client.player == null || client.level == null || !config.cosmeticsEnabled || !PermissionsManager.has("cosmetics")) {
 			return;
 		}
-		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		AbstractClientPlayer self = client.player;
 
 		if (config.haloEnabled) {
