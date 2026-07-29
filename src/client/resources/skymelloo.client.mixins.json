@@ -1,0 +1,35 @@
+{
+	"required": true,
+	"package": "com.melloo.skymelloo.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"EntityGlowMixin",
+		"EntityDisplayNameMixin",
+		"FishingHookAccessor",
+		"PlayerNameVisibilityMixin",
+		"BlockDisplayInvoker",
+		"EmptyHandAirClickMixin",
+		"MissileHitInvisibilityMixin",
+		"ArmorInvisibilityMixin",
+		"HeldItemInvisibilityMixin",
+		"PlayerKillMixin",
+		"FishingTargetHitMixin",
+		"RemoteMissileTriggerMixin",
+		"PlayerHeadInvisibilityMixin",
+		"ResourcePackAutoDeclineMixin",
+		"PlayerTabOverlayAccessor",
+		"ResourcePackFailureToastMixin",
+		"EntityRenderStateInvisibilityMixin",
+		"ForcedInvisibilityExtractionMixin",
+		"AvatarForcedInvisibilityExtractionMixin",
+		"DamageEventMixin",
+		"ContainerMenuItemClickMixin",
+		"SetTimePacketMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

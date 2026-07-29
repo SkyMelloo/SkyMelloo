@@ -1,0 +1,247 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	mavenCentral()
+	maven {
+		name = 'QuiltMC'
+		url = 'https://maven.quiltmc.org/repository/release/'
+	}
+	maven {
+		name = 'Hypixel'
+		url = 'https://repo.hypixel.net/repository/Hypixel/'
+	}
+	flatDir {
+		dirs 'libs'
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"skymelloo" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API. This is technically optional, but you probably want it anyway.
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Config screen (already installed as a separate mod by users, not bundled here).
+	implementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+
+	// Mod Menu integration so the config screen is reachable without a keybind.
+	// Compiled against the jar the user already has installed (TerraformersMC's maven was down at build time).
+	implementation ":modmenu:${project.modmenu_version}"
+
+	// Party detection via Hypixel's official Mod API. The actual networking bridge is provided
+	// at runtime by the separately-installed HypixelModAPI mod; we only need the packet/API classes here.
+	implementation "net.hypixel:mod-api:${project.hypixel_modapi_version}"
+}
+
+// Build type (2026-07-28, "dev etc nicht gebaut werden können weil die ja nen key und
+// verifizierung brauchen... leute können nur test bauen dann brauchen sie gar nix und dev sowie
+// public kann nur ich weil das per website geht") - three tiers:
+//   - "test": anyone, zero requirements, never signed/registered. This -PtestBuild flag.
+//   - "dev": a real signed+registered build, requires the maintainer's own private key (see
+//     signAndRegisterBuild below) - nobody else CAN produce one, key or not.
+//   - "public"/official release: not a build-time concept at all - an existing "dev" build gets
+//     manually promoted via the website admin panel (setReleasePublished), never here.
+// buildType itself is purely a self-reported, cosmetic marker (readable via ModVersionManager,
+// e.g. for "/sm info") baked into fabric.mod.json's custom fields - it does NOT affect server-side
+// trust, which is entirely about whether SignAndRegister.java actually signed this exact class hash
+// with the key. A "test" build and any other unmodified-but-unsigned build are indistinguishable to
+// the server either way, and both just get an informational unofficial-build chat notice (see
+// ModVersionManager) - never blocked.
+def buildType = project.hasProperty('testBuild') ? 'test' : 'dev'
+
+processResources {
+	def version = project.version
+	def publicVersion = project.public_version
+	inputs.property "version", version
+	inputs.property "publicVersion", publicVersion
+	inputs.property "buildType", buildType
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version, "publicVersion": publicVersion, "buildType": buildType
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName"}
+	}
+}
+
+// Auto-reports this build's version + jar hash to sky.melloo.me for admin-visible build tracking,
+// right after every build - "beim erstellen der mod nen script nutzen welches informationen und
+// daten der mod direkt an api sendet die es speichert" (2026-07-26), replacing the previous
+// hardcoded/manual version-tracking workflow. See scripts/report-build.js for what this actually
+// sends (and why it's informational-only, not a grant of runtime trust by itself). Never fails the
+// actual build - the script itself swallows network/missing-token errors non-fatally.
+tasks.register('reportBuild', Exec) {
+	group = 'skymelloo'
+	description = 'Reports this build\'s version + jar hash to sky.melloo.me (informational, never fails the build).'
+	dependsOn tasks.named('jar')
+	ignoreExitValue = true
+	commandLine 'node', "${projectDir}/scripts/report-build.js", project.version.toString(), tasks.named('jar').get().archiveFile.get().asFile.absolutePath
+}
+
+// Every build MUST include a changelog now (2026-07-28, "mach beim script muss man ne eingabe
+// machen nen ausführlichen changelog wenn man was hochlädt") - old versions kept shipping with no
+// changelog because writing one was a separate, easy-to-forget manual admin-panel step after the
+// fact. This is a real, hard gate (unlike reportBuild/signAndRegisterBuild/uploadJar's own
+// deliberately-non-fatal network/IO error handling) - it throws and stops the build outright if
+// neither property is provided, since the whole point is forcing the habit, not politely asking.
+//
+// TWO ways to supply it - prefer changelogFile for anything beyond a trivial one-liner:
+//   ./gradlew build -PchangelogFile=C:/path/to/changelog.txt   (recommended - immune to shell quoting)
+//   ./gradlew build -Pchangelog="Added: short one-liner"        (fine ONLY for plain text, no quotes/
+//                                                                 special chars - gradlew.bat's own
+//                                                                 cmd.exe re-invocation mangled a
+//                                                                 real multi-line -Pchangelog value
+//                                                                 with & in it, 2026-07-28 - confirmed
+//                                                                 live, not a hypothetical concern)
+def resolveChangelogText = {
+	if (project.hasProperty('changelogFile')) {
+		return new File(project.property('changelogFile').toString()).text
+	}
+	return project.findProperty('changelog')
+}
+
+// A "dev" build attempt with no signing key on this machine used to just silently no-op at
+// signAndRegisterBuild (SignAndRegister.java's own "never fail the build" philosophy) - which
+// LOOKED like a successful dev build but never actually registered anything. Made an explicit,
+// clear failure instead (2026-07-28, "dev etc nicht gebaut werden können weil die ja nen key und
+// verifizierung brauchen") - if you don't have the key, the ONLY thing you can build is -PtestBuild.
+// (Named "testBuild", not the shorter "test" - Gradle's `hasProperty('test')` is ALSO true just
+// because a task named "test" exists in this project, Groovy exposes tasks as dynamic project
+// properties - confirmed live, 2026-07-28: the dev-without-key hard-fail silently never fired
+// because of exactly this collision, even though -Ptest was never actually passed.)
+tasks.register('requireSigningKeyForDevBuild') {
+	group = 'skymelloo'
+	description = 'Fails the build if attempting a "dev" build (no -PtestBuild) without the maintainer\'s own signing key present.'
+	doLast {
+		if (project.hasProperty('testBuild')) {
+			return
+		}
+		def keyFile = new File(System.getProperty("user.home"), ".skymelloo-signing/private_key.pem")
+		if (!keyFile.exists()) {
+			throw new GradleException(
+				"Can't build \"dev\" - that requires the maintainer's own signing key, which isn't on this " +
+				"machine. Add -PtestBuild instead (e.g. ./gradlew build -PtestBuild=true, or node scripts/build.js) - " +
+				"a test build needs no key or verification at all."
+			)
+		}
+	}
+}
+
+tasks.register('requireChangelog') {
+	group = 'skymelloo'
+	description = 'Fails the build if no changelog was provided via -Pchangelog or -PchangelogFile (skipped entirely for -PtestBuild builds).'
+	dependsOn tasks.named('requireSigningKeyForDevBuild')
+	doLast {
+		if (project.hasProperty('testBuild')) {
+			return // test builds are never registered as a real release, so there's nothing to log
+		}
+		def text = resolveChangelogText()
+		if (!text || text.toString().trim().isEmpty()) {
+			throw new GradleException(
+				"Missing changelog! Every build must include one now - run with " +
+				"-PchangelogFile=path/to/changelog.txt (recommended) or -Pchangelog=\"short one-liner\"."
+			)
+		}
+	}
+}
+
+// Fully automates what used to require manually running sign-release.js by hand after every build -
+// "mach einfach ein build script welches die mod verifiziert ... die wissen ja ned wie ich die datei
+// erstelle und verifiziere weil es nur daten an meinen server schickt und der ausliest und
+// bestätigt aber nix hardcoden" (2026-07-26). Hashes ONLY this build's own compiled classes (not the
+// whole jar - see SignAndRegister.java's own doc comment on why), signs that hash with the Ed25519
+// private key that lives ONLY on this machine (never in either repo), and registers it as a genuine
+// trusted release automatically - no manual step, and nothing here could be reproduced by someone
+// else even with the exact same source, since they'd still need the private key. Never fails the
+// actual build over a NETWORK/IO problem - every such error is caught and logged inside the script,
+// not thrown - but DOES fail if requireChangelog above didn't already stop it first.
+tasks.register('signAndRegisterBuild', Exec) {
+	group = 'skymelloo'
+	description = 'Signs this build\'s own class hash with the local private key and registers it as a trusted release, with its changelog (never fails the build over network/IO issues, but requires -Pchangelog). Skipped entirely for -PtestBuild builds - those must never become a registered "trusted" release.'
+	dependsOn tasks.named('jar'), tasks.named('requireChangelog')
+	ignoreExitValue = true
+	onlyIf { !project.hasProperty('testBuild') }
+	doFirst {
+		def text = resolveChangelogText()
+		def tmpFile = new File("${buildDir}/changelog-arg.txt")
+		tmpFile.parentFile.mkdirs()
+		tmpFile.text = text.toString()
+		// Passed to the Java script as a FILE PATH, not the raw text itself, specifically to avoid
+		// re-hitting the exact cmd.exe/gradlew.bat argument-mangling problem above - a path has no
+		// special characters to mangle, regardless of what the actual changelog text contains.
+		commandLine 'java', "${projectDir}/scripts/SignAndRegister.java", project.version.toString(), tasks.named('jar').get().archiveFile.get().asFile.absolutePath, tmpFile.absolutePath
+	}
+}
+
+// Uploads this build's actual jar so it's downloadable from the admin panel right away (2026-07-27) -
+// trusted-but-unpublished builds still need a
+// real jar sitting on the server for the admin to grab and test. See scripts/upload-jar.js. Never
+// fails the build - the script itself swallows network/missing-token errors non-fatally.
+tasks.register('uploadJar', Exec) {
+	group = 'skymelloo'
+	description = 'Uploads this build\'s jar to sky.melloo.me for admin download (never fails the build).'
+	dependsOn tasks.named('jar')
+	ignoreExitValue = true
+	commandLine 'node', "${projectDir}/scripts/upload-jar.js", project.version.toString(), tasks.named('jar').get().archiveFile.get().asFile.absolutePath
+}
+
+tasks.named('build') {
+	finalizedBy tasks.named('reportBuild')
+	finalizedBy tasks.named('signAndRegisterBuild')
+	finalizedBy tasks.named('uploadJar')
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	repositories {
+		// Add repositories to publish to here.
+	}
+}
