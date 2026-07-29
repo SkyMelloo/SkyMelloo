@@ -36,8 +36,8 @@ import java.util.concurrent.CompletionException;
  * launch (never written to disk, never sent anywhere but its public half). Every subsequent
  * request is individually signed with the matching private key (see {@link ModIdentity#sign}),
  * so a captured request can never be replayed later - each signature is only valid once, for one
- * exact request, within a short time window (2026-07-26, replacing the previous bearer-token
- * design after the user chose the full ephemeral-keypair + per-request-signing rewrite).
+ * exact request, within a short time window. This replaces an earlier bearer-token design with
+ * the current ephemeral-keypair, per-request-signing scheme.
  */
 public final class ModAuthManager {
 	// Refresh a little before actual expiry so an in-flight request never races a just-expired session.

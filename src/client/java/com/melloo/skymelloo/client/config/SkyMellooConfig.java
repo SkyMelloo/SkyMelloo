@@ -34,13 +34,13 @@ public class SkyMellooConfig {
 		return !java.nio.file.Files.exists(YACLPlatform.getConfigDir().resolve("skymelloo.json5"));
 	}
 
-	// Everything below was drastically simplified (2026-07-27) from a fully customizable Highlighting system (name
-	// filters, friendly-mob toggle, self/friend/other/NPC player colors, a separate general "Mob
-	// Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
+	// Everything below was drastically simplified from a fully customizable mob/player highlighting
+	// system (name filters, friendly-mob toggle, self/friend/other/NPC player colors, a separate
+	// general "Mob Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
 	// highlights: party members (green), SkyMelloo staff (pink, everywhere - not dungeon-specific),
 	// and hostile mobs in your CURRENT dungeon room only (red, dungeon-only). Regular other players and NPCs get no highlight at all anymore.
 	// Removed entirely, not just defaulted off: highlightEnabled/highlightNameFilters/defaultHighlightColor/
-	// namedHighlightColor/friendlyMobsHighlightEnabled/friendlyHighlightColor (general mob Highlighting), selfHighlightColor,
+	// namedHighlightColor/friendlyMobsHighlightEnabled/friendlyHighlightColor (the general mob highlighting toggle), selfHighlightColor,
 	// friendHighlightNames/friendHighlightColor (see FriendListSync.java's deletion), otherPlayerHighlightColor,
 	// modUserHighlightColor (regular non-staff SkyMelloo users no longer get a color at all),
 	// showNpcHighlights/npcHighlightColor, autoSyncFriendsAndParty (only ever served the now-removed friend
@@ -68,21 +68,21 @@ public class SkyMellooConfig {
 
 	@AutoGen(category = "highlight", group = "players")
 	@TickBox
-	@SerialEntry(comment = "A party member's Highlighting (both the glow outline and the nametag marker) blinks bright red once their HP drops under 25% - an urgent \"someone needs help\" signal readable at a glance during a fight.")
+	@SerialEntry(comment = "A party member's highlight (both the glow outline and the nametag marker) blinks bright red once their HP drops under 25% - an urgent \"someone needs help\" signal readable at a glance during a fight.")
 	public boolean lowHpBlinkEnabled = true;
 
 	@AutoGen(category = "highlight", group = "players")
 	@ColorField
-	// Default changed gold -> pink (2026-07-27, "developer admin und owner haben eine rosa aura
-	// also genau überall") - resolved server-side from the player's real linked account/team-role
+	// Default changed from gold to pink, so staff (developer/admin/owner) get a consistent aura
+	// color everywhere - resolved server-side from the player's real linked account/team-role
 	// (see server.js's roleForUuid), never something another client could self-report to fake.
 	@SerialEntry(comment = "Glow color for players whose linked sky.melloo.me account is the owner, an admin, or a developer - works everywhere, not just in dungeons.")
 	public Color adminHighlightColor = new Color(0xFFFF66CC, true);
 
 	@AutoGen(category = "highlight", group = "players")
 	@ColorField
-	// Added back (2026-07-27) with its own aqua/light-blue color, after the general Friend
-	// highlighting removal earlier the same day - this is specifically a confirmed SkyMelloo Friend
+	// Added back with its own aqua/light-blue color, after the general Friend
+	// highlighting removal - this is specifically a confirmed SkyMelloo Friend
 	// (the mod's own friends system, see FriendsManager/social menu), NOT the old Hypixel-/friend-
 	// list-based version, which stays gone.
 	@SerialEntry(comment = "Glow color for confirmed SkyMelloo Friends (see the Social menu, key G) - not Hypixel's own /friend list.")
@@ -95,13 +95,12 @@ public class SkyMellooConfig {
 
 	@AutoGen(category = "highlight", group = "players")
 	@TickBox
-	// New (2026-07-27, "player die unsichtbar sind werden sichtbar und man kann deren nametag sehen
-	// das standardmäßig aus") - off by default, since it defeats another player's REAL invisibility
-	// (e.g. Invisibility Potion), a much bigger deal than the other cosmetic player-color options
-	// above. Deliberately NOT a glow-outline/through-walls effect ("nicht glow outline einfach nur
-	// sichtbar machen") - see MissileHitInvisibilityMixin's isInvisible() override, which makes them
-	// render as a completely normal, visible player instead, still blocked by walls/line-of-sight.
-	@SerialEntry(comment = "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not an Highlighting effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden.")
+	// Off by default, since it defeats another player's REAL invisibility (e.g. Invisibility
+	// Potion), a much bigger deal than the other cosmetic player-color options above. Deliberately
+	// not a glow-outline/through-walls effect - see MissileHitInvisibilityMixin's isInvisible()
+	// override, which makes them render as a completely normal, visible player instead, still
+	// blocked by walls/line-of-sight.
+	@SerialEntry(comment = "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not a highlighting effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden.")
 	public boolean showInvisiblePlayers = false;
 
 	@AutoGen(category = "dungeons", group = "info")
@@ -224,8 +223,7 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "Where the Max Floor Auto-Kick announcement above goes - \"LOCAL\" or \"PARTY\" (falls back to LOCAL automatically if you're not actually in a party). Independent of every other kick message's delivery.")
 	public String dungeonFloorKickMaxDelivery = "LOCAL";
 
-	// "nicht nur max und min catacomb level aber auch so completion welchen höchsten floor die schon
-	// haben also completed und auch freigeschaltet" (2026-07-27) - the floorRequirement group above
+	// The floorRequirement group above
 	// only ever checked whether a member currently MEETS THE REQUIREMENTS for a floor (Catacombs/Combat
 	// Skill), never whether they've actually COMPLETED it before. Real completion (Hypixel's own
 	// highest_tier_completed) is a genuinely different, independent signal - a party can reasonably
@@ -340,8 +338,7 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "Show a debug HUD with the run tracker's own internal state flags (run active, wither door opened, blood room entered/cleared, boss room entered) - lets you see at a glance whether detection is actually keeping up with what's happening, instead of only finding out something misfired after the fact. Position set via the HUD layout editor (default J).")
 	public boolean dungeonDebugHudEnabled = false;
 
-	// Removed the "Prefer Skyblocker Score" toggle (2026-07-27, "IMMER skyblocker score nutzen nicht
-	// den eigenen") - Skyblocker's live score (same sidebar/tab-list data, battle-tested far longer) is
+	// Removed the "Prefer Skyblocker Score" toggle - Skyblocker's live score (same sidebar/tab-list data, battle-tested far longer) is
 	// now ALWAYS used when Skyblocker is installed, unconditionally, not an opt-in. Our own
 	// calculateScore() estimate only remains as (a) the fallback when Skyblocker genuinely isn't
 	// installed, and (b) the source of the Skill/Explore/Speed/Bonus breakdown, which Skyblocker
@@ -374,7 +371,7 @@ public class SkyMellooConfig {
 
 	@AutoGen(category = "dungeons", group = "runTracker")
 	@TickBox
-	@SerialEntry(comment = "Show how many more points are needed to reach the next grade above your current one (e.g. \"Next grade (A): +14\") on the Score HUD (2026-07-27).")
+	@SerialEntry(comment = "Show how many more points are needed to reach the next grade above your current one (e.g. \"Next grade (A): +14\") on the Score HUD.")
 	public boolean dungeonScoreShowNextGrade = true;
 
 	@AutoGen(category = "dungeons", group = "runTracker")
@@ -594,7 +591,7 @@ public class SkyMellooConfig {
 
 	@AutoGen(category = "general", group = "hud")
 	@TickBox
-	@SerialEntry(comment = "Hides Hypixel's own plain Health/Defense/Mana actionbar text above the hotbar, since the custom bars above already show the same info (2026-07-26). Only suppresses it while Health/Mana Bars itself is on, in SkyBlock - never touches the actionbar anywhere else.")
+	@SerialEntry(comment = "Hides Hypixel's own plain Health/Defense/Mana actionbar text above the hotbar, since the custom bars above already show the same info. Only suppresses it while Health/Mana Bars itself is on, in SkyBlock - never touches the actionbar anywhere else.")
 	public boolean hideNativeStatusActionBarEnabled = true;
 
 	@SerialEntry(comment = "Position of the health/mana bars, set via the HUD layout editor (default J).")
@@ -986,9 +983,8 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "Custom status text shown next to your name to other SkyMelloo users nearby (via sky.melloo.me presence). Leave empty to show nothing. Requires presenceSharingEnabled above.")
 	public String customStatusText = "";
 
-	// Made user-adjustable for a while (2026-07-27) then reverted back to a fixed 1s
-	// (ModPresenceManager.REPORT_INTERVAL_TICKS) the same day - "fest machen sync interval 1 sekunde
-	// nicht einstellbar nur ausschaltbar": a per-player-configurable interval meant the website's
+	// Made user-adjustable for a while, then reverted back to a fixed 1s
+	// (ModPresenceManager.REPORT_INTERVAL_TICKS) - a per-player-configurable interval meant the website's
 	// render delay had to adapt per player too, and a mismatched interval made the live map (updates
 	// immediately) and the player marker (rendered with a delay buffer) visibly drift out of sync
 	// with each other. A single fixed interval for everyone is simpler and keeps both in lockstep -
@@ -1034,19 +1030,18 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "See hudPartyMpBarX.")
 	public int hudPartyMpBarY = 220;
 
-	// playerKillTrackerEnabled/missileKillMessageDelivery removed as user-facing settings (2026-07-27) -
+	// playerKillTrackerEnabled/missileKillMessageDelivery removed as user-facing settings -
 	// always on and always LOCAL now, hardcoded at the two call
 	// sites (PlayerKillTracker#onPlayerDied, MagicMissileManager#announceMissileKill) rather than
 	// read from config, still gated by the "killTracker" permission either way. Death Double and its
-	// "on Spell Kill" variant were removed entirely the same day, not just defaulted off - see
+	// "on Spell Kill" variant were removed entirely at the same time, not just defaulted off - see
 	// combat/DeathDoubleManager.java's deletion.
 
 	@SerialEntry(comment = "Running total of players killed (each counted once per lobby/world). Internal counter, not user-editable.")
 	public int totalPlayersKilled = 0;
 
-	// magicMissileEssenceEnabled removed as a user-facing toggle (2026-07-27, "spell essence immer
-	// an") - always on now, whenever cosmetics permission allows it, see
-	// MagicMissileManager#spawnCollectibleEssence.
+	// magicMissileEssenceEnabled removed as a user-facing toggle - always on now, whenever cosmetics
+	// permission allows it, see MagicMissileManager#spawnCollectibleEssence.
 
 	@SerialEntry(comment = "Running total of Spell Essence collected. Internal counter, not user-editable.")
 	public int totalSpellEssenceCollected = 0;

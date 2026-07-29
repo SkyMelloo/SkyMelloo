@@ -2,7 +2,6 @@ package com.melloo.skymelloo.client.mixin;
 
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.cosmetics.MagicMissileManager;
-import com.melloo.skymelloo.client.social.PermissionsManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -20,8 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <li>Briefly renders a player invisible right after a magic-missile cosmetic hit. Purely visual,
  * always takes priority - checked first, and returns before the second check ever runs.</li>
  * <li>Optionally makes another player's REAL vanilla invisibility (e.g. an Invisibility Potion) not
- * apply to how THIS client renders them - "player die unsichtbar sind werden sichtbar ... nicht
- * glow outline einfach nur sichtbar machen" (2026-07-27): overriding isInvisible() to false makes
+ * apply to how THIS client renders them: overriding isInvisible() to false makes
  * every vanilla system (model rendering, nametag, armor, etc.) treat them as a completely normal,
  * visible player - blocked by walls/line-of-sight like anyone else, NOT an Highlighting-style glow outline
  * visible through obstacles. Off by default - see SkyMellooConfig#showInvisiblePlayers.</li>
@@ -41,7 +39,7 @@ public abstract class MissileHitInvisibilityMixin {
 		// players to you, not un-hiding yourself from your own client.
 		if (self instanceof Player player && player != Minecraft.getInstance().player
 				&& SkyMellooConfig.HANDLER.instance().showInvisiblePlayers
-				&& PermissionsManager.has("playerHighlight") && SkyMellooConfig.HANDLER.instance().playerHighlightEnabled) {
+				&& SkyMellooConfig.HANDLER.instance().playerHighlightEnabled) {
 			cir.setReturnValue(false);
 		}
 	}

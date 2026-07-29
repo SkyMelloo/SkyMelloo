@@ -227,7 +227,7 @@ public final class DungeonRoomTracker {
 	 * Skyblocker tracks "current room" via its own independent shape-match, on its own timing, and
 	 * can briefly still be describing the PREVIOUS room right after our own (ROOM_CONFIRM_TICKS-
 	 * gated) physical-grid tracking has already moved to a new one. Confirmed as a real, reproducible
-	 * bug from a live report/screenshot (2026-07-26): one room's name ("draw-bridge") kept getting
+	 * bug from a live report/screenshot: one room's name ("draw-bridge") kept getting
 	 * written onto several unrelated rooms (including an actual Puzzle room) as the player walked
 	 * around, because Skyblocker just hadn't caught up internally yet. If Skyblocker's confirmed type
 	 * disagrees with our own independent map-color read for the SAME physical cell, it's still
@@ -339,8 +339,7 @@ public final class DungeonRoomTracker {
 	 * instead of always the local player's own - the client already knows every visible player's real
 	 * position (that's how their entity renders at all, same technique {@link DungeonRunTracker}'s own
 	 * boss-room-entry detection already relies on), so this lets ONE SkyMelloo client report exact
-	 * positions for its WHOLE visible party, not just itself - "wenn ich mit mehreren spiele die keine
-	 * mod nutzen deren standorte und alles trotzdem auch gesendet werden" (2026-07-26): a teammate
+	 * positions for its WHOLE visible party, not just itself: a teammate
 	 * doesn't need their OWN SkyMelloo install for their position to show up on the map, as long as at
 	 * least one other party member's client can see them.
 	 */

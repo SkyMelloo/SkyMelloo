@@ -8,8 +8,9 @@ import com.melloo.skymelloo.client.fishing.FishingMinigameManager;
 import com.melloo.skymelloo.client.party.PartyTracker;
 import com.melloo.skymelloo.client.social.FriendsManager;
 import com.melloo.skymelloo.client.social.ModPresenceManager;
-import com.melloo.skymelloo.client.social.PermissionsManager;
 import com.melloo.skymelloo.client.social.WhitelistManager;
+import com.melloo.skymelloo.client.util.SkyblockDetector;
+import com.melloo.skymelloo.client.util.VisibilityUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -29,11 +30,10 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Decides which entities get the forced-glow Highlighting treatment and what color they get.
+ * Decides which entities get the forced-glow highlight treatment and what color they get.
  * Hooked from {@link com.melloo.skymelloo.client.mixin.EntityGlowMixin}.
  */
 public final class HighlightManager {
-	private static final String SELF_USERNAME = "hexedmaya";
 	private static final int KILL_FLASH_COLOR = 0xFFFFA500;
 	private static final long KILL_FLASH_DURATION_MS = 3000;
 	private static final Map<UUID, Long> killFlashExpiry = new HashMap<>();
@@ -41,7 +41,7 @@ public final class HighlightManager {
 	private HighlightManager() {
 	}
 
-	/** Briefly (3s) forces a player's Highlighting color/glow to orange - called right after you kill them. */
+	/** Briefly (3s) forces a player's highlight color to orange - called right after you kill them. */
 	public static void flashKillHighlight(UUID victimUuid) {
 		killFlashExpiry.put(victimUuid, System.currentTimeMillis() + KILL_FLASH_DURATION_MS);
 	}
@@ -51,7 +51,12 @@ public final class HighlightManager {
 		return expiry != null && expiry > System.currentTimeMillis();
 	}
 
-	/** Whether the entity's outline should be forced to glow through walls. */
+	/**
+	 * Whether the entity's outline should be forced to glow right now. Player/mob highlighting still
+	 * glows through walls (that's the point - knowing where your party is). Chests and items are
+	 * different: they only glow when there's an actual clear line of sight, so they read as a normal
+	 * outline effect rather than seeing through walls.
+	 */
 	public static boolean shouldGlow(Entity entity) {
 		if (!WhitelistManager.isAllowed()) {
 			return false;
@@ -66,19 +71,22 @@ public final class HighlightManager {
 		}
 
 		if (BlockHighlightRenderer.isChestMarker(entity)) {
-			return PermissionsManager.has("chestHighlight");
+			// Only actually visible chests get the outline - a genuine clear line of sight from the
+			// player's eyes, checked fresh every frame so it tracks camera movement/corners in real
+			// time, not seeing through walls.
+			return VisibilityUtil.hasLineOfSight(entity.position().add(0.5, 0.5, 0.5));
 		}
 
 		if (entity instanceof FishingHook && FishingHelper.isTracked(entity)) {
-			return config.fishingHelperEnabled && PermissionsManager.has("fishingHelper");
+			return config.fishingHelperEnabled;
 		}
 
 		if (FishingMinigameManager.isTarget(entity)) {
-			return PermissionsManager.has("fishingHelper");
+			return true;
 		}
 
 		if (entity instanceof ItemEntity item) {
-			return shouldGlowItem(item, config);
+			return shouldGlowItem(item, config) && VisibilityUtil.hasLineOfSight(item.position());
 		}
 
 		if (entity instanceof Player player && isKillFlashing(player.getUUID())) {
@@ -93,21 +101,24 @@ public final class HighlightManager {
 		}
 
 		if (living instanceof Player player) {
-			// "playerHighlight" is its own permission, split off from the dungeon mob highlight's "highlight"
-			// (2026-07-27) - toggling one must not toggle the other.
-			if (!PermissionsManager.has("playerHighlight") || !config.playerHighlightEnabled) {
+			// Player highlighting (party members and staff) is a SkyBlock-specific feature - it
+			// shouldn't apply on other Hypixel game modes or the lobby.
+			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
+				return false;
+			}
+			// playerHighlightEnabled is a separate config toggle from the dungeon mob highlight's
+			// toggle below, so switching one off doesn't affect the other.
+			if (!config.playerHighlightEnabled) {
 				return false;
 			}
 			if (player.isInvisible() && !config.showInvisiblePlayers) {
-				// Off by default (2026-07-27, "player die unsichtbar sind werden sichtbar... das
-				// standardmäßig aus") - forcing the glow-outline on a REAL vanilla-invisible player
+				// Off by default - forcing the glow-outline on a REAL vanilla-invisible player
 				// defeats their invisibility entirely (glowing+invisible renders as a visible
 				// colored silhouette through walls, see EntityGlowMixin) - a much more
 				// consequential capability than just coloring an already-visible player.
 				return false;
 			}
-			// Drastically simplified (2026-07-27) -
-			// only party members and SkyMelloo staff get highlighted at all now; everyone else
+			// Only party members and SkyMelloo staff get highlighted at all - everyone else
 			// (regular other players, NPCs included - NPCs are never party/staff) gets nothing, no
 			// special-casing needed for them anymore.
 			if (classifyPlayer(player) == PlayerCategory.NONE) {
@@ -119,11 +130,11 @@ public final class HighlightManager {
 			return config.playerGlowOutline;
 		}
 
-		// Only the dungeon current-room mob highlight remains (2026-07-27, "das highlight auf monster
-		// geht nur in dungeons") - isInCurrentDungeonRoom already requires an active run, so this is
-		// inherently dungeon-only. The old general "highlight every hostile mob everywhere" system
-		// (name filters, friendly mobs, default/named colors) is gone entirely, not just defaulted off.
-		return PermissionsManager.has("mobHighlight") && config.dungeonRoomMobHighlightEnabled
+		// Only the dungeon current-room mob highlight remains - isInCurrentDungeonRoom already
+		// requires an active run, so this is inherently dungeon-only. The old general "highlight
+		// every hostile mob everywhere" system (name filters, friendly mobs, default/named colors)
+		// is gone entirely, not just defaulted off.
+		return config.dungeonRoomMobHighlightEnabled
 				&& living instanceof Enemy && isInCurrentDungeonRoom(living);
 	}
 
@@ -143,7 +154,7 @@ public final class HighlightManager {
 			if (player.isInvisible() && !config.showInvisiblePlayers) {
 				return false;
 			}
-			if (!config.playerHighlightEnabled || !PermissionsManager.has("playerHighlight")) {
+			if (!config.playerHighlightEnabled) {
 				return false;
 			}
 			return classifyPlayer(player) != PlayerCategory.NONE;
@@ -173,7 +184,7 @@ public final class HighlightManager {
 	}
 
 	private static boolean shouldGlowItem(ItemEntity item, SkyMellooConfig config) {
-		if (!config.itemHighlightEnabled || !PermissionsManager.has("itemHighlight")) {
+		if (!config.itemHighlightEnabled) {
 			return false;
 		}
 		Set<String> filters = config.parsedItemFilters();
@@ -274,7 +285,7 @@ public final class HighlightManager {
 		}
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		boolean flashing = isKillFlashing(player.getUUID());
-		if (!flashing && (!config.playerHighlightEnabled || !PermissionsManager.has("playerHighlight"))) {
+		if (!flashing && !config.playerHighlightEnabled) {
 			return original;
 		}
 		if (!flashing && classifyPlayer(player) == PlayerCategory.NONE) {
@@ -286,19 +297,16 @@ public final class HighlightManager {
 		return copy;
 	}
 
-	// Drastically simplified (2026-07-27) down to
-	// party, SkyMelloo staff (owner/admin/developer), and SkyMelloo Friends (added back the same
-	// day with their own aqua/light-blue color - a confirmed mutual friend via the mod's OWN
-	// friends system, see FriendsManager - NOT the old Hypixel-/friend-list-based Friend
-	// highlighting, which stays removed). Self/regular-other-player/NPC/plain-mod-user still get no
-	// highlight at all.
+	// Covers party, SkyMelloo staff (owner/admin/developer), and SkyMelloo Friends (a confirmed
+	// mutual friend via the mod's OWN friends system, see FriendsManager - NOT a Hypixel-/friend-
+	// list-based highlight). Self/regular-other-player/NPC/plain-mod-user get no highlight at all.
 	private enum PlayerCategory {
 		PARTY, STAFF, FRIEND, NONE
 	}
 
 	private static PlayerCategory classifyPlayer(Player player) {
-		// Staff checked first - developer/admin/owner get a pink highlight everywhere
-		// (2026-07-27), taking priority even for a staff member who also happens to be in your party.
+		// Staff checked first - developer/admin/owner get a pink highlight everywhere, taking
+		// priority even for a staff member who also happens to be in your party.
 		// Role comes from the presence server, resolved there from the player's real linked
 		// account/team-role record (see server.js's roleForUuid) - never something the other client
 		// could self-report to fake for themselves.

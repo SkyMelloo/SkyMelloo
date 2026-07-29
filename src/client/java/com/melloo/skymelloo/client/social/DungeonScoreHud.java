@@ -62,7 +62,7 @@ public final class DungeonScoreHud implements HudElement {
 		DungeonRunTracker.ScoreEstimate score = DungeonRunTracker.calculateScore();
 		// Skyblocker's own live score (same sidebar/tab-list data, battle-tested far longer than our
 		// own read) is ALWAYS used for the headline total/grade when available, unconditionally
-		// (2026-07-27, no more opt-out toggle) -
+		// (no opt-out toggle) -
 		// our own breakdown (Skill/Explore/Speed/Bonus) still shows below regardless, since Skyblocker
 		// doesn't expose those individually, only the combined total.
 		Integer skyblockerScore = SkyblockerBridge.getScore();
@@ -82,7 +82,7 @@ public final class DungeonScoreHud implements HudElement {
 			int trend = DungeonRunTracker.getScoreTrendDelta();
 			paceArrow = trend > 0 ? " §a▲" : trend < 0 ? " §c▼" : "";
 		}
-		// No "[Skyblocker]" tag anymore (2026-07-27) -
+		// No "[Skyblocker]" tag anymore -
 		// now that it's always the source when available (not a toggle), calling it out every time
 		// was just clutter, not useful information.
 		lines.add("Dungeon Score: " + displayedTotal + " (" + displayedGrade + ")" + paceArrow);

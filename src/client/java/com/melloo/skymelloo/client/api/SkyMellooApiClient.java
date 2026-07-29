@@ -503,8 +503,8 @@ public final class SkyMellooApiClient {
 
 	/** Whether this build is still compatible with the current backend API - see ModVersionManager, checked once per join right alongside the whitelist check. */
 	/** {@code buildKind} - "release" (published, validly signed), "dev-build" (validly signed but unpublished, only within the most-recent-2 trust window), "dev-whitelist" (admin-whitelisted, unsigned), "unverified" (a reported hash that's none of those), or "unknown" (no hash reported at all) - see server.js's own comment. */
-	/** {@code latestVersion} is the real latest PUBLISHED release's version string (see server.js's own latestRelease()) - always fetched fresh from the server, never guessed/cached client-side, so this is always "the actual newest version that exists right now" rather than whatever this client happened to already know about. */
-	public record VersionCheckResult(boolean compatible, String minVersion, String message, boolean upToDate, String updateAvailableMessage, boolean integrityOk, String buildKind, String latestVersion) {
+	/** {@code latestVersion} is the real latest PUBLISHED release's internal dev version string (see server.js's own latestRelease()) - always fetched fresh from the server, never guessed/cached client-side. {@code latestPublicVersion} is the separate user-facing release number for that same release (set by the admin at publish time, see server.js's publish route) - null if that release predates public-version tracking. {@code maintainerUsername} is the real connected owner account's name, fetched live rather than hardcoded client-side - null if the owner hasn't linked one. */
+	public record VersionCheckResult(boolean compatible, String minVersion, String message, boolean upToDate, String updateAvailableMessage, boolean integrityOk, String buildKind, String latestVersion, String latestPublicVersion, String maintainerUsername) {
 	}
 
 	/** {@code jarHash} (lowercase hex SHA-256 of this build's own jar, see ModVersionManager) is optional - null when running from a dev/exploded classpath rather than a real packaged jar. */
@@ -518,7 +518,9 @@ public final class SkyMellooApiClient {
 				root.has("updateAvailableMessage") && !root.get("updateAvailableMessage").isJsonNull() ? root.get("updateAvailableMessage").getAsString() : null,
 				!root.has("integrityOk") || root.get("integrityOk").getAsBoolean(),
 				root.has("buildKind") && !root.get("buildKind").isJsonNull() ? root.get("buildKind").getAsString() : "unknown",
-				root.has("latestVersion") && !root.get("latestVersion").isJsonNull() ? root.get("latestVersion").getAsString() : null
+				root.has("latestVersion") && !root.get("latestVersion").isJsonNull() ? root.get("latestVersion").getAsString() : null,
+				root.has("latestPublicVersion") && !root.get("latestPublicVersion").isJsonNull() ? root.get("latestPublicVersion").getAsString() : null,
+				root.has("maintainerUsername") && !root.get("maintainerUsername").isJsonNull() ? root.get("maintainerUsername").getAsString() : null
 		));
 	}
 
@@ -526,7 +528,7 @@ public final class SkyMellooApiClient {
 	}
 
 	/**
-	 * "/sm legal" (2026-07-28) - moved server-side entirely, out of the (now public/open-source) mod
+	 * "/sm legal" - moved server-side entirely, out of the (now public/open-source) mod
 	 * source, and gated by the same build-verification check the integrity system already does: a
 	 * build that can't be verified as an official/dev SkyMelloo release doesn't get to show itself as
 	 * legally covered by the maintainer's own imprint/privacy/terms, since it genuinely isn't -
@@ -602,7 +604,7 @@ public final class SkyMellooApiClient {
 	public record LinkStartResult(boolean ok, String token, String error) {
 	}
 
-	/** Starts the mirror-image of "/skymelloo verify <code>" (2026-07-30) - instead of typing a website-generated code in-game, this generates a token in-game (via the signed request, so it's tied to a proven identity) that the website consumes once opened, using whatever Discord session is already there. */
+	/** Starts the mirror-image of "/skymelloo verify <code>" - instead of typing a website-generated code in-game, this generates a token in-game (via the signed request, so it's tied to a proven identity) that the website consumes once opened, using whatever Discord session is already there. */
 	public static CompletableFuture<LinkStartResult> startAccountLink(ModAuthManager.ModIdentity identity) {
 		return postJson("/mod/link/start", new JsonObject(), identity)
 				.thenApply(root -> new LinkStartResult(true, root.get("token").getAsString(), null))

@@ -56,9 +56,8 @@ dependencies {
 	implementation "net.hypixel:mod-api:${project.hypixel_modapi_version}"
 }
 
-// Build type (2026-07-28, "dev etc nicht gebaut werden können weil die ja nen key und
-// verifizierung brauchen... leute können nur test bauen dann brauchen sie gar nix und dev sowie
-// public kann nur ich weil das per website geht") - three tiers:
+// Build type - three tiers, since dev/public builds need a signing key and verification that only
+// the maintainer has, while anyone else can only produce a test build:
 //   - "test": anyone, zero requirements, never signed/registered. This -PtestBuild flag.
 //   - "dev": a real signed+registered build, requires the maintainer's own private key (see
 //     signAndRegisterBuild below) - nobody else CAN produce one, key or not.
@@ -107,8 +106,7 @@ jar {
 }
 
 // Auto-reports this build's version + jar hash to sky.melloo.me for admin-visible build tracking,
-// right after every build - "beim erstellen der mod nen script nutzen welches informationen und
-// daten der mod direkt an api sendet die es speichert" (2026-07-26), replacing the previous
+// right after every build, replacing the previous
 // hardcoded/manual version-tracking workflow. See scripts/report-build.js for what this actually
 // sends (and why it's informational-only, not a grant of runtime trust by itself). Never fails the
 // actual build - the script itself swallows network/missing-token errors non-fatally.
@@ -120,8 +118,7 @@ tasks.register('reportBuild', Exec) {
 	commandLine 'node', "${projectDir}/scripts/report-build.js", project.version.toString(), tasks.named('jar').get().archiveFile.get().asFile.absolutePath
 }
 
-// Every build MUST include a changelog now (2026-07-28, "mach beim script muss man ne eingabe
-// machen nen ausführlichen changelog wenn man was hochlädt") - old versions kept shipping with no
+// Every build MUST include a changelog now - old versions kept shipping with no
 // changelog because writing one was a separate, easy-to-forget manual admin-panel step after the
 // fact. This is a real, hard gate (unlike reportBuild/signAndRegisterBuild/uploadJar's own
 // deliberately-non-fatal network/IO error handling) - it throws and stops the build outright if
@@ -133,7 +130,7 @@ tasks.register('reportBuild', Exec) {
 //                                                                 special chars - gradlew.bat's own
 //                                                                 cmd.exe re-invocation mangled a
 //                                                                 real multi-line -Pchangelog value
-//                                                                 with & in it, 2026-07-28 - confirmed
+//                                                                 with & in it - confirmed
 //                                                                 live, not a hypothetical concern)
 def resolveChangelogText = {
 	if (project.hasProperty('changelogFile')) {
@@ -145,11 +142,10 @@ def resolveChangelogText = {
 // A "dev" build attempt with no signing key on this machine used to just silently no-op at
 // signAndRegisterBuild (SignAndRegister.java's own "never fail the build" philosophy) - which
 // LOOKED like a successful dev build but never actually registered anything. Made an explicit,
-// clear failure instead (2026-07-28, "dev etc nicht gebaut werden können weil die ja nen key und
-// verifizierung brauchen") - if you don't have the key, the ONLY thing you can build is -PtestBuild.
+// clear failure instead - if you don't have the key, the ONLY thing you can build is -PtestBuild.
 // (Named "testBuild", not the shorter "test" - Gradle's `hasProperty('test')` is ALSO true just
 // because a task named "test" exists in this project, Groovy exposes tasks as dynamic project
-// properties - confirmed live, 2026-07-28: the dev-without-key hard-fail silently never fired
+// properties - confirmed live: the dev-without-key hard-fail silently never fired
 // because of exactly this collision, even though -Ptest was never actually passed.)
 tasks.register('requireSigningKeyForDevBuild') {
 	group = 'skymelloo'
@@ -188,9 +184,8 @@ tasks.register('requireChangelog') {
 }
 
 // Fully automates what used to require manually running sign-release.js by hand after every build -
-// "mach einfach ein build script welches die mod verifiziert ... die wissen ja ned wie ich die datei
-// erstelle und verifiziere weil es nur daten an meinen server schickt und der ausliest und
-// bestätigt aber nix hardcoden" (2026-07-26). Hashes ONLY this build's own compiled classes (not the
+// nothing here is hardcoded; it's purely data sent to and read back from the server, which verifies
+// and confirms it. Hashes ONLY this build's own compiled classes (not the
 // whole jar - see SignAndRegister.java's own doc comment on why), signs that hash with the Ed25519
 // private key that lives ONLY on this machine (never in either repo), and registers it as a genuine
 // trusted release automatically - no manual step, and nothing here could be reproduced by someone
@@ -215,7 +210,7 @@ tasks.register('signAndRegisterBuild', Exec) {
 	}
 }
 
-// Uploads this build's actual jar so it's downloadable from the admin panel right away (2026-07-27) -
+// Uploads this build's actual jar so it's downloadable from the admin panel right away -
 // trusted-but-unpublished builds still need a
 // real jar sitting on the server for the admin to grab and test. See scripts/upload-jar.js. Never
 // fails the build - the script itself swallows network/missing-token errors non-fatally.

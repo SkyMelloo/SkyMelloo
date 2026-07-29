@@ -13,10 +13,9 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Fully automates what sign-release.js used to require a manual run for - "mach einfach ein build
- * script welches die mod verifiziert ... die wissen ja ned wie ich die datei erstelle und
- * verifiziere weil es nur daten an meinen server schickt und der ausliest und bestätigt" (2026-07-26).
- * Run by Gradle's "reportBuild" task right after every build:
+ * Fully automates what sign-release.js used to require a manual run for - signs and registers a
+ * build's release entry without needing anyone to hold the private key or manually run a script by
+ * hand each time. Run by Gradle's "reportBuild" task right after every build:
  *   1. Hashes ONLY this build's own compiled classes (com/melloo/skymelloo/*.class), opening the jar
  *      as its own zip filesystem - same scoped-hash approach as ModVersionManager's own runtime
  *      check, so what gets registered here is actually comparable to what the mod reports at
@@ -40,13 +39,13 @@ public class SignAndRegister {
             }
             String version = args[0];
             Path jarPath = Paths.get(args[1]);
-            // Required by build.gradle's requireChangelog task before this even runs (2026-07-28) -
-            // still defensively defaulted to "" here rather than crashing, since this script's own
+            // Required by build.gradle's requireChangelog task before this even runs - still
+            // defensively defaulted to "" here rather than crashing, since this script's own
             // philosophy is "never fail the build over something in here" (see class doc comment).
             // A FILE PATH, not the raw changelog text as a CLI arg - gradlew.bat's own cmd.exe
-            // re-invocation genuinely mangled a real multi-line value containing "&" (confirmed live,
-            // 2026-07-28), so build.gradle now always writes the text to a temp file first and passes
-            // just the path here, which has no special characters left for anything to mangle.
+            // re-invocation genuinely mangled a real multi-line value containing "&", so
+            // build.gradle now always writes the text to a temp file first and passes just the path
+            // here, which has no special characters left for anything to mangle.
             String changelog = "";
             if (args.length >= 3) {
                 try {
@@ -141,8 +140,8 @@ public class SignAndRegister {
     }
 
     /** Was only escaping backslash/quote - fine for a plain hash/signature, but a real multi-line
-     * changelog (2026-07-28) needs newlines/control characters escaped too or the JSON body itself
-     * would be malformed the moment someone wrote more than one line. */
+     * changelog needs newlines/control characters escaped too or the JSON body itself would be
+     * malformed the moment someone wrote more than one line. */
     private static String escapeJson(String s) {
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")

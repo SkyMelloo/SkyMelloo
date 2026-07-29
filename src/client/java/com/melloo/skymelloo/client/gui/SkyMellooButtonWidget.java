@@ -10,9 +10,9 @@ import net.minecraft.network.chat.Component;
 /**
  * SkyMelloo's own outlined/glow button style - a translucent fill + outline in a given accent
  * color, brightening on hover, instead of vanilla's grey 9-slice {@link net.minecraft.client.gui.components.Button}.
- * Extracted from SocialMenuScreen (2026-07-29, "report a bug bitte überall custom button statt den
- * standart" - the Settings screen's Report a Bug button had been added using a plain vanilla
- * Button, the only place in the mod's UI that didn't match this look) so every screen can share the
+ * Extracted from SocialMenuScreen - the Settings screen's Report a Bug button had been added using
+ * a plain vanilla Button, the only place in the mod's UI that didn't match this look, so every
+ * screen can share the
  * exact same widget instead of each screen keeping its own private copy.
  */
 public final class SkyMellooButtonWidget extends AbstractWidget {

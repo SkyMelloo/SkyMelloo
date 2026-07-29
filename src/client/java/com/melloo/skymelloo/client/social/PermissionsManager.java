@@ -10,15 +10,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Admin-configurable per-feature permission gating is gone (2026-07-28, "generell nix mehr
- * blocken über permissions das komplett ausbauen") - every feature is available to everyone now
- * that the mod is open source, no admin grant needed. {@link #has(String)} always returns {@code
- * true} except for {@code "cosmetics"}, which keeps a genuinely separate, still-real requirement:
- * the account must be linked to a sky.melloo.me website account (Discord login + "/skymelloo
- * verify") so the server knows who's who when broadcasting cosmetics to nearby players - that's a
- * technical necessity for the feature to work at all, not an admin-configurable restriction, so it
- * stays. {@link #isAccountLinked()} still comes from a real server fetch (the endpoint that used
- * to also return per-feature permissions now just reports link status).
+ * Admin-configurable per-feature permission gating is gone entirely - every feature is available
+ * to everyone now that the mod is open source, no admin grant needed. {@link #has(String)} always
+ * returns {@code true} except for {@code "cosmetics"}, which keeps a genuinely separate, still-real
+ * requirement: the account must be linked to a sky.melloo.me website account (Discord login +
+ * "/skymelloo verify") so the server knows who's who when broadcasting cosmetics to nearby players
+ * - that's a technical necessity for the feature to work at all, not an admin-configurable
+ * restriction, so it stays. {@link #isAccountLinked()} still comes from a real server fetch (the
+ * endpoint that used to also return per-feature permissions now just reports link status).
  */
 public final class PermissionsManager {
 	private static final int PERIODIC_RECHECK_TICKS = 600; // 30s at 20 ticks/s

@@ -24,14 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * a bit rather than anything breaking.
  */
 public final class ModPresenceManager {
-	// Reduced 5s -> 2s -> 1s, briefly made user-configurable (2026-07-26) then reverted back to a
-	// fixed interval the next day - "fest machen sync interval 1 sekunde nicht einstellbar nur
-	// ausschaltbar" (2026-07-27): a per-player interval meant the website's render delay had to
+	// Reduced 5s -> 2s -> 1s, briefly made user-configurable then reverted back to a
+	// fixed interval: a per-player interval meant the website's render delay had to
 	// adapt per player too, and any mismatch made the live map (always current) and the player
 	// marker (rendered from a delay buffer) visibly drift out of sync with each other. One fixed
 	// interval for everyone keeps the two in lockstep - see app.js's own matching fixed delay.
-	// Reduced again 1s -> 0.5s same day ("damals hat es funktioniert mit jeden tick nen snap alle
-	// daten jede halbe sekunde der letzten sekunde schicken") - this is the original working
+	// Reduced again 1s -> 0.5s - this is the original working
 	// cadence, paired with DungeonSyncManager now resending the last 1s of samples (overlapping,
 	// not just the delta) on every report - see its own HISTORY_SEND_WINDOW_MS comment.
 	private static final int REPORT_INTERVAL_TICKS = 10; // 0.5s
@@ -39,9 +37,8 @@ public final class ModPresenceManager {
 
 	private static int tickCounter = 0;
 	private static volatile boolean reportInFlight = false;
-	// Boss-room-block send tracking (2026-07-27, "der sendet halt nix ... adde im debug sent dazu
-	// damit ich sehe ob was gesendet wurde und ... successful sent ned nur sent und gegenteil von
-	// successful") - BossRoomScanner's own "queued, not yet sent: 0" only proves the data was DRAINED
+	// Boss-room-block send tracking - distinguishes "drained locally" from "actually reached the
+	// server", since BossRoomScanner's own "queued, not yet sent: 0" only proves the data was DRAINED
 	// out of its local pending list into a report payload, never that the HTTP request carrying it
 	// actually reached the server successfully. Once drained it's gone either way (drainPendingJson
 	// doesn't put anything back on failure) - this is what actually answers "did it arrive", counting
@@ -57,11 +54,11 @@ public final class ModPresenceManager {
 	private static final Map<UUID, String> otherStatusText = new ConcurrentHashMap<>();
 	// UUIDs currently reporting a linked sky.melloo.me account (see PermissionsManager#isAccountLinked)
 	// - shown as a small nametag marker (see StatusTextDisplayManager) purely so it's visible to
-	// other SkyMelloo users, same spirit as the mod-user Highlighting color itself.
+	// other SkyMelloo users, same spirit as the mod-user highlight color itself.
 	private static final java.util.Set<UUID> otherAccountLinked = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	// "owner"/"admin"/"developer"/null, as resolved server-side by roleForUuid (server.js) from that
-	// player's actual linked account - never self-reported (2026-07-27, "skymelloo admins und
-	// developer sowie owner in gold" - see HighlightManager#classifyPlayer for how this picks the color).
+	// player's actual linked account - never self-reported. SkyMelloo admins/developers/the owner
+	// get gold - see HighlightManager#classifyPlayer for how this picks the color.
 	private static final Map<UUID, String> otherRoles = new ConcurrentHashMap<>();
 
 	private ModPresenceManager() {
@@ -139,7 +136,7 @@ public final class ModPresenceManager {
 		JsonObject dungeonSync = DungeonSyncManager.buildOutgoingPayload();
 		boolean afk = com.melloo.skymelloo.client.util.AfkDetector.isAfk();
 		boolean accountLinked = PermissionsManager.isAccountLinked();
-		// "General sync" location (2026-07-28) - which
+		// "General sync" location - which
 		// world/island/dungeon floor, as opposed to DungeonSyncManager's much heavier per-tick
 		// dungeon-specific payload above. Straight from Hypixel's own Mod API location event, already
 		// a short human-readable string - map falls back to mode since map is occasionally absent

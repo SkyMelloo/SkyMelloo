@@ -40,7 +40,7 @@ public final class PartyTracker {
 	// this backs off much harder specifically on RATE_LIMITED so the next attempt has a real chance.
 	private static final int RATE_LIMIT_BACKOFF_TICKS = 400; // ~20s
 
-	// Verified directly from real screenshots (2026-07-24), both explicitly matched rather than a
+	// Verified directly from real screenshots, both explicitly matched rather than a
 	// loose "disbanded" keyword (which risked a false positive on unrelated chat, e.g. someone typing
 	// "lol my other party disbanded" casually):
 	//  1. "You left the party." - self-leave.

@@ -14,11 +14,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * FIRST PROTOTYPE (2026-07-27) of a real 3D boss-room viewer - "kannst du für den boss room einen
- * ersten prototyp machen ... daten zu den blöcken ... dann damit so 3d umgebung bauen die man moven
- * kann". The dungeon map item doesn't cover boss rooms at all (unlike the rest of the floor) - Hypixel
- * literally swaps the map out of the player's inventory for a Nether Star on boss-room entry ("im boss
- * room wird die map gegen den netherstar getauscht", 2026-07-27), so there's no map pixel data to read
+ * FIRST PROTOTYPE of a real 3D boss-room viewer. The dungeon map item doesn't cover boss rooms at
+ * all (unlike the rest of the floor) - Hypixel literally swaps the map out of the player's
+ * inventory for a Nether Star on boss-room entry, so there's no map pixel data to read
  * even in principle here. This reads real world blocks directly instead - scans a limited box around
  * the player while inside one and delta-encodes them (a given block position is only ever sent ONCE per boss-room
  * encounter, never resent) into the regular dungeonSync report, so the website can accumulate a real

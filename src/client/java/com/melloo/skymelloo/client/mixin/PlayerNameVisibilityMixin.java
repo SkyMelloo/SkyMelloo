@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * the local player (unlike {@link net.minecraft.world.entity.Entity#shouldShowName()}, which only
  * covers sneaking). Highlighting'd players still show their nametag even while invisible - safe to key
  * purely off {@link HighlightManager#isHighlightTarget}, which already refuses a REAL vanilla-invisible player
- * unless {@code showInvisiblePlayers} is on (off by default, 2026-07-27). When that
+ * unless {@code showInvisiblePlayers} is on (off by default). When that
  * setting IS on, {@link InvisiblePlayerRevealMixin} already overrides {@code isInvisible()} to
  * false for them, so vanilla's own nametag logic shows their name without this mixin's help at all
  * - this only still matters for non-invisibility Highlighting cases (e.g. the kill-flash highlight).

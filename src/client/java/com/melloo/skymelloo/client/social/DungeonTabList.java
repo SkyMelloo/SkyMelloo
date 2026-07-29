@@ -45,7 +45,7 @@ public final class DungeonTabList {
 		lines = newLines;
 	}
 
-	/** Every reconstructed tab-list line, in order - {@code /sm debug score}'s diagnostic scan for where "Completed Rooms" actually ended up (2026-07-27, a real report of the score staying frozen the whole run traced back to the fixed line index this class's doc comment relies on possibly not matching reality). */
+	/** Every reconstructed tab-list line, in order - {@code /sm debug score}'s diagnostic scan for where "Completed Rooms" actually ended up (a real report of the score staying frozen the whole run traced back to the fixed line index this class's doc comment relies on possibly not matching reality). */
 	public static List<String> getAllLines() {
 		return lines;
 	}

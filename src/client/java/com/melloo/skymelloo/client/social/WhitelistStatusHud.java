@@ -16,7 +16,7 @@ import net.minecraft.network.chat.Style;
  * sky.melloo.me ping (not the Minecraft server ping - that's not this mod's concern, and the
  * vanilla tab list/F3 already show it) - always visible (not just briefly on connect) so an
  * offline state is never something you have to notice a one-off title for. No longer reflects
- * whitelist status (2026-07-28, whitelist gating removed entirely) - just connection health and,
+ * whitelist status (whitelist gating removed entirely) - just connection health and,
  * if applicable, an Admin badge. Position is configurable via the HUD layout editor (default J).
  */
 public final class WhitelistStatusHud implements HudElement {

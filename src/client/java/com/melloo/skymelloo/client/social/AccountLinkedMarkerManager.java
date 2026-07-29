@@ -34,7 +34,7 @@ public final class AccountLinkedMarkerManager {
 	}
 
 	public static Component apply(Player player, Component original) {
-		// Real bugfix (2026-07-27) - ModPresenceManager's
+		// Real bugfix - ModPresenceManager's
 		// isAccountLinked(uuid) only ever tracks OTHER nearby players reporting themselves in via the
 		// presence system (see its own doc comment); it never contains the LOCAL player's own uuid,
 		// since you never "query" yourself as a nearby other player. That silently meant your OWN
@@ -51,7 +51,7 @@ public final class AccountLinkedMarkerManager {
 		MutableComponent fallback = Component.literal(FALLBACK_GLYPH).setStyle(Style.EMPTY.withColor(PINK));
 		MutableComponent icon = MutableComponent.create(new ObjectContents(new AtlasSprite(AtlasIds.ITEMS, PINK_DYE_SPRITE), Optional.of(fallback)));
 		// Explicit pink on the icon component ITSELF, not just its unused fallback child - real report
-		// (2026-07-27, "dye ist orange wtf"): a rank/name colour code earlier in the component (e.g. a
+		// of the dye rendering the wrong color: a rank/name colour code earlier in the component (e.g. a
 		// Hypixel rank prefix) was visibly bleeding into the dye's render. The connecting space also
 		// gets its own explicit (neutral) style for the same reason - whichever exact rendering path
 		// (nametag vs chat) was letting that inherit through, an explicit style on every piece here

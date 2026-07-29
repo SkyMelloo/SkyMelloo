@@ -2,7 +2,6 @@ package com.melloo.skymelloo.client.fishing;
 
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.mixin.FishingHookAccessor;
-import com.melloo.skymelloo.client.social.PermissionsManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.particles.ParticleTypes;
@@ -41,7 +40,7 @@ public final class FishingHelper {
 
 	public static void tick(Minecraft client) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-		if (!config.fishingHelperEnabled || !PermissionsManager.has("fishingHelper") || client.player == null || client.level == null) {
+		if (!config.fishingHelperEnabled || client.player == null || client.level == null) {
 			trackedHook = null;
 			wasBiting = false;
 			return;

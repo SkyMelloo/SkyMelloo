@@ -15,20 +15,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Highlights chests through walls by spawning invisible, client-side-only (never sent to the
- * server) marker entities on top of them and forcing them to glow - reusing the same vanilla
- * "invisible + glowing = colored silhouette through walls" mechanic already used for mob/player/item
- * Highlighting. This is more shader-pack compatible than a custom terrain-render-pipeline hook (which Iris
- * and other shader mods commonly intercept/break), since it's the same core vanilla system shaders
- * already have to support for the vanilla Glowing effect.
+ * Highlights chests with a colored outline by spawning invisible, client-side-only (never sent to
+ * the server) marker entities on top of them and forcing them to glow - the same vanilla
+ * "invisible + glowing" mechanic used for mob/player/item highlighting. The marker itself is
+ * always invisible; only the glow outline (applied by
+ * {@link com.melloo.skymelloo.client.highlight.HighlightManager#shouldGlow}) makes it show at all, and that
+ * check requires an actual clear line of sight to the block, so this reads as a normal outline
+ * effect rather than seeing through walls.
  * <p>
  * Markers are {@link Display.BlockDisplay} entities carrying the actual block's model/shape
  * (instead of a generic humanoid ArmorStand silhouette), so the glow outline matches the block.
  * Every matching block gets its own marker (not merged into one per vein) - adjacent glowing
  * outlines already read visually as one connected vein.
- * <p>
- * Ore Highlighting was removed entirely (2026-07-27, "die sacchen ore highlight ganz weg machen ... auch in der
- * mod") - this class used to also track ore blocks the same way; only the chest side remains now.
  */
 public final class BlockHighlightRenderer {
 	private static int nextMarkerId = Integer.MAX_VALUE - 100_000;

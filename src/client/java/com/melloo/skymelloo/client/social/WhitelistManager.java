@@ -8,8 +8,7 @@ import net.minecraft.client.Minecraft;
 
 /**
  * The admin-managed whitelist gate that used to make the ENTIRE mod inert for anyone not
- * explicitly approved is gone (2026-07-28, "generell nix mehr blocken über permissions das
- * komplett ausbauen") - SkyMelloo works fully for everyone now, whitelisted or not, now that the
+ * explicitly approved is gone - SkyMelloo works fully for everyone now, whitelisted or not, now that the
  * mod is open source. {@link #isAllowed()} always returns {@code true} - kept only so the ~60
  * existing call sites across the mod (every feature system's own entry point) don't each need an
  * individual edit; none of them actually gate on anything real anymore. {@link #isAdmin()} is a

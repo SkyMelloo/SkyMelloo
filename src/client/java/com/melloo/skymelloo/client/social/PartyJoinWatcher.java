@@ -44,8 +44,8 @@ public final class PartyJoinWatcher {
 	);
 	private static final int SELF_JOIN_CHECK_DELAY_TICKS = 40;
 
-	// Verified directly from the real in-game Catacombs floor-selection tooltips (2026-07-24
-	// screenshots, not guessed): Entrance needs Combat Skill 15; Floors I-VII each need Catacombs
+	// Verified directly from the real in-game Catacombs floor-selection tooltips, not guessed:
+	// Entrance needs Combat Skill 15; Floors I-VII each need Catacombs
 	// Skill 1/3/5/9/14/19/24 respectively (index 0 = Floor I's requirement). Master Mode
 	// requirements aren't verified/included here.
 	private static final int[] CATACOMBS_LEVEL_PER_FLOOR = {1, 3, 5, 9, 14, 19, 24};
@@ -57,7 +57,7 @@ public final class PartyJoinWatcher {
 	// Auto-kicks used to fire `/party kick` the instant a check failed - fine for one joiner, but
 	// Hypixel enforces its own ~1s per-command cooldown, so a second join arriving seconds later (or
 	// several checks flagging the same busy party) silently failed every kick after the first with
-	// "Command Failed: This command is on cooldown!" (2026-07-27 screenshot). Kicks are now queued and
+	// "Command Failed: This command is on cooldown!". Kicks are now queued and
 	// drained one at a time, spaced out, instead of sent immediately.
 	private static final Deque<String> pendingKicks = new ArrayDeque<>();
 	// The username of the kick command most recently actually sent, waiting to find out (via the
@@ -74,12 +74,9 @@ public final class PartyJoinWatcher {
 
 	public static void init() {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-			// The low-stat check below always runs (given permission) - dungeonAutoKickEnabled only
-			// decides whether it kicks automatically or just posts a warning with a manual [Kick]
-			// button, it's no longer a full on/off switch for the check itself.
-			if (!PermissionsManager.has("dungeonInfo")) {
-				return;
-			}
+			// dungeonAutoKickEnabled only decides whether the low-stat check below kicks
+			// automatically or just posts a warning with a manual [Kick] button, it's no longer a
+			// full on/off switch for the check itself.
 			String stripped = FORMAT_CODE.matcher(message.getString()).replaceAll("");
 			for (String line : stripped.split("\n")) {
 				String trimmed = line.trim();
@@ -87,7 +84,7 @@ public final class PartyJoinWatcher {
 					// The kick we just sent didn't actually go through - Hypixel's own per-command
 					// cooldown rejected it. Requeue at the FRONT (not the back) so it's still the very
 					// next one retried, and wait a full fresh interval again rather than assuming the
-					// cooldown clears any sooner (2026-07-27).
+					// cooldown clears any sooner.
 					pendingKicks.addFirst(pendingConfirmUsername);
 					pendingConfirmUsername = null;
 					nextKickAllowedTick = tickCounter + KICK_INTERVAL_TICKS;
@@ -347,9 +344,9 @@ public final class PartyJoinWatcher {
 	/**
 	 * Checks {@link SkyMellooApiClient.SummaryResult#highestFloor()} (real Hypixel completion record,
 	 * NOT the level-requirement "eligible" check above) against
-	 * {@link SkyMellooConfig#dungeonFloorCompletionKickThreshold} - "nicht nur max und min catacomb
-	 * level aber auch so completion welchen höchsten floor die schon haben also completed und auch
-	 * freigeschaltet" (2026-07-27). Independent toggle/threshold from every other check here.
+	 * {@link SkyMellooConfig#dungeonFloorCompletionKickThreshold} - not just the min/max Catacombs
+	 * level requirement above, but the highest floor actually completed and unlocked.
+	 * Independent toggle/threshold from every other check here.
 	 */
 	/** Public - also called by {@link com.melloo.skymelloo.client.party.PartyHudManager}, same as {@link #maybeAutoKickForFloor}. */
 	public static void maybeAutoKickForFloorCompletion(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, SkyMellooConfig config) {
