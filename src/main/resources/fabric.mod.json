@@ -1,0 +1,44 @@
+{
+	"schemaVersion": 1,
+	"id": "skymelloo",
+	"version": "${version}",
+	"name": "SkyMelloo",
+	"description": "Hypixel SkyBlock companion mod: dungeon tracking, party tools, and cosmetics, paired with sky.melloo.me.",
+	"authors": [
+		"hexedmaya"
+	],
+	"contact": {
+		"homepage": "https://sky.melloo.me"
+	},
+	"license": "AGPL-3.0-or-later",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.melloo.skymelloo.client.SkyMellooClient"
+		],
+		"modmenu": [
+			"com.melloo.skymelloo.client.integration.ModMenuIntegration"
+		]
+	},
+	"mixins": [
+		{
+			"config": "skymelloo.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"yet_another_config_lib_v3": "*",
+		"hypixel-mod-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
+	},
+	"custom": {
+		"skymelloo:publicVersion": "${publicVersion}",
+		"skymelloo:buildType": "${buildType}"
+	}
+}
