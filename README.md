@@ -4,6 +4,9 @@ A [Fabric](https://fabricmc.net/) client mod for Hypixel SkyBlock, paired with a
 at [sky.melloo.me](https://sky.melloo.me). Dungeon tracking, party tools, cosmetics, and
 highlighting, plus a live/replay dungeon map, friends system, and account dashboard on the website.
 
+Not an official Minecraft product. Not approved by or associated with Mojang, Microsoft, or
+Hypixel Inc.
+
 ## Features
 
 - **Dungeon tracking** - live Score HUD (Skill/Explore/Speed/Bonus, matching Skyblocker's own
