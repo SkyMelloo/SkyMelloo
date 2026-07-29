@@ -98,7 +98,7 @@ public final class FriendsManager {
 						return;
 					}
 					if (error != null) {
-						client.player.sendSystemMessage(ChatUtil.prefixed("§cCouldn't send friend request: " + error.getMessage()));
+						client.player.sendSystemMessage(ChatUtil.prefixed("§cCouldn't send friend request: " + ChatUtil.friendlyError(error)));
 						return;
 					}
 					client.player.sendSystemMessage(ChatUtil.prefixed(describeRequestResult(result)));
@@ -127,7 +127,7 @@ public final class FriendsManager {
 					}
 					client.player.sendSystemMessage(ChatUtil.prefixed(error == null
 							? "§aYou're now SkyMelloo friends with §d" + result.username() + "§a."
-							: "§cCouldn't accept: " + error.getMessage()));
+							: "§cCouldn't accept: " + ChatUtil.friendlyError(error)));
 					refresh(client);
 				}));
 	}
@@ -141,7 +141,7 @@ public final class FriendsManager {
 					}
 					client.player.sendSystemMessage(ChatUtil.prefixed(error == null
 							? "§7Declined the friend request from §d" + (result != null ? result.username() : username) + "§7."
-							: "§cCouldn't decline: " + error.getMessage()));
+							: "§cCouldn't decline: " + ChatUtil.friendlyError(error)));
 					refresh(client);
 				}));
 	}
@@ -155,7 +155,7 @@ public final class FriendsManager {
 					}
 					client.player.sendSystemMessage(ChatUtil.prefixed(error == null
 							? "§7Removed §d" + (result != null ? result.username() : username) + " §7from your SkyMelloo friends."
-							: "§cCouldn't remove: " + error.getMessage()));
+							: "§cCouldn't remove: " + ChatUtil.friendlyError(error)));
 					refresh(client);
 				}));
 	}

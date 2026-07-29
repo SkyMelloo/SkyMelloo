@@ -62,7 +62,13 @@ public final class ChatUtil {
 		return "§c✖ §7Fehler bei §e" + name + "§7: §c" + friendlyError(error);
 	}
 
-	private static String friendlyError(Throwable error) {
+	/**
+	 * Public entry point for call sites that build their own chat line (not the "✖ Fehler bei X: ..."
+	 * shape {@link #errorMessage} produces) but still need the same CompletionException-unwrapping -
+	 * without it, a failed command chain shows "java.lang.RuntimeException: <message>" instead of just
+	 * "<message>", since CompletionException(cause)'s own getMessage() is cause.toString().
+	 */
+	public static String friendlyError(Throwable error) {
 		Throwable cause = error;
 		while (cause.getCause() != null && cause.getCause() != cause) {
 			cause = cause.getCause();

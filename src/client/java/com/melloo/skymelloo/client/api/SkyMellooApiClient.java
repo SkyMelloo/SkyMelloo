@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import com.melloo.skymelloo.client.util.ChatUtil;
+
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -591,7 +593,7 @@ public final class SkyMellooApiClient {
 		body.addProperty("code", code);
 		return postJson("/mod/verify", body, identity)
 				.thenApply(root -> new VerifyResult(true, null))
-				.exceptionally(error -> new VerifyResult(false, error.getMessage()));
+				.exceptionally(error -> new VerifyResult(false, ChatUtil.friendlyError(error)));
 	}
 
 	/** The cloud-synced settings blob for the account behind this identity, or null if nothing's been saved yet (or the request failed). */
@@ -614,7 +616,7 @@ public final class SkyMellooApiClient {
 	public static CompletableFuture<VerifyResult> unlinkAccount(ModAuthManager.ModIdentity identity) {
 		return postJson("/mod/unlink", new JsonObject(), identity)
 				.thenApply(root -> new VerifyResult(true, null))
-				.exceptionally(error -> new VerifyResult(false, error.getMessage()));
+				.exceptionally(error -> new VerifyResult(false, ChatUtil.friendlyError(error)));
 	}
 
 	// -------------------------------------------------------------------------------------------

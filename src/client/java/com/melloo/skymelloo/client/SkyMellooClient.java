@@ -504,7 +504,7 @@ public class SkyMellooClient implements ClientModInitializer {
 															return;
 														}
 														if (error != null) {
-															c.player.sendSystemMessage(ChatUtil.prefixed("§cVerbindung fehlgeschlagen: " + error.getMessage()));
+															c.player.sendSystemMessage(ChatUtil.prefixed("§cVerbindung fehlgeschlagen: " + ChatUtil.friendlyError(error)));
 														} else if (result.ok()) {
 															c.player.sendSystemMessage(ChatUtil.prefixed("§aAccount verbunden! Du bist jetzt Admin auf sky.melloo.me."));
 														} else {
@@ -527,7 +527,7 @@ public class SkyMellooClient implements ClientModInitializer {
 													return;
 												}
 												if (error != null) {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + error.getMessage()));
+													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + ChatUtil.friendlyError(error)));
 												} else if (result.ok()) {
 													c.player.sendSystemMessage(ChatUtil.prefixed("§aAccount getrennt."));
 												} else {
@@ -538,7 +538,7 @@ public class SkyMellooClient implements ClientModInitializer {
 							return 1;
 						}))
 						.then(ClientCommands.literal("contact").executes(ctx -> {
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§7Contact: §fhexedmaya §7on Discord."));
+							ctx.getSource().sendFeedback(legalLink("Contact", "https://sky.melloo.me/contact"));
 							return 1;
 						}))
 						.then(ClientCommands.literal("view")
