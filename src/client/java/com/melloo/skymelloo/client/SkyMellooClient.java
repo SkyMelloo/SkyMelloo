@@ -440,32 +440,52 @@ public class SkyMellooClient implements ClientModInitializer {
 									}
 									return 1;
 								})))
-						// "/sm version" shows the version and "/sm info" shows build/server-verification
-						// data (2026-07-26). Reworked
-						// 2026-07-28 - dropped the buildKind/
-						// "official"/"unofficial" trust framing entirely (see the extended back-and-forth on
-						// why a self-reported build check can't actually prove anything to anyone but
-						// yourself) - these are now plain informational commands, version numbers and a
+						// "/sm version" and "/sm info" merged into one command (2026-07-29, "/sm info bzw
+						// version zusammen machen") - always fires a FRESH check against the server (see
+						// ModVersionManager#checkNow) rather than just showing whatever the one join-time
+						// check happened to cache, so this always reflects the real latest published
+						// version right now, cooldown-limited client-side against accidental spam. Dropped
+						// the buildKind/"official"/"unofficial" trust framing entirely (2026-07-28, see the
+						// extended back-and-forth on why a self-reported build check can't actually prove
+						// anything to anyone but yourself) - plain informational, version numbers and a
 						// reminder of where the real thing comes from, nothing more.
 						.then(ClientCommands.literal("version").executes(ctx -> {
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§dSkyMelloo §fv" + com.melloo.skymelloo.client.social.ModVersionManager.getPublicVersion()
-									+ " §7(dev " + com.melloo.skymelloo.client.social.ModVersionManager.getLocalVersion() + ")"));
-							ctx.getSource().sendFeedback(legalLink("Always get SkyMelloo from", "https://sky.melloo.me/download"));
-							return 1;
-						}))
-						.then(ClientCommands.literal("info").executes(ctx -> {
 							String version = com.melloo.skymelloo.client.social.ModVersionManager.getLocalVersion();
 							String publicVersion = com.melloo.skymelloo.client.social.ModVersionManager.getPublicVersion();
 							String jarHash = com.melloo.skymelloo.client.social.ModVersionManager.getLocalJarHash();
-							com.melloo.skymelloo.client.api.SkyMellooApiClient.VersionCheckResult result = com.melloo.skymelloo.client.social.ModVersionManager.getLastResult();
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Info ==="));
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§dVersion: §fv" + publicVersion + " §7(dev " + version + ")"
+							ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Version ==="));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed("§dRunning: §fv" + publicVersion + " §7(dev " + version + ")"
 									+ "§7  ·  §djarHash: §f" + (jarHash != null ? jarHash : "unknown (dev/exploded classpath)")));
-							if (result != null) {
-								ctx.getSource().sendFeedback(ChatUtil.prefixed("§dUp to date: §f" + result.upToDate()
-										+ "§7  ·  §dMin version: §f" + result.minVersion()));
-							}
-							ctx.getSource().sendFeedback(legalLink("Always get SkyMelloo from", "https://sky.melloo.me/download"));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed("§7Checking for the latest version…"));
+							com.melloo.skymelloo.client.social.ModVersionManager.checkNow(
+									result -> {
+										Minecraft c = Minecraft.getInstance();
+										if (c.player == null) {
+											return;
+										}
+										if (result == null) {
+											c.player.sendSystemMessage(ChatUtil.prefixed("§cCouldn't reach sky.melloo.me to check for updates - try again shortly."));
+											return;
+										}
+										if (result.latestVersion() != null) {
+											c.player.sendSystemMessage(ChatUtil.prefixed("§dLatest published: §fv" + result.latestVersion()));
+										}
+										if (result.upToDate()) {
+											c.player.sendSystemMessage(ChatUtil.prefixed("§aYou're on the latest version."));
+										} else {
+											c.player.sendSystemMessage(ChatUtil.prefixed("§eYou're NOT on the latest version - make sure to get it from our official site: §fsky.melloo.me"));
+										}
+										c.player.sendSystemMessage(legalLink("Always get SkyMelloo from", "https://sky.melloo.me/download"));
+									},
+									cooldownSeconds -> {
+										Minecraft c = Minecraft.getInstance();
+										if (c.player == null) {
+											return;
+										}
+										c.player.sendSystemMessage(ChatUtil.prefixed("§7Already checked recently - try again in " + cooldownSeconds + "s."));
+										c.player.sendSystemMessage(legalLink("Always get SkyMelloo from", "https://sky.melloo.me/download"));
+									}
+							);
 							return 1;
 						}))
 						// German data-protection law expects the legal pages to actually be reachable from
@@ -502,7 +522,7 @@ public class SkyMellooClient implements ClientModInitializer {
 						// "/sm trust" removed entirely (2026-07-28) - a self-reported build-hash check can
 						// never actually prove anything to anyone but yourself (a modified client can just
 						// lie about which hash it reports), so it was giving a false sense of security
-						// rather than a real one. See "/sm info"/"/sm version" above for what's left:
+						// rather than a real one. See "/sm version" above for what's left:
 						// version numbers and a reminder of where the real thing comes from, no trust claims.
 						.then(ClientCommands.literal("config").executes(ctx -> {
 							// Always open, regardless of current screen - the chat/command screen
@@ -607,7 +627,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo view <name> §7- Spieler-Stats als Fenster öffnen (Tabs, scrollbar)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata player <name> <stat> §7- Spieler-Stats abrufen"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata party <stat> §7- Party-Stats abrufen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo info §7/ §aversion §7- Mod-Version & Update-Status"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo version §7- Mod-Version & Update-Status (live geprüft)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo contact §7- Kontaktseite (sky.melloo.me/contact)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo legal §7- Impressum, Datenschutz, AGB (Links)"));
 

@@ -503,7 +503,8 @@ public final class SkyMellooApiClient {
 
 	/** Whether this build is still compatible with the current backend API - see ModVersionManager, checked once per join right alongside the whitelist check. */
 	/** {@code buildKind} - "release" (published, validly signed), "dev-build" (validly signed but unpublished, only within the most-recent-2 trust window), "dev-whitelist" (admin-whitelisted, unsigned), "unverified" (a reported hash that's none of those), or "unknown" (no hash reported at all) - see server.js's own comment. */
-	public record VersionCheckResult(boolean compatible, String minVersion, String message, boolean upToDate, String updateAvailableMessage, boolean integrityOk, String buildKind) {
+	/** {@code latestVersion} is the real latest PUBLISHED release's version string (see server.js's own latestRelease()) - always fetched fresh from the server, never guessed/cached client-side, so this is always "the actual newest version that exists right now" rather than whatever this client happened to already know about. */
+	public record VersionCheckResult(boolean compatible, String minVersion, String message, boolean upToDate, String updateAvailableMessage, boolean integrityOk, String buildKind, String latestVersion) {
 	}
 
 	/** {@code jarHash} (lowercase hex SHA-256 of this build's own jar, see ModVersionManager) is optional - null when running from a dev/exploded classpath rather than a real packaged jar. */
@@ -516,7 +517,8 @@ public final class SkyMellooApiClient {
 				!root.has("upToDate") || root.get("upToDate").getAsBoolean(),
 				root.has("updateAvailableMessage") && !root.get("updateAvailableMessage").isJsonNull() ? root.get("updateAvailableMessage").getAsString() : null,
 				!root.has("integrityOk") || root.get("integrityOk").getAsBoolean(),
-				root.has("buildKind") && !root.get("buildKind").isJsonNull() ? root.get("buildKind").getAsString() : "unknown"
+				root.has("buildKind") && !root.get("buildKind").isJsonNull() ? root.get("buildKind").getAsString() : "unknown",
+				root.has("latestVersion") && !root.get("latestVersion").isJsonNull() ? root.get("latestVersion").getAsString() : null
 		));
 	}
 
