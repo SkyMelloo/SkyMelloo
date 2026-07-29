@@ -1,6 +1,6 @@
 package com.melloo.skymelloo.client.mixin;
 
-import com.melloo.skymelloo.client.esp.EspManager;
+import com.melloo.skymelloo.client.highlight.HighlightManager;
 import com.melloo.skymelloo.client.hp.DistanceDisplayManager;
 import com.melloo.skymelloo.client.social.AccountLinkedMarkerManager;
 import com.melloo.skymelloo.client.social.StatusTextDisplayManager;
@@ -33,11 +33,11 @@ public abstract class EntityDisplayNameMixin {
 			result = item.getItem().getHoverName();
 		}
 		if (self instanceof Player player) {
-			result = EspManager.colorizeName(player, result);
+			result = HighlightManager.colorizeName(player, result);
 			result = StatusTextDisplayManager.apply(player, result);
 			result = AccountLinkedMarkerManager.apply(player, result);
 		}
-		if (EspManager.isEspTarget(self)) {
+		if (HighlightManager.isHighlightTarget(self)) {
 			result = DistanceDisplayManager.apply(self, result);
 		}
 		cir.setReturnValue(result);

@@ -38,61 +38,68 @@ public class SkyMellooConfig {
 	// general "Mob Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
 	// highlights: party members (green), SkyMelloo staff (pink, everywhere - not dungeon-specific),
 	// and hostile mobs in your CURRENT dungeon room only (red, dungeon-only). Regular other players and NPCs get no highlight at all anymore.
-	// Removed entirely, not just defaulted off: espEnabled/espNameFilters/espDefaultColor/
-	// espNamedColor/espFriendlyMobsEnabled/espFriendlyColor (the general mob highlighting toggle), espSelfColor,
-	// espFriendNames/espFriendColor (see FriendListSync.java's deletion), espOtherPlayerColor,
-	// espModUserColor (regular non-staff SkyMelloo users no longer get a color at all),
-	// espHighlightNpcs/espNpcColor, autoSyncFriendsAndParty (only ever served the now-removed friend
-	// highlighting - party detection itself already comes from HypixelModAPI, see PartyTracker).
+	// Removed entirely, not just defaulted off: the general "highlight every hostile mob everywhere"
+	// toggle/name-filters/default-color/named-color, the friendly-mob toggle+color, the self color,
+	// the old Hypixel-/friend-list-based friend highlighting (name list + color, see
+	// FriendListSync.java's deletion - NOT the same as the current, still-live SkyMelloo-Friends
+	// color re-added below with its own key), the plain "other player" color, the "regular SkyMelloo
+	// user" color (non-staff users no longer get a color at all), and NPC highlighting + its color.
+	// autoSyncFriendsAndParty is gone too (only ever served the now-removed friend highlighting -
+	// party detection itself already comes from HypixelModAPI, see PartyTracker).
 
-	@AutoGen(category = "esp", group = "esp")
+	@AutoGen(category = "highlight", group = "mobs")
 	@TickBox
 	@SerialEntry(comment = "Highlight hostile mobs inside your CURRENT dungeon room in red, so the ones you still need to clear stand out from mobs elsewhere on the floor. Only active during an active dungeon run.")
 	public boolean dungeonRoomMobHighlightEnabled = false;
 
-	@AutoGen(category = "esp", group = "esp")
+	@AutoGen(category = "highlight", group = "mobs")
 	@ColorField
 	@SerialEntry(comment = "Glow color for hostile mobs inside your current dungeon room (see above).")
 	public Color dungeonRoomMobHighlightColor = new Color(0xFFFF0000, true);
 
-	@AutoGen(category = "esp", group = "players")
+	@AutoGen(category = "highlight", group = "players")
 	@TickBox
 	@SerialEntry(comment = "Highlight your party members and SkyMelloo staff (owner/admin/developer) - its own independent switch from the dungeon mob highlighting above.")
-	public boolean playerEspEnabled = false;
+	public boolean playerHighlightEnabled = false;
 
-	@AutoGen(category = "esp", group = "players")
+	@AutoGen(category = "highlight", group = "players")
 	@ColorField
 	@SerialEntry(comment = "Glow color for your current Hypixel party members.")
-	public Color espPartyColor = new Color(0xFF55FF55, true);
+	public Color partyHighlightColor = new Color(0xFF55FF55, true);
 
-	@AutoGen(category = "esp", group = "players")
+	@AutoGen(category = "highlight", group = "players")
 	@TickBox
 	@SerialEntry(comment = "A party member's highlight (both the glow outline and the nametag marker) blinks bright red once their HP drops under 25% - an urgent \"someone needs help\" signal readable at a glance during a fight.")
-	public boolean espLowHpBlinkEnabled = true;
+	public boolean lowHpBlinkEnabled = true;
 
-	@AutoGen(category = "esp", group = "players")
+	@AutoGen(category = "highlight", group = "players")
 	@ColorField
 	// Default changed from gold to pink, so staff (developer/admin/owner) get a consistent aura
 	// color everywhere - resolved server-side from the player's real linked account/team-role
 	// (see server.js's roleForUuid), never something another client could self-report to fake.
 	@SerialEntry(comment = "Glow color for players whose linked sky.melloo.me account is the owner, an admin, or a developer - works everywhere, not just in dungeons.")
-	public Color espAdminUserColor = new Color(0xFFFF66CC, true);
+	public Color staffHighlightColor = new Color(0xFFFF66CC, true);
 
-	@AutoGen(category = "esp", group = "players")
+	@AutoGen(category = "highlight", group = "players")
 	@ColorField
 	// Added back with its own aqua/light-blue color, after the general Friend
 	// highlighting removal - this is specifically a confirmed SkyMelloo Friend
 	// (the mod's own friends system, see FriendsManager/social menu), NOT the old Hypixel-/friend-
 	// list-based version, which stays gone.
 	@SerialEntry(comment = "Glow color for confirmed SkyMelloo Friends (see the Social menu, key G) - not Hypixel's own /friend list.")
-	public Color espFriendColor = new Color(0xFF55FFFF, true);
+	public Color friendHighlightColor = new Color(0xFF55FFFF, true);
 
-	@AutoGen(category = "esp", group = "players")
+	@AutoGen(category = "highlight", group = "players")
 	@TickBox
 	@SerialEntry(comment = "Also force the glow outline (visible through walls) on players, not just colored names. Off by default: forcing glow on every player can hide cosmetic layers from mods like Lunar Client (capes/wings) for some players.")
-	public boolean espPlayerGlowOutline = false;
+	public boolean playerGlowOutlineEnabled = false;
 
-	@AutoGen(category = "esp", group = "players")
+	@AutoGen(category = "highlight", group = "search")
+	@ColorField
+	@SerialEntry(comment = "Glow color for the player targeted with /sm search - only works in a Hypixel lobby (not SkyBlock, which has its own party/staff/friend highlighting above).")
+	public Color lobbySearchColor = new Color(0xFF55FF55, true);
+
+	@AutoGen(category = "highlight", group = "players")
 	@TickBox
 	// Off by default, since it defeats another player's REAL invisibility (e.g. Invisibility
 	// Potion), a much bigger deal than the other cosmetic player-color options above. Deliberately
@@ -100,7 +107,17 @@ public class SkyMellooConfig {
 	// override, which makes them render as a completely normal, visible player instead, still
 	// blocked by walls/line-of-sight.
 	@SerialEntry(comment = "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not a highlighting effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden.")
-	public boolean espShowInvisiblePlayers = false;
+	public boolean showInvisiblePlayersEnabled = false;
+
+	@AutoGen(category = "general", group = "chat")
+	@TickBox
+	@SerialEntry(comment = "Highlight (bold + colored marker) any chat message that mentions your own username, and play a short sound - so a mention doesn't slip by unnoticed.")
+	public boolean chatMentionHighlightEnabled = true;
+
+	@AutoGen(category = "general", group = "chat")
+	@ColorField
+	@SerialEntry(comment = "Marker color for a chat mention of your own username (see above).")
+	public Color chatMentionHighlightColor = new Color(0xFFFFD700, true);
 
 	@AutoGen(category = "dungeons", group = "info")
 	@TickBox
@@ -611,22 +628,22 @@ public class SkyMellooConfig {
 	@AutoGen(category = "item", group = "item")
 	@TickBox
 	@SerialEntry(comment = "Highlight dropped items with a glowing outline and show their name, visible through walls.")
-	public boolean itemEspEnabled = false;
+	public boolean itemHighlightEnabled = false;
 
 	@AutoGen(category = "item", group = "item")
 	@StringField
 	@SerialEntry(comment = "Comma-separated, case-insensitive item name filters (e.g. \"Enchanted, Diamond\"). Leave empty to highlight all dropped items.")
-	public String itemEspNameFilters = "";
+	public String itemHighlightNameFilters = "";
 
 	@AutoGen(category = "item", group = "item")
 	@ColorField
 	@SerialEntry(comment = "Glow color for dropped items.")
-	public Color itemEspColor = new Color(0xFF55FF55, true);
+	public Color itemHighlightColor = new Color(0xFF55FF55, true);
 
 	@AutoGen(category = "hp", group = "hp")
 	@TickBox
-	@SerialEntry(comment = "Show distance in blocks next to ESP'd mobs/players/items.")
-	public boolean espShowDistance = true;
+	@SerialEntry(comment = "Show distance in blocks next to highlighted mobs/players/items.")
+	public boolean showDistanceEnabled = true;
 
 	@AutoGen(category = "fishing", group = "fishing")
 	@TickBox
@@ -664,17 +681,17 @@ public class SkyMellooConfig {
 	@AutoGen(category = "block", group = "chest")
 	@TickBox
 	@SerialEntry(comment = "Highlight chests with a glowing box outline, visible through walls. Experimental: custom render pipeline.")
-	public boolean chestEspEnabled = false;
+	public boolean chestHighlightEnabled = false;
 
 	@AutoGen(category = "block", group = "chest")
 	@ColorField
 	@SerialEntry(comment = "Box color for chests.")
-	public Color chestEspColor = new Color(0xFFFFD700, true);
+	public Color chestHighlightColor = new Color(0xFFFFD700, true);
 
 	@AutoGen(category = "block", group = "block")
 	@IntSlider(min = 8, max = 48, step = 8)
 	@SerialEntry(comment = "Scan radius (in blocks) around you for Chest Highlight.")
-	public int blockEspRange = 24;
+	public int blockHighlightRange = 24;
 
 	// Cosmetics are intentionally NOT exposed via @AutoGen/YACL - they live exclusively in the
 	// Cosmetics tab of SkyMellooSettingsScreen (opened with J/H or /skymelloo cosmetics/config),
@@ -1097,11 +1114,11 @@ public class SkyMellooConfig {
 	private transient String cachedItemFilterSource = null;
 	private transient Set<String> cachedItemFilters = Set.of();
 
-	/** Lazily re-parsed only when {@link #itemEspNameFilters} actually changes. */
+	/** Lazily re-parsed only when {@link #itemHighlightNameFilters} actually changes. */
 	public Set<String> parsedItemFilters() {
-		if (!itemEspNameFilters.equals(cachedItemFilterSource)) {
-			cachedItemFilterSource = itemEspNameFilters;
-			cachedItemFilters = parseCommaList(itemEspNameFilters);
+		if (!itemHighlightNameFilters.equals(cachedItemFilterSource)) {
+			cachedItemFilterSource = itemHighlightNameFilters;
+			cachedItemFilters = parseCommaList(itemHighlightNameFilters);
 		}
 		return cachedItemFilters;
 	}

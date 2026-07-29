@@ -21,8 +21,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <li>Optionally makes another player's REAL vanilla invisibility (e.g. an Invisibility Potion) not
  * apply to how THIS client renders them: overriding isInvisible() to false makes
  * every vanilla system (model rendering, nametag, armor, etc.) treat them as a completely normal,
- * visible player - blocked by walls/line-of-sight like anyone else, NOT an ESP-style glow outline
- * visible through obstacles. Off by default - see SkyMellooConfig#espShowInvisiblePlayers.</li>
+ * visible player - blocked by walls/line-of-sight like anyone else, NOT a highlight-style glow outline
+ * visible through obstacles. Off by default - see SkyMellooConfig#showInvisiblePlayersEnabled.</li>
  * </ol>
  */
 @Mixin(Entity.class)
@@ -38,8 +38,8 @@ public abstract class MissileHitInvisibilityMixin {
 		// Never overrides the LOCAL player's own invisibility - this is about revealing OTHER
 		// players to you, not un-hiding yourself from your own client.
 		if (self instanceof Player player && player != Minecraft.getInstance().player
-				&& SkyMellooConfig.HANDLER.instance().espShowInvisiblePlayers
-				&& SkyMellooConfig.HANDLER.instance().playerEspEnabled) {
+				&& SkyMellooConfig.HANDLER.instance().showInvisiblePlayersEnabled
+				&& SkyMellooConfig.HANDLER.instance().playerHighlightEnabled) {
 			cir.setReturnValue(false);
 		}
 	}

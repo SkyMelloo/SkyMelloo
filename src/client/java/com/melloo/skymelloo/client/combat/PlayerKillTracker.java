@@ -1,6 +1,6 @@
 package com.melloo.skymelloo.client.combat;
 
-import com.melloo.skymelloo.client.esp.EspManager;
+import com.melloo.skymelloo.client.highlight.HighlightManager;
 import com.melloo.skymelloo.client.social.WhitelistManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -40,7 +40,7 @@ public final class PlayerKillTracker {
 		if (client.player == null || killer != client.player || victim == client.player) {
 			return;
 		}
-		if (EspManager.isNpc(victim)) {
+		if (HighlightManager.isNpc(victim)) {
 			return;
 		}
 
@@ -54,7 +54,7 @@ public final class PlayerKillTracker {
 		}
 
 		try {
-			EspManager.flashKillHighlight(victim.getUUID());
+			HighlightManager.flashKillHighlight(victim.getUUID());
 		} catch (Exception e) {
 			LOGGER.error("Kill-flash cosmetic failed", e);
 		}

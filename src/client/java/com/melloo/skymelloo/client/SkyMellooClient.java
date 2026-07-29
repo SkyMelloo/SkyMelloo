@@ -2,7 +2,7 @@ package com.melloo.skymelloo.client;
 
 import com.melloo.skymelloo.client.api.ModAuthManager;
 import com.melloo.skymelloo.client.api.SkyMellooApiClient;
-import com.melloo.skymelloo.client.block.BlockEspRenderer;
+import com.melloo.skymelloo.client.block.BlockHighlightRenderer;
 import com.melloo.skymelloo.client.combat.PlayerKillTracker;
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.cosmetics.CosmeticsRenderer;
@@ -60,7 +60,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			Identifier.fromNamespaceAndPath(MOD_ID, "main")
 	);
 
-	private static KeyMapping toggleEspKey;
+	private static KeyMapping toggleMobHighlightKey;
 	private static KeyMapping openConfigKey;
 	private static KeyMapping hudEditorKey;
 	private static KeyMapping socialMenuKey;
@@ -79,12 +79,13 @@ public class SkyMellooClient implements ClientModInitializer {
 		PartyJoinWatcher.init();
 		DungeonRunTracker.init();
 		com.melloo.skymelloo.client.social.ActionBarTracker.init();
+		com.melloo.skymelloo.client.social.ChatMentionHighlighter.init();
 		com.melloo.skymelloo.client.social.PartyGamesManager.init();
 		com.melloo.skymelloo.client.util.PartyChatSender.init();
 		com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.init();
 		com.melloo.skymelloo.client.util.AutoReconnect.init();
 		ResourcePackStatus.init();
-		BlockEspRenderer.init();
+		BlockHighlightRenderer.init();
 		// INIT fires as soon as the play-protocol listener is set up, before the player entity/world exist.
 		ClientPlayConnectionEvents.INIT.register((handler, client) -> {
 			ConnectionQualityMonitor.reset();
@@ -114,8 +115,8 @@ public class SkyMellooClient implements ClientModInitializer {
 		// bind it yourself under Controls > Key Binds > SkyMelloo, or toggle Mob Highlighting from
 		// the settings screen (key H by default) instead. Repurposed to toggle the dungeon
 		// current-room mob highlight, since that's the only mob highlighting left at all.
-		toggleEspKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-				"key.skymelloo.toggle_esp",
+		toggleMobHighlightKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.skymelloo.toggle_mob_highlight",
 				InputConstants.Type.KEYSYM,
 				InputConstants.UNKNOWN.getValue(),
 				CATEGORY
@@ -203,6 +204,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			DungeonTabList.tick(client);
 			DungeonRunTracker.tick(client);
 			DungeonRoomTracker.tick(client);
+			com.melloo.skymelloo.client.highlight.LobbySearchManager.tick(client);
 
 			WhitelistManager.checkOnce(client);
 			WhitelistManager.tickPeriodicRecheck(client);
@@ -214,20 +216,20 @@ public class SkyMellooClient implements ClientModInitializer {
 			PermissionsManager.fetchIfNeeded(client);
 			PermissionsManager.tickPeriodicRecheck(client);
 			CloudSyncManager.pullIfNeeded(client);
-			while (toggleEspKey.consumeClick()) {
+			while (toggleMobHighlightKey.consumeClick()) {
 				boolean showFeedback = SkyMellooConfig.HANDLER.instance().debugMessagesEnabled && client.player != null;
-				setEspEnabled(!SkyMellooConfig.HANDLER.instance().dungeonRoomMobHighlightEnabled,
+				setMobHighlightEnabled(!SkyMellooConfig.HANDLER.instance().dungeonRoomMobHighlightEnabled,
 						showFeedback ? client.player::sendSystemMessage : null);
 			}
 			FishingHelper.tick(client);
 			FishingMinigameManager.tick(client);
-			// Not gated on ESP anymore - the party HUD needs this too now. PartyTracker itself only
+			// Not gated on the highlight system anymore - the party HUD needs this too now. PartyTracker itself only
 			// actually sends a request once on join and then on party-related chat lines, not every
 			// tick, so this is cheap regardless.
 			PartyTracker.tick();
 			ResourcePackStatus.tick(client);
 			PartyJoinWatcher.tick(client);
-			BlockEspRenderer.tick(client);
+			BlockHighlightRenderer.tick(client);
 			CosmeticsRenderer.tick(client);
 			MagicMissileManager.tick(client);
 			com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.tick(client);
@@ -266,6 +268,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									return 1;
 								})))
 						.then(com.melloo.skymelloo.client.social.FriendsManager.buildFriendCommand())
+						.then(com.melloo.skymelloo.client.highlight.LobbySearchManager.buildSearchCommand())
 						.then(com.melloo.skymelloo.client.social.BlockedUsersManager.buildBlockCommand())
 						.then(com.melloo.skymelloo.client.social.BlockedUsersManager.buildUnblockCommand())
 						.then(com.melloo.skymelloo.client.social.RelayChatManager.buildChatCommand())
@@ -1416,7 +1419,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		);
 	}
 
-	private static void setEspEnabled(boolean enabled, Consumer<Component> feedback) {
+	private static void setMobHighlightEnabled(boolean enabled, Consumer<Component> feedback) {
 		SkyMellooConfig.HANDLER.instance().dungeonRoomMobHighlightEnabled = enabled;
 		SkyMellooConfig.HANDLER.save();
 		if (feedback != null) {

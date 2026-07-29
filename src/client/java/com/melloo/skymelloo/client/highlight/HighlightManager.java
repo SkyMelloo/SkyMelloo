@@ -1,6 +1,6 @@
-package com.melloo.skymelloo.client.esp;
+package com.melloo.skymelloo.client.highlight;
 
-import com.melloo.skymelloo.client.block.BlockEspRenderer;
+import com.melloo.skymelloo.client.block.BlockHighlightRenderer;
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.cosmetics.MagicMissileManager;
 import com.melloo.skymelloo.client.fishing.FishingHelper;
@@ -33,12 +33,12 @@ import java.util.UUID;
  * Decides which entities get the forced-glow highlight treatment and what color they get.
  * Hooked from {@link com.melloo.skymelloo.client.mixin.EntityGlowMixin}.
  */
-public final class EspManager {
+public final class HighlightManager {
 	private static final int KILL_FLASH_COLOR = 0xFFFFA500;
 	private static final long KILL_FLASH_DURATION_MS = 3000;
 	private static final Map<UUID, Long> killFlashExpiry = new HashMap<>();
 
-	private EspManager() {
+	private HighlightManager() {
 	}
 
 	/** Briefly (3s) forces a player's highlight color to orange - called right after you kill them. */
@@ -66,11 +66,11 @@ public final class EspManager {
 		if (MagicMissileManager.isTemporarilyInvisible(entity)) {
 			// A player briefly hidden by a magic-missile hit should actually disappear from this
 			// user's view, not turn into a glowing silhouette (which is what invisible+glowing
-			// normally renders as) - suppress all ESP treatment for the duration.
+			// normally renders as) - suppress all highlighting for the duration.
 			return false;
 		}
 
-		if (BlockEspRenderer.isChestMarker(entity)) {
+		if (BlockHighlightRenderer.isChestMarker(entity)) {
 			// Only actually visible chests get the outline - a genuine clear line of sight from the
 			// player's eyes, checked fresh every frame so it tracks camera movement/corners in real
 			// time, not seeing through walls.
@@ -101,17 +101,23 @@ public final class EspManager {
 		}
 
 		if (living instanceof Player player) {
+			// /sm search - a deliberate one-off command action, lobby-only (see LobbySearchManager),
+			// always glows regardless of the playerHighlightEnabled toggle below, which only gates the
+			// passive party/staff/friend highlighting.
+			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
+				return true;
+			}
 			// Player highlighting (party members and staff) is a SkyBlock-specific feature - it
 			// shouldn't apply on other Hypixel game modes or the lobby.
 			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
 				return false;
 			}
-			// playerEspEnabled is a separate config toggle from the dungeon mob highlight's
+			// playerHighlightEnabled is a separate config toggle from the dungeon mob highlight's
 			// toggle below, so switching one off doesn't affect the other.
-			if (!config.playerEspEnabled) {
+			if (!config.playerHighlightEnabled) {
 				return false;
 			}
-			if (player.isInvisible() && !config.espShowInvisiblePlayers) {
+			if (player.isInvisible() && !config.showInvisiblePlayersEnabled) {
 				// Off by default - forcing the glow-outline on a REAL vanilla-invisible player
 				// defeats their invisibility entirely (glowing+invisible renders as a visible
 				// colored silhouette through walls, see EntityGlowMixin) - a much more
@@ -127,7 +133,7 @@ public final class EspManager {
 			// Forcing the glow-outline pass on players can hide cosmetic layers from mods
 			// like Lunar Client (capes/wings) for some players, so it's opt-in; the colored
 			// nametag (see colorizeName) already gives a see-through indicator on its own.
-			return config.espPlayerGlowOutline;
+			return config.playerGlowOutlineEnabled;
 		}
 
 		// Only the dungeon current-room mob highlight remains - isInCurrentDungeonRoom already
@@ -138,8 +144,8 @@ public final class EspManager {
 				&& living instanceof Enemy && isInCurrentDungeonRoom(living);
 	}
 
-	/** Whether this entity gets ANY ESP treatment right now (glow, colored name, or item name) - used to gate the distance display. */
-	public static boolean isEspTarget(Entity entity) {
+	/** Whether this entity gets ANY highlight treatment right now (glow, colored name, or item name) - used to gate the distance display. */
+	public static boolean isHighlightTarget(Entity entity) {
 		if (!WhitelistManager.isAllowed()) {
 			return false;
 		}
@@ -150,16 +156,19 @@ public final class EspManager {
 			if (isKillFlashing(player.getUUID())) {
 				return true;
 			}
+			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
+				return true;
+			}
 			// Same SkyBlock-only restriction as shouldGlow's player branch above - party/staff
 			// player highlighting shouldn't apply on other Hypixel game modes or the lobby.
 			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
 				return false;
 			}
 			SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-			if (player.isInvisible() && !config.espShowInvisiblePlayers) {
+			if (player.isInvisible() && !config.showInvisiblePlayersEnabled) {
 				return false;
 			}
-			if (!config.playerEspEnabled) {
+			if (!config.playerHighlightEnabled) {
 				return false;
 			}
 			return classifyPlayer(player) != PlayerCategory.NONE;
@@ -189,7 +198,7 @@ public final class EspManager {
 	}
 
 	private static boolean shouldGlowItem(ItemEntity item, SkyMellooConfig config) {
-		if (!config.itemEspEnabled) {
+		if (!config.itemHighlightEnabled) {
 			return false;
 		}
 		Set<String> filters = config.parsedItemFilters();
@@ -207,8 +216,8 @@ public final class EspManager {
 
 	public static int getGlowColor(Entity entity) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-		if (BlockEspRenderer.isChestMarker(entity)) {
-			return toRgb(config.chestEspColor);
+		if (BlockHighlightRenderer.isChestMarker(entity)) {
+			return toRgb(config.chestHighlightColor);
 		}
 		if (entity instanceof FishingHook && FishingHelper.isTracked(entity)) {
 			return toRgb(FishingHelper.isBiting() ? config.fishingBitingColor : config.fishingWaitingColor);
@@ -217,19 +226,22 @@ public final class EspManager {
 			return toRgb(config.fishingMinigameColor);
 		}
 		if (entity instanceof ItemEntity) {
-			return toRgb(config.itemEspColor);
+			return toRgb(config.itemHighlightColor);
 		}
 		if (entity instanceof Player player) {
 			if (isKillFlashing(player.getUUID())) {
 				return KILL_FLASH_COLOR;
 			}
+			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
+				return toRgb(config.lobbySearchColor);
+			}
 			return switch (classifyPlayer(player)) {
-				case PARTY -> lowHpBlinkColor(player, config, toRgb(config.espPartyColor));
-				case STAFF -> toRgb(config.espAdminUserColor);
-				case FRIEND -> toRgb(config.espFriendColor);
-				// Unreachable in practice - shouldGlow/isEspTarget already refuse NONE before a
+				case PARTY -> lowHpBlinkColor(player, config, toRgb(config.partyHighlightColor));
+				case STAFF -> toRgb(config.staffHighlightColor);
+				case FRIEND -> toRgb(config.friendHighlightColor);
+				// Unreachable in practice - shouldGlow/isHighlightTarget already refuse NONE before a
 				// color is ever needed for it.
-				case NONE -> toRgb(config.espPartyColor);
+				case NONE -> toRgb(config.partyHighlightColor);
 			};
 		}
 		// Only the dungeon current-room mob highlight remains - see shouldGlow's own comment.
@@ -241,13 +253,13 @@ public final class EspManager {
 	private static final double LOW_HP_BLINK_THRESHOLD = 0.25;
 
 	/**
-	 * A party member's ESP normally stays their fixed party color, but blinks bright red once their
+	 * A party member's highlight normally stays their fixed party color, but blinks bright red once their
 	 * HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a fight,
 	 * using the same HP data already read for the Party HUD's own display. Blinks (alternates every
 	 * ~400ms) rather than just going solid red, so it's noticeably distinct from a static color choice.
 	 */
 	private static int lowHpBlinkColor(Player player, SkyMellooConfig config, int normalColor) {
-		if (!config.espLowHpBlinkEnabled || player.getMaxHealth() <= 0) {
+		if (!config.lowHpBlinkEnabled || player.getMaxHealth() <= 0) {
 			return normalColor;
 		}
 		if (player.getHealth() / player.getMaxHealth() >= LOW_HP_BLINK_THRESHOLD) {
@@ -276,7 +288,7 @@ public final class EspManager {
 	}
 
 	/**
-	 * Appends a small colored ESP-category marker after a player's nametag, instead of the old
+	 * Appends a small colored highlight-category marker after a player's nametag, instead of the old
 	 * behavior of overwriting the whole name's style - Hypixel bakes rank color (MVP+/VIP/etc.)
 	 * into the name via the scoreboard team style, and flattening the whole component to one
 	 * color wiped that out. This way the real rank color stays intact and only a marker is added.
@@ -290,10 +302,11 @@ public final class EspManager {
 		}
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		boolean flashing = isKillFlashing(player.getUUID());
-		if (!flashing && !config.playerEspEnabled) {
+		boolean searched = LobbySearchManager.isSearchedPlayer(player.getUUID());
+		if (!flashing && !searched && !config.playerHighlightEnabled) {
 			return original;
 		}
-		if (!flashing && classifyPlayer(player) == PlayerCategory.NONE) {
+		if (!flashing && !searched && classifyPlayer(player) == PlayerCategory.NONE) {
 			return original;
 		}
 		TextColor color = TextColor.fromRgb(getGlowColor(player) & 0xFFFFFF);

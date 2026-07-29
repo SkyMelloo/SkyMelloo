@@ -566,7 +566,7 @@ public final class SkyMellooApiClient {
 				.thenApply(root -> new SessionResult(root.get("expiresAt").getAsLong()));
 	}
 
-	/** Resolved per-feature permissions (esp, cosmetics, etc.) - admin-configurable defaults + per-user overrides, resolved server-side from the verified signed request. */
+	/** Resolved per-feature permissions (cosmetics, etc.) - admin-configurable defaults + per-user overrides, resolved server-side from the verified signed request. */
 	public static CompletableFuture<Map<String, Boolean>> fetchPermissions(ModAuthManager.ModIdentity identity) {
 		return getJson("/mod/permissions", identity).thenApply(root -> {
 			Map<String, Boolean> result = new HashMap<>();

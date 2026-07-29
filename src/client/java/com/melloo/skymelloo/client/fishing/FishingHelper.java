@@ -24,7 +24,7 @@ public final class FishingHelper {
 	private FishingHelper() {
 	}
 
-	/** Whether this entity is the bobber currently being watched - used by EspManager to glow it. */
+	/** Whether this entity is the bobber currently being watched - used by HighlightManager to glow it. */
 	public static boolean isTracked(Entity entity) {
 		return entity == trackedHook;
 	}

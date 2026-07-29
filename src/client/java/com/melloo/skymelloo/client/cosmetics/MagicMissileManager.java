@@ -1,7 +1,7 @@
 package com.melloo.skymelloo.client.cosmetics;
 
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
-import com.melloo.skymelloo.client.esp.EspManager;
+import com.melloo.skymelloo.client.highlight.HighlightManager;
 import com.melloo.skymelloo.client.social.PermissionsManager;
 import com.melloo.skymelloo.client.util.ChatUtil;
 import net.minecraft.client.Minecraft;
@@ -224,7 +224,7 @@ public final class MagicMissileManager {
 		AbstractClientPlayer bestOverall = null;
 		double bestOverallAlignment = HOMING_MIN_ALIGNMENT;
 		for (AbstractClientPlayer other : client.level.players()) {
-			if (other == shooter || EspManager.isNpc(other) || isTemporarilyInvisible(other) || isInActiveSequence(other)) {
+			if (other == shooter || HighlightManager.isNpc(other) || isTemporarilyInvisible(other) || isInActiveSequence(other)) {
 				continue;
 			}
 			Vec3 targetPos = other.position().add(0, other.getBbHeight() / 2, 0);
@@ -1004,7 +1004,7 @@ public final class MagicMissileManager {
 			// end of their multi-second sequence, so without this a second hit during that window
 			// would start an overlapping second sequence on the same target - not hittable again
 			// while already mid-animation.
-			if (other == shooter || EspManager.isNpc(other) || isTemporarilyInvisible(other) || isInActiveSequence(other)) {
+			if (other == shooter || HighlightManager.isNpc(other) || isTemporarilyInvisible(other) || isInActiveSequence(other)) {
 				continue;
 			}
 			AABB box = other.getBoundingBox().inflate(0.25);

@@ -1,6 +1,6 @@
 {
 	"key.categories.skymelloo": "SkyMelloo",
-	"key.skymelloo.toggle_esp": "Toggle Mob Highlighting",
+	"key.skymelloo.toggle_mob_highlight": "Toggle Mob Highlighting",
 	"key.skymelloo.open_config": "Open SkyMelloo Settings",
 	"key.skymelloo.hud_editor": "Open HUD Layout Editor",
 	"key.skymelloo.social_menu": "Open Social Menu",
@@ -8,9 +8,9 @@
 
 	"yacl3.config.skymelloo:config.title": "SkyMelloo",
 
-	"yacl3.config.skymelloo:config.category.esp": "Highlighting",
-	"yacl3.config.skymelloo:config.category.esp.group.esp": "Mobs",
-	"yacl3.config.skymelloo:config.category.esp.group.players": "Players",
+	"yacl3.config.skymelloo:config.category.highlight": "Highlighting",
+	"yacl3.config.skymelloo:config.category.highlight.group.mobs": "Mobs",
+	"yacl3.config.skymelloo:config.category.highlight.group.players": "Players",
 
 	"yacl3.config.skymelloo:config.category.item": "Items",
 	"yacl3.config.skymelloo:config.category.item.group.item": "Item Highlighting",
@@ -26,15 +26,15 @@
 	"yacl3.config.skymelloo:config.category.block.group.chest": "Chest Highlight",
 	"yacl3.config.skymelloo:config.category.block.group.block": "General",
 
-	"yacl3.config.skymelloo:config.espPartyColor": "Party Color",
-	"yacl3.config.skymelloo:config.espPlayerGlowOutline": "Force Glow Outline on Players",
+	"yacl3.config.skymelloo:config.partyHighlightColor": "Party Color",
+	"yacl3.config.skymelloo:config.playerGlowOutlineEnabled": "Force Glow Outline on Players",
 	"yacl3.config.skymelloo:config.partyJoinStatsEnabled": "Announce Party-Join Stats",
 
-	"yacl3.config.skymelloo:config.itemEspEnabled": "Item ESP",
-	"yacl3.config.skymelloo:config.itemEspNameFilters": "Item Name Filters",
-	"yacl3.config.skymelloo:config.itemEspColor": "Item Color",
+	"yacl3.config.skymelloo:config.itemHighlightEnabled": "Item Highlighting",
+	"yacl3.config.skymelloo:config.itemHighlightNameFilters": "Item Name Filters",
+	"yacl3.config.skymelloo:config.itemHighlightColor": "Item Color",
 
-	"yacl3.config.skymelloo:config.espShowDistance": "Show Distance",
+	"yacl3.config.skymelloo:config.showDistanceEnabled": "Show Distance",
 
 	"yacl3.config.skymelloo:config.fishingHelperEnabled": "Fishing Bite Alert",
 	"yacl3.config.skymelloo:config.fishingHelperSound": "Fishing Alert Sound",
@@ -43,9 +43,9 @@
 	"yacl3.config.skymelloo:config.fishingMinigameEnabled": "Shooting Gallery Minigame",
 	"yacl3.config.skymelloo:config.fishingMinigameColor": "Target Color",
 
-	"yacl3.config.skymelloo:config.chestEspEnabled": "Chest ESP",
-	"yacl3.config.skymelloo:config.chestEspColor": "Chest Color",
-	"yacl3.config.skymelloo:config.blockEspRange": "Block Scan Range",
+	"yacl3.config.skymelloo:config.chestHighlightEnabled": "Chest Highlighting",
+	"yacl3.config.skymelloo:config.chestHighlightColor": "Chest Color",
+	"yacl3.config.skymelloo:config.blockHighlightRange": "Block Scan Range",
 
 	"yacl3.config.skymelloo:config.category.cosmetics": "Cosmetics",
 	"yacl3.config.skymelloo:config.category.cosmetics.group.halo": "Halo",

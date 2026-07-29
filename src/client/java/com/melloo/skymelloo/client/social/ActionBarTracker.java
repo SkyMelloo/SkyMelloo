@@ -43,9 +43,8 @@ import java.util.regex.Pattern;
  *     icon glyphs entirely, removing the word "Mana" from the text altogether - confirmed directly
  *     from that same debug output ("542/542✎" with no word anywhere near it). Matches positionally
  *     instead now: Hypixel's SkyBlock actionbar has shown Health, then Defense (a bare number with no
- *     slash), then Mana in that fixed order since the game's own inception - "eigentlich doch nur 3
- *     und 4 zahl also 3. zahl mana aktuell und 4. zahl max mana" - so mana is simply the SECOND
- *     "current/max" fraction found in the flattened text, regardless of color or wording. Every
+ *     slash), then Mana in that fixed order since the game's own inception - so mana is simply the
+ *     SECOND "current/max" fraction found in the flattened text, regardless of color or wording. Every
  *     (color, text) segment actually seen is still kept (see {@link #getLastSegments}) for "Mana
  *     Debug", purely as a diagnostic now.</li>
  * </ol>

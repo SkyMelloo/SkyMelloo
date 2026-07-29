@@ -19,7 +19,7 @@ import java.util.Map;
  * the server) marker entities on top of them and forcing them to glow - the same vanilla
  * "invisible + glowing" mechanic used for mob/player/item highlighting. The marker itself is
  * always invisible; only the glow outline (applied by
- * {@link com.melloo.skymelloo.client.esp.EspManager#shouldGlow}) makes it show at all, and that
+ * {@link com.melloo.skymelloo.client.highlight.HighlightManager#shouldGlow}) makes it show at all, and that
  * check requires an actual clear line of sight to the block, so this reads as a normal outline
  * effect rather than seeing through walls.
  * <p>
@@ -28,13 +28,13 @@ import java.util.Map;
  * Every matching block gets its own marker (not merged into one per vein) - adjacent glowing
  * outlines already read visually as one connected vein.
  */
-public final class BlockEspRenderer {
+public final class BlockHighlightRenderer {
 	private static int nextMarkerId = Integer.MAX_VALUE - 100_000;
 
 	private static final Map<BlockPos, Display.BlockDisplay> chestMarkers = new HashMap<>();
 	private static int tickCounter = 0;
 
-	private BlockEspRenderer() {
+	private BlockHighlightRenderer() {
 	}
 
 	public static void init() {
@@ -43,7 +43,7 @@ public final class BlockEspRenderer {
 
 	public static void tick(Minecraft client) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-		if (!config.chestEspEnabled) {
+		if (!config.chestHighlightEnabled) {
 			clearAll(client);
 			return;
 		}
@@ -65,7 +65,7 @@ public final class BlockEspRenderer {
 		Map<BlockPos, BlockState> wantedChests = new HashMap<>();
 
 		BlockPos center = client.player.blockPosition();
-		int r = config.blockEspRange;
+		int r = config.blockHighlightRange;
 		for (BlockPos pos : BlockPos.betweenClosed(center.offset(-r, -r, -r), center.offset(r, r, r))) {
 			BlockState state = client.level.getBlockState(pos);
 			if (state.isAir()) {

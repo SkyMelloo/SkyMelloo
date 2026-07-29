@@ -58,7 +58,7 @@ public final class ModPresenceManager {
 	private static final java.util.Set<UUID> otherAccountLinked = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	// "owner"/"admin"/"developer"/null, as resolved server-side by roleForUuid (server.js) from that
 	// player's actual linked account - never self-reported. SkyMelloo admins/developers/the owner
-	// get gold - see EspManager#classifyPlayer for how this picks the color.
+	// get gold - see HighlightManager#classifyPlayer for how this picks the color.
 	private static final Map<UUID, String> otherRoles = new ConcurrentHashMap<>();
 
 	private ModPresenceManager() {
@@ -119,7 +119,7 @@ public final class ModPresenceManager {
 			return;
 		}
 		// Privacy master switch - if off, we send NOTHING about ourselves at all (not even a
-		// stripped-down report), so we simply never appear in anyone else's mod-user ESP, the Credits
+		// stripped-down report), so we simply never appear in anyone else's mod-user highlighting, the Credits
 		// online dot, or the website's public online-user count. Querying OTHERS below is untouched -
 		// this only controls what we report about ourselves, not what we can see.
 		if (!SkyMellooConfig.HANDLER.instance().presenceSharingEnabled) {
