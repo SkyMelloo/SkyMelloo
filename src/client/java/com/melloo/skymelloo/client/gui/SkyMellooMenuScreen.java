@@ -326,6 +326,15 @@ public class SkyMellooMenuScreen extends Screen {
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			List<MenuAction> list = new ArrayList<>();
+			// Required disclaimer (Minecraft Brand and Asset Usage Guidelines) - shown here rather
+			// than on every page, since Credits is the one place a player is already reading "who
+			// made this", the same context this belongs in. Not clickable, same treatment as the
+			// "Loading..."/"No credits yet" placeholder entries below.
+			list.add(new MenuAction(named(Items.PAPER, "§7About SkyMelloo", List.of(
+					"§7Not an official Minecraft product.",
+					"§7Not approved by or associated with",
+					"§7Mojang, Microsoft, or Hypixel Inc.")), () -> {
+			}));
 			if (creditsCache == null) {
 				if (!creditsLoading) {
 					creditsLoading = true;
