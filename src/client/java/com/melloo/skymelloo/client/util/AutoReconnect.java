@@ -30,6 +30,7 @@ public final class AutoReconnect {
 	private static final int RESET_STREAK_TICKS = 30 * 20;
 
 	private static ServerData lastServer = null;
+	private static ServerData lastKnownHypixelServer = null;
 	private static boolean pendingReconnect = false;
 	private static int reconnectDelayTicks = 0;
 	private static int consecutiveAttempts = 0;
@@ -44,14 +45,18 @@ public final class AutoReconnect {
 			if (!config.autoReconnectEnabled) {
 				return;
 			}
-			ServerData server = client.getCurrentServer();
-			if (server == null || server.ip == null || !server.ip.toLowerCase(Locale.ROOT).contains("hypixel")) {
+			// Deliberately NOT client.getCurrentServer() here - by the time this event fires (any
+			// disconnect, manual or not), the client has often already cleared it, which silently
+			// skipped reconnecting no matter how the disconnect actually happened. lastKnownHypixelServer
+			// is kept fresh every tick instead (see tick() below), so it still reflects the real server
+			// from the moment before the disconnect regardless of what's already been torn down.
+			if (lastKnownHypixelServer == null) {
 				return;
 			}
 			if (consecutiveAttempts >= MAX_CONSECUTIVE_ATTEMPTS) {
 				return;
 			}
-			lastServer = server;
+			lastServer = lastKnownHypixelServer;
 			reconnectDelayTicks = RECONNECT_DELAY_TICKS;
 			pendingReconnect = true;
 		});
@@ -60,6 +65,11 @@ public final class AutoReconnect {
 	/** Call once per client tick. */
 	public static void tick(Minecraft client) {
 		if (client.getConnection() != null) {
+			// Kept up to date every tick while actually connected, specifically so the DISCONNECT
+			// handler above always has a valid server to reconnect to even if the client has already
+			// cleared getCurrentServer() by the time that event actually fires.
+			ServerData server = client.getCurrentServer();
+			lastKnownHypixelServer = server != null && server.ip != null && server.ip.toLowerCase(Locale.ROOT).contains("hypixel") ? server : null;
 			// Currently connected - once it's held for a while, the attempt streak resets, so a single
 			// rough patch earlier in the session doesn't permanently eat into the budget for later.
 			ticksConnected++;

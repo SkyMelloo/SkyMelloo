@@ -103,7 +103,7 @@ public class SkyMellooSettingsScreen extends Screen {
 				// the same day - this tab always shows since every feature it contains is available
 				// to everyone now.
 				case DUNGEONS -> true;
-				case COSMETICS -> PermissionsManager.has("cosmetics");
+				case COSMETICS -> SkyMellooConfig.HANDLER.instance().cosmeticsEnabled && PermissionsManager.has("cosmetics");
 				// Only Spell/Spell Essence live here now (Kill Tracker/Death Double removed
 				// entirely, Death Recap moved to Dungeons) - both need "cosmetics".
 				case FUN -> PermissionsManager.has("cosmetics");
@@ -499,6 +499,7 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(keybindRow("Open This Menu", SkyMellooClient.getOpenConfigKey()), "Click, then press any key to rebind - same as vanilla's Controls > Key Binds, just without leaving this screen. Escape cancels without changing it."));
 				rows.add(headerRow("Menu"));
 				rows.add(tip(boolRow("SkyMelloo Menu Item", () -> c.skyMellooMenuItemEnabled, v -> c.skyMellooMenuItemEnabled = v, 0xFF66DDFF), "A fake \"SkyMelloo Menu\" item in hotbar slot 8 whenever that slot is empty - right-click to open a chest-style menu for SkyMelloo's own settings, the same way Hypixel's own SkyBlock Menu item (slot 9) works. Client-side only, never overwrites a real item actually in that slot."));
+				rows.add(tip(boolRow("Cosmetics", () -> c.cosmeticsEnabled, v -> c.cosmeticsEnabled = v, 0xFFFF6EC7), "Master switch for cosmetics - off hides the Cosmetics tab here and in the SkyMelloo Menu item entirely, and stops rendering any cosmetic effect at all, yours or anyone else's."));
 				rows.add(headerRow("HUD"));
 				rows.add(tip(boolRow("Health/Mana Bars", () -> c.healthManaBarsEnabled, v -> c.healthManaBarsEnabled = v, 0xFF55DD55), "Master switch - a sleek custom health (green, gold where absorption extends past normal max) and mana (light blue, %) bar pair. Flashes white briefly where health was just lost. Position set via the HUD layout editor (default J)."));
 				rows.add(tip(boolRow("Health Bar", () -> c.healthBarEnabled, v -> c.healthBarEnabled = v, 0xFF55DD55), "Show the health bar specifically."));

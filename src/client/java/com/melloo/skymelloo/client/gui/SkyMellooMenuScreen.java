@@ -294,7 +294,9 @@ public class SkyMellooMenuScreen extends Screen {
 			List<MenuAction> list = new ArrayList<>();
 			list.add(linkAction(Items.WRITABLE_BOOK, "Settings", "All SkyMelloo settings", new SettingsPage(), screen));
 			list.add(linkAction(Items.BLAZE_ROD, "Spells", "Switch spell type, view recent kills", new SpellsPage(), screen));
-			list.add(linkAction(Items.FIREWORK_STAR, "Cosmetics", "Toggle and color every cosmetic effect", new CosmeticsListPage(), screen));
+			if (com.melloo.skymelloo.client.config.SkyMellooConfig.HANDLER.instance().cosmeticsEnabled) {
+				list.add(linkAction(Items.FIREWORK_STAR, "Cosmetics", "Toggle and color every cosmetic effect", new CosmeticsListPage(), screen));
+			}
 			list.add(new MenuAction(named(Items.BARRIER, "§7Games", List.of("§7Coming soon")), () -> {
 			}));
 			return list;
