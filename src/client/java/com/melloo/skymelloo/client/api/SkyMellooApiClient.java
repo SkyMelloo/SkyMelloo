@@ -610,15 +610,14 @@ public final class SkyMellooApiClient {
 				.exceptionally(error -> new LinkStartResult(false, null, ChatUtil.friendlyError(error)));
 	}
 
-	/** {@code updatedAt} is when this was last pushed by ANY device under this account - lets the caller compare against its own local copy's mtime to decide which side is actually newer. */
-	public record CloudSettingsResult(JsonObject settings, long updatedAt) {
+	public record CloudSettingsResult(JsonObject settings) {
 	}
 
 	/** The cloud-synced settings blob for the account behind this identity, or null if nothing's been saved yet (or the request failed). */
 	public static CompletableFuture<CloudSettingsResult> fetchCloudSettings(ModAuthManager.ModIdentity identity) {
 		return getJson("/mod/settings", identity)
 				.thenApply(root -> root.has("settings") && root.get("settings").isJsonObject()
-						? new CloudSettingsResult(root.getAsJsonObject("settings"), root.has("updatedAt") ? root.get("updatedAt").getAsLong() : 0L)
+						? new CloudSettingsResult(root.getAsJsonObject("settings"))
 						: null)
 				.exceptionally(error -> null);
 	}
