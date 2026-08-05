@@ -24,15 +24,6 @@ public class SkyMellooConfig {
 					.build())
 			.build();
 
-	/** When this device's own settings file was last written, in epoch millis - 0 if it's never been saved at all. Used by CloudSyncManager to compare against the cloud copy's own updatedAt and decide which side is actually newer, rather than always blindly preferring one. */
-	public static long localSettingsLastModifiedMillis() {
-		try {
-			return java.nio.file.Files.getLastModifiedTime(YACLPlatform.getConfigDir().resolve("skymelloo.json5")).toMillis();
-		} catch (java.io.IOException e) {
-			return 0L;
-		}
-	}
-
 	// Everything below was drastically simplified from a fully customizable mob/player highlighting
 	// system (name filters, friendly-mob toggle, self/friend/other/NPC player colors, a separate
 	// general "Mob Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
@@ -1006,10 +997,18 @@ public class SkyMellooConfig {
 
 	// Internal, not shown in the settings screen - true once this device has ever picked Local or
 	// Cloud from CloudSyncManager's conflict-choice screen. That choice only ever needs asking once:
-	// afterward local and cloud are in sync, so every later launch just needs a plain "whichever side
-	// is newer wins" comparison, not another prompt.
+	// afterward cloud is authoritative on every later launch, so this only gates the very first
+	// decision, not a repeated "whichever side is newer" comparison.
 	@SerialEntry(comment = "Internal - true once this device has resolved a Cloud Sync conflict at least once. Not meant to be edited by hand.")
 	public boolean cloudSyncConflictResolved = false;
+
+	// Internal, not shown in the settings screen - the exact settings JSON (as a string) this device
+	// last knew to be in sync with the cloud, either because it just pushed it or just pulled it. Lets
+	// CloudSyncManager tell "cloud changed on another device, safe to silently adopt" apart from "this
+	// device itself has unsynced local edits that would be silently discarded" - only the latter is a
+	// real conflict worth asking about again.
+	@SerialEntry(comment = "Internal - snapshot of the settings last known to be in sync with the cloud. Not meant to be edited by hand.")
+	public String cloudSyncLastSyncedSnapshot = null;
 
 	@SerialEntry(comment = "Master switch for showing up as \"online\" to anyone else - other SkyMelloo users' mod-user detection, the in-game Credits menu's online dot, and the website's public online-user count all depend on this. Off means you still report NOTHING about yourself, but you can still see/detect others who have it on. Doesn't affect Cloud Sync (that's private, never shown to anyone else).")
 	public boolean presenceSharingEnabled = false;

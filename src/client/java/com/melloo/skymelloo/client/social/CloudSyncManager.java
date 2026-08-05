@@ -21,19 +21,19 @@ import java.util.concurrent.CompletableFuture;
  * isn't treated as consent to sync settings data, only as the technical prerequisite for there
  * being a persistent identity to sync against at all.
  * <p>
- * Direction is timestamp-based, not "cloud always wins": once per game launch, this device's own
- * settings-file mtime is compared against the cloud copy's own updatedAt (both real wall-clock
- * timestamps of the last actual save on either side) - whichever is genuinely newer wins, so a
- * device that was just configured offline doesn't get silently overwritten by a stale cloud copy,
- * and a stale local copy doesn't overwrite a newer cloud one either. If nothing's been saved to the
- * cloud at all yet, this device's current settings are pushed up to bootstrap it.
+ * Cloud is authoritative, not timestamp-based: once this device has ever resolved a Local-vs-Cloud
+ * choice (or never needed to, because one side was empty), every later launch just silently pulls
+ * whatever's in the cloud and applies it - this device's own settings are still saved locally too
+ * (both as the thing actually pushed back up after local edits, and as an offline-usable cache), but
+ * the cloud copy is what's trusted on join.
  * <p>
- * The one genuine ambiguity - THIS device already has its own settings AND the cloud already has a
- * different saved copy, so neither timestamp can be trusted as "the" answer - only ever gets asked
- * once (see CloudSyncChoiceScreen and cloudSyncConflictResolved below). Once resolved, both sides
- * are in sync from that point on, so every later launch is back to plain timestamp comparison with
- * no prompt - there's no scenario where a resolved sync can un-resolve itself into needing to ask
- * again.
+ * The one genuine ambiguity - THIS device has its own settings AND the cloud has a genuinely
+ * different copy, compared by actual content, not by timestamp - only ever gets asked about once
+ * per divergence (see CloudSyncChoiceScreen and cloudSyncConflictResolved below). A silent "cloud
+ * changed on another device" pull never counts as a divergence worth asking about, since this
+ * device's own settings haven't actually changed since the last time it was in sync - only a case
+ * where THIS device also has real unsynced local edits that conflict with the cloud triggers another
+ * prompt, and even that always resolves to a fresh silent-pull baseline afterward.
  */
 public final class CloudSyncManager {
 	// Color fields are serialized as a plain RGB int via a custom adapter instead of Gson's default
@@ -47,17 +47,10 @@ public final class CloudSyncManager {
 			.create();
 
 	// Fields that describe THIS device's own local state rather than a real setting - never sent to
-	// the cloud, never overwritten by a pull. cloudSyncConflictResolved specifically: if this were
-	// synced like everything else, pulling a cloud copy that predates this device's own resolution
-	// would reset the flag and bring the conflict-choice screen back, which defeats the entire point
-	// of it only ever asking once.
-	private static final Set<String> LOCAL_ONLY_FIELDS = Set.of("cloudSyncConflictResolved");
-
-	// Small tolerance so a push immediately followed by that same device reading its own just-synced
-	// state back doesn't register as "the other side is newer" purely from a few seconds of clock/
-	// request latency - both timestamps land within a couple seconds of each other right after any
-	// successful sync, and that's still "in sync", not a real divergence to act on.
-	private static final long SYNC_TOLERANCE_MS = 5_000;
+	// the cloud, never overwritten by a pull. If either of these were synced like everything else,
+	// pulling a cloud copy that predates this device's own resolution/snapshot would reset it and
+	// bring the conflict-choice screen back on every launch, which defeats the entire point of both.
+	private static final Set<String> LOCAL_ONLY_FIELDS = Set.of("cloudSyncConflictResolved", "cloudSyncLastSyncedSnapshot");
 
 	// Attempted once per game launch, same reasoning as the whitelist/permissions checks this mirrors -
 	// the JOIN event this would otherwise reset on ALSO fires on Hypixel's own internal server-hops
@@ -89,7 +82,7 @@ public final class CloudSyncManager {
 		});
 	}
 
-	/** Pulls the cloud copy's timestamp, compares against this device's own, and pushes/pulls/asks depending on what's actually needed. */
+	/** Fetches the cloud copy and, by actual content rather than a timestamp, pushes/pulls/asks depending on what's genuinely needed. */
 	private static CompletableFuture<Void> reconcile(ModAuthManager.ModIdentity identity) {
 		return SkyMellooApiClient.fetchCloudSettings(identity).thenAccept(result ->
 				Minecraft.getInstance().execute(() -> {
@@ -98,43 +91,42 @@ public final class CloudSyncManager {
 						pushWithIdentity(identity);
 						return;
 					}
-					long localMtime = SkyMellooConfig.localSettingsLastModifiedMillis();
-					if (localMtime == 0) {
-						// This device has never saved a settings file at all - nothing local to weigh
-						// against, so just take the cloud copy, no need to ask.
-						applySettings(result.settings());
-						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: no local settings yet, pulled and applied cloud settings.");
-						return;
-					}
-					long diff = localMtime - result.updatedAt();
+					JsonObject cloudJson = result.settings();
+					JsonObject localJson = currentSettingsJson();
 					SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-					if (!config.cloudSyncConflictResolved && Math.abs(diff) > SYNC_TOLERANCE_MS) {
-						// Both sides genuinely have their own independent history and this device has never
-						// resolved that before - never guess, ask once, showing exactly when each was last
-						// saved. Whichever button gets picked also marks this resolved so future launches
-						// never ask again (see the class doc comment).
-						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: both local and cloud settings exist and diverge, asking which to keep.");
-						Minecraft.getInstance().setScreen(new com.melloo.skymelloo.client.gui.CloudSyncChoiceScreen(
-								localMtime, result.updatedAt(),
-								() -> {
-									markConflictResolved();
-									pushWithIdentity(identity);
-								},
-								() -> {
-									markConflictResolved();
-									applySettings(result.settings());
-								}));
+					if (localJson.equals(cloudJson)) {
+						recordSynced(cloudJson);
+						markConflictResolved();
+						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: already in sync, nothing to do.");
 						return;
 					}
-					if (diff > SYNC_TOLERANCE_MS) {
-						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: this device's settings are newer, pushing.");
-						pushWithIdentity(identity);
-					} else if (diff < -SYNC_TOLERANCE_MS) {
-						applySettings(result.settings());
-						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: cloud settings are newer, pulled and applied.");
-					} else {
-						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: already in sync, nothing to do.");
+					if ((config.cloudSyncConflictResolved && matchesLastSyncedSnapshot(localJson)) || isUntouchedDefaults(localJson)) {
+						// Either this device hasn't touched its own settings since the last time it was in
+						// sync (the cloud copy changed from some OTHER device, nothing of this device's own
+						// at stake), or this device has never been configured at all (nothing but untouched
+						// defaults, so there's no real local choice to protect either way) - in both cases
+						// just silently adopt the cloud copy. No need to ask.
+						applySettings(cloudJson);
+						recordSynced(cloudJson);
+						markConflictResolved();
+						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: cloud settings adopted, no local changes to protect.");
+						return;
 					}
+					// Either this is the very first time both sides genuinely exist, or this device has
+					// its own real unsynced edits that conflict with what's in the cloud - never guess,
+					// ask. Whichever button gets picked marks this resolved and records the new synced
+					// baseline, so a plain "cloud changed elsewhere" pull is all that's left afterward.
+					DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: local and cloud settings differ, asking which to keep.");
+					Minecraft.getInstance().setScreen(new com.melloo.skymelloo.client.gui.CloudSyncChoiceScreen(
+							() -> {
+								markConflictResolved();
+								pushWithIdentity(identity);
+							},
+							() -> {
+								markConflictResolved();
+								applySettings(cloudJson);
+								recordSynced(cloudJson);
+							}));
 				})
 		);
 	}
@@ -147,7 +139,44 @@ public final class CloudSyncManager {
 		}
 	}
 
-	/** "Pull Now" button in the Cloud tab - always overwrites local settings with whatever's in the cloud, regardless of the usual timestamp comparison, since the user explicitly asked for it right now. */
+	/** Remembers the settings blob now known to be identical on both sides, so a later launch can tell "cloud moved on its own" apart from "this device has its own unsynced edits". */
+	private static void recordSynced(JsonObject settingsJson) {
+		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
+		config.cloudSyncLastSyncedSnapshot = GSON.toJson(settingsJson);
+		SkyMellooConfig.HANDLER.save();
+	}
+
+	private static boolean matchesLastSyncedSnapshot(JsonObject localJson) {
+		String snapshot = SkyMellooConfig.HANDLER.instance().cloudSyncLastSyncedSnapshot;
+		if (snapshot == null) {
+			return false;
+		}
+		try {
+			return com.google.gson.JsonParser.parseString(snapshot).getAsJsonObject().equals(localJson);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	/** Whether this device's local settings are still exactly what a fresh install starts with - if so, there's no real local customization to weigh against the cloud, and a first sync can just silently adopt the cloud copy instead of asking. */
+	private static boolean isUntouchedDefaults(JsonObject localJson) {
+		JsonObject defaults = GSON.toJsonTree(new SkyMellooConfig(), SkyMellooConfig.class).getAsJsonObject();
+		for (String field : LOCAL_ONLY_FIELDS) {
+			defaults.remove(field);
+		}
+		return defaults.equals(localJson);
+	}
+
+	/** This device's own current settings, minus the fields that describe local-only sync bookkeeping rather than a real setting - the same shape a push sends and a fetched cloud copy already has. */
+	private static JsonObject currentSettingsJson() {
+		JsonObject json = GSON.toJsonTree(SkyMellooConfig.HANDLER.instance(), SkyMellooConfig.class).getAsJsonObject();
+		for (String field : LOCAL_ONLY_FIELDS) {
+			json.remove(field);
+		}
+		return json;
+	}
+
+	/** "Pull Now" button in the Cloud tab - always overwrites local settings with whatever's in the cloud, regardless of the usual reconcile logic, since the user explicitly asked for it right now. */
 	public static void forcePull(Minecraft client, Runnable onApplied) {
 		if (client.player == null) {
 			return;
@@ -157,6 +186,7 @@ public final class CloudSyncManager {
 				Minecraft.getInstance().execute(() -> {
 					if (result != null) {
 						applySettings(result.settings());
+						recordSynced(result.settings());
 						onApplied.run();
 						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: manual pull applied.");
 					} else {
@@ -175,16 +205,19 @@ public final class CloudSyncManager {
 	}
 
 	private static void pushWithIdentity(ModAuthManager.ModIdentity identity) {
-		JsonObject json = GSON.toJsonTree(SkyMellooConfig.HANDLER.instance(), SkyMellooConfig.class).getAsJsonObject();
-		for (String field : LOCAL_ONLY_FIELDS) {
-			json.remove(field);
-		}
+		JsonObject json = currentSettingsJson();
 		SkyMellooApiClient.pushCloudSettings(identity, json).whenComplete((success, error) ->
-				Minecraft.getInstance().execute(() ->
-						DebugLog.log(DebugLog.Category.CLOUD_SYNC, Boolean.TRUE.equals(success)
-								? "Cloud sync: settings pushed."
-								: "Cloud sync: push failed" + (error != null ? " (" + error.getMessage() + ")" : "") + ".")
-				)
+				Minecraft.getInstance().execute(() -> {
+					if (Boolean.TRUE.equals(success)) {
+						// A successful push means this device's current settings ARE the cloud's current
+						// settings now - recorded so a later launch can tell "cloud moved on its own"
+						// (worth a silent pull) apart from "this device has unsynced edits" (worth asking).
+						recordSynced(json);
+						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: settings pushed.");
+					} else {
+						DebugLog.log(DebugLog.Category.CLOUD_SYNC, "Cloud sync: push failed" + (error != null ? " (" + error.getMessage() + ")" : "") + ".");
+					}
+				})
 		);
 	}
 

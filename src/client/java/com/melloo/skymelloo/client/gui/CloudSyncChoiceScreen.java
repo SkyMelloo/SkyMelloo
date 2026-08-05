@@ -8,43 +8,30 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-
 /**
- * Shown once, only when there's a genuine choice to make: this device already has its own local
- * settings AND the cloud already has a saved copy too, so neither side can be silently preferred
- * without possibly throwing away real work either way. Shows exactly when each was last saved so
- * the choice is informed, not a guess. If either side is empty there's nothing to ask - see
- * CloudSyncManager#reconcile, which only ever opens this when both genuinely exist.
+ * Shown only when there's a genuine choice to make: this device has its own local settings AND the
+ * cloud has a genuinely different saved copy too (compared by actual content, not a timestamp), so
+ * neither side can be silently preferred without possibly throwing away real work either way. Asked
+ * about once per divergence - see CloudSyncManager#reconcile, which only ever opens this when both
+ * sides genuinely exist and differ, and otherwise resolves silently on its own.
  */
 public class CloudSyncChoiceScreen extends Screen {
 	private static final int PANEL_WIDTH = 360;
-	private static final int PANEL_HEIGHT = 165;
+	private static final int PANEL_HEIGHT = 140;
 	private static final int BUTTON_WIDTH = 150;
 	private static final int BUTTON_HEIGHT = 24;
 	private static final int BORDER_COLOR = 0xFFFF6EC7;
 	private static final int PANEL_COLOR = 0xF0101018;
 	private static final int LOCAL_ACCENT = 0xFF5599FF;
 	private static final int CLOUD_ACCENT = 0xFFAA33FF;
-	private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.systemDefault());
 
-	private final long localMillis;
-	private final long cloudMillis;
 	private final Runnable onUseLocal;
 	private final Runnable onUseCloud;
 
-	public CloudSyncChoiceScreen(long localMillis, long cloudMillis, Runnable onUseLocal, Runnable onUseCloud) {
+	public CloudSyncChoiceScreen(Runnable onUseLocal, Runnable onUseCloud) {
 		super(Component.literal("Cloud Sync"));
-		this.localMillis = localMillis;
-		this.cloudMillis = cloudMillis;
 		this.onUseLocal = onUseLocal;
 		this.onUseCloud = onUseCloud;
-	}
-
-	private static String formatTime(long millis) {
-		return TIME_FORMAT.format(Instant.ofEpochMilli(millis));
 	}
 
 	@Override
@@ -85,9 +72,6 @@ public class CloudSyncChoiceScreen extends Screen {
 
 		int panelX = (this.width - PANEL_WIDTH) / 2;
 		int panelY = (this.height - PANEL_HEIGHT) / 2;
-		int buttonY = panelY + PANEL_HEIGHT - BUTTON_HEIGHT - 16;
-		int localX = panelX + 16;
-		int cloudX = panelX + PANEL_WIDTH - 16 - BUTTON_WIDTH;
 
 		gg.fill(panelX - 2, panelY - 2, panelX + PANEL_WIDTH + 2, panelY + PANEL_HEIGHT + 2, BORDER_COLOR);
 		gg.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, PANEL_COLOR);
@@ -96,17 +80,7 @@ public class CloudSyncChoiceScreen extends Screen {
 		gg.text(this.font, "§7Both this device and the cloud have saved", panelX + 16, panelY + 32, 0xFFAAAAAA);
 		gg.text(this.font, "§7settings. Which one do you want to keep?", panelX + 16, panelY + 44, 0xFFAAAAAA);
 
-		// Captions above each button instead of crammed into the label itself - "last saved" is
-		// secondary info, not part of the action name.
-		drawCenteredCaption(gg, "Saved " + formatTime(localMillis), localX, localX + BUTTON_WIDTH, buttonY - 12);
-		drawCenteredCaption(gg, "Saved " + formatTime(cloudMillis), cloudX, cloudX + BUTTON_WIDTH, buttonY - 12);
-
 		super.extractRenderState(gg, mouseX, mouseY, partialTick);
-	}
-
-	private void drawCenteredCaption(GuiGraphicsExtractor gg, String text, int x1, int x2, int y) {
-		int width = this.font.width(text);
-		gg.text(this.font, "§7" + text, x1 + (x2 - x1 - width) / 2, y, 0xFF888888);
 	}
 
 	/** Same styled-button look as StringInputScreen's Save/Cancel, just with two neutral accent colors instead of green/red since neither choice here is "correct". */
