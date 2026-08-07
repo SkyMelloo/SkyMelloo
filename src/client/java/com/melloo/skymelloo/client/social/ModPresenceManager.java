@@ -52,10 +52,6 @@ public final class ModPresenceManager {
 	// effect key -> ARGB color (dust-style effects) or -1 for a bool-only effect with no color.
 	private static final Map<UUID, Map<String, Integer>> otherCosmetics = new ConcurrentHashMap<>();
 	private static final Map<UUID, String> otherStatusText = new ConcurrentHashMap<>();
-	// UUIDs currently reporting a linked sky.melloo.me account (see PermissionsManager#isAccountLinked)
-	// - shown as a small nametag marker (see StatusTextDisplayManager) purely so it's visible to
-	// other SkyMelloo users, same spirit as the mod-user highlight color itself.
-	private static final java.util.Set<UUID> otherAccountLinked = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	// "owner"/"admin"/"developer"/null, as resolved server-side by roleForUuid (server.js) from that
 	// player's actual linked account - never self-reported. SkyMelloo admins/developers/the owner
 	// get gold - see HighlightManager#classifyPlayer for how this picks the color.
@@ -101,11 +97,6 @@ public final class ModPresenceManager {
 	/** @return that player's custom status text, or "" if they haven't set one (or aren't a known mod user). */
 	public static String getStatusText(UUID uuid) {
 		return otherStatusText.getOrDefault(uuid, "");
-	}
-
-	/** @return whether that nearby player currently reports a linked sky.melloo.me account (nametag marker, see EntityDisplayNameMixin). */
-	public static boolean isAccountLinked(UUID uuid) {
-		return otherAccountLinked.contains(uuid);
 	}
 
 	/** @return true if that player's linked account is the SkyMelloo owner, an admin, or a developer - server-resolved, see roleForUuid. */
@@ -215,7 +206,6 @@ public final class ModPresenceManager {
 			DebugLog.log(DebugLog.Category.PRESENCE, "Presence: " + present.size() + " of " + uuids.size() + " nearby player(s) also running SkyMelloo.");
 			Map<UUID, Map<String, Integer>> updated = new HashMap<>();
 			Map<UUID, String> updatedStatus = new HashMap<>();
-			java.util.Set<UUID> updatedAccountLinked = new java.util.HashSet<>();
 			Map<UUID, String> updatedRoles = new HashMap<>();
 			for (SkyMellooApiClient.PresenceEntry entry : present) {
 				UUID uuid;
@@ -242,9 +232,6 @@ public final class ModPresenceManager {
 				if (entry.status() != null && !entry.status().isBlank()) {
 					updatedStatus.put(uuid, entry.status());
 				}
-				if (entry.accountLinked()) {
-					updatedAccountLinked.add(uuid);
-				}
 				if (entry.role() != null) {
 					updatedRoles.put(uuid, entry.role());
 				}
@@ -256,8 +243,6 @@ public final class ModPresenceManager {
 			otherCosmetics.putAll(updated);
 			otherStatusText.clear();
 			otherStatusText.putAll(updatedStatus);
-			otherAccountLinked.clear();
-			otherAccountLinked.addAll(updatedAccountLinked);
 			otherRoles.clear();
 			otherRoles.putAll(updatedRoles);
 		});

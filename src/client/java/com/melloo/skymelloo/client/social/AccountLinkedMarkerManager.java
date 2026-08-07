@@ -13,10 +13,12 @@ import net.minecraft.world.entity.player.Player;
 import java.util.Optional;
 
 /**
- * Appends a small pink dye marker AFTER a nearby SkyMelloo user's name if they report a linked
- * sky.melloo.me account (see ModPresenceManager#isAccountLinked / PermissionsManager#has's
- * cosmetics gate) - purely cosmetic, visible to other SkyMelloo users so it's obvious at a glance
- * who has cosmetics unlocked.
+ * Appends a small pink dye marker AFTER a nearby player's name if they're also running SkyMelloo
+ * right now (see {@link ModPresenceManager#isModUser}) - purely cosmetic, visible to other SkyMelloo
+ * users so it's obvious at a glance who else has the mod. Not gated on a linked sky.melloo.me
+ * account or presence-sharing being on beyond what's already required to be detected as a mod user
+ * at all in the first place - showing for every detected mod user, not just linked-account ones, is
+ * intentional.
  * <p>
  * A real Pink Dye item icon, not a colored unicode glyph stand-in - this game version added inline
  * sprite support to text components ({@code ObjectContents}/{@code AtlasSprite}, confirmed via
@@ -36,18 +38,13 @@ public final class AccountLinkedMarkerManager {
 	}
 
 	public static Component apply(Player player, Component original) {
-		// Real bugfix - ModPresenceManager's
-		// isAccountLinked(uuid) only ever tracks OTHER nearby players reporting themselves in via the
-		// presence system (see its own doc comment); it never contains the LOCAL player's own uuid,
-		// since you never "query" yourself as a nearby other player. That silently meant your OWN
-		// nametag (visible to yourself in third person) could never show the marker even with a
-		// linked account, regardless of whether it showed correctly to OTHER SkyMelloo users looking
-		// at you (which it already did, via their own presence query). PermissionsManager's own direct
-		// isAccountLinked() reflects your own account status without going through presence at all.
-		boolean linked = player == Minecraft.getInstance().player
-				? PermissionsManager.isAccountLinked()
-				: ModPresenceManager.isAccountLinked(player.getUUID());
-		if (!linked) {
+		// The local player is always "a SkyMelloo user" by definition (this code is only even running
+		// because the mod is installed) - ModPresenceManager's own tracking only ever covers OTHER
+		// nearby players reporting themselves in via presence (see its own doc comment), never the
+		// local player's own uuid, since you never "query" yourself as a nearby other player.
+		boolean isModUser = player == Minecraft.getInstance().player
+				|| ModPresenceManager.isModUser(player.getUUID());
+		if (!isModUser) {
 			return original;
 		}
 		MutableComponent fallback = Component.literal(FALLBACK_GLYPH).setStyle(Style.EMPTY);
