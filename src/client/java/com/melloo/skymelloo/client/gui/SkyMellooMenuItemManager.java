@@ -1,6 +1,7 @@
 package com.melloo.skymelloo.client.gui;
 
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
+import com.melloo.skymelloo.client.util.SkyblockDetector;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
@@ -58,9 +59,9 @@ public final class SkyMellooMenuItemManager {
 		return isMarker(stack);
 	}
 
-	/** Opens the menu if it isn't already open and the feature is enabled - the single shared entry point for every trigger path (right-click, left-click, inventory click). */
+	/** Opens the menu if it isn't already open and the feature is enabled and actually usable right now - the single shared entry point for every trigger path (right-click, left-click, inventory click). */
 	public static void openMenu(Minecraft client) {
-		if (!SkyMellooConfig.HANDLER.instance().skyMellooMenuItemEnabled) {
+		if (!SkyMellooConfig.HANDLER.instance().skyMellooMenuItemEnabled || !SkyblockDetector.isInSkyblock()) {
 			return;
 		}
 		if (client.screen == null || client.screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen) {
@@ -74,7 +75,8 @@ public final class SkyMellooMenuItemManager {
 		}
 		initialized = true;
 		UseItemCallback.EVENT.register((player, world, hand) -> {
-			if (!SkyMellooConfig.HANDLER.instance().skyMellooMenuItemEnabled || hand != InteractionHand.MAIN_HAND || !isMarker(player.getMainHandItem())) {
+			if (!SkyMellooConfig.HANDLER.instance().skyMellooMenuItemEnabled || !SkyblockDetector.isInSkyblock()
+					|| hand != InteractionHand.MAIN_HAND || !isMarker(player.getMainHandItem())) {
 				return InteractionResult.PASS;
 			}
 			openMenu(Minecraft.getInstance());
@@ -82,16 +84,18 @@ public final class SkyMellooMenuItemManager {
 		});
 	}
 
+	/** Only ever placed while actually in Hypixel SkyBlock (see {@link SkyblockDetector}) - the menu's own content (cosmetics, dungeon tools, whitelist status) is all SkyBlock-specific, so the item has no business sitting in the hotbar in the main lobby, another Hypixel gamemode, or a different server entirely. */
 	public static void tick(Minecraft client) {
 		if (client.player == null) {
 			return;
 		}
 		Inventory inventory = client.player.getInventory();
-		if (!SkyMellooConfig.HANDLER.instance().skyMellooMenuItemEnabled) {
-			// The setting turning off used to just stop RE-applying the marker each tick, silently
-			// leaving whatever copy was already sitting in the slot from before - looking like the
-			// toggle didn't actually do anything until the next inventory sync happened to overwrite
-			// it. Actively clear our own leftover marker back to empty right away instead.
+		if (!SkyMellooConfig.HANDLER.instance().skyMellooMenuItemEnabled || !SkyblockDetector.isInSkyblock()) {
+			// The setting turning off (or simply not being in SkyBlock right now) used to just stop
+			// RE-applying the marker each tick, silently leaving whatever copy was already sitting in
+			// the slot from before - looking like nothing actually happened until the next inventory
+			// sync packet happened to overwrite it. Actively clear our own leftover marker back to
+			// empty right away instead.
 			if (isMarker(inventory.getItem(MENU_SLOT))) {
 				inventory.setItem(MENU_SLOT, ItemStack.EMPTY);
 			}
