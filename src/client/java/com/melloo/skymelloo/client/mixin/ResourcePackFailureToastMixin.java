@@ -1,5 +1,6 @@
 package com.melloo.skymelloo.client.mixin;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.DisconnectedScreen;
@@ -12,6 +13,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Locale;
 
 /**
@@ -22,16 +27,22 @@ import java.util.Locale;
  * by a multi-second freeze while the resource reload finished failing on every single item in that
  * pack) into a clear, actionable toast instead of a silent, confusing freeze-then-kick.
  * <p>
- * Also automatically clears the downloaded-resource-pack cache ({@link Minecraft#clearDownloadedResourcePacks()},
- * the real, public vanilla API for this - not poking at Lunar Client's own private download cache
- * directory) the moment this is detected, so the very next connection attempt is forced to
- * re-download a fresh copy instead of retrying against the same corrupted local cache.
+ * Also automatically clears BOTH resource-pack caches the moment this is detected:
+ * {@link Minecraft#clearDownloadedResourcePacks()} (the real, public vanilla API) AND, confirmed
+ * directly from a real recurring case, Lunar Client's own separate per-profile pack cache at
+ * {@code <gameDir>/downloads/}. The vanilla-only clear used to leave that second one untouched, and
+ * Lunar re-uses whatever's already sitting there by content hash without re-verifying it - so
+ * reconnecting after this toast could keep retrying against the exact same bad local copy and never
+ * actually fix anything, which is exactly what was observed. This isn't a documented Lunar API (it's
+ * a plain directory wipe of a layout confirmed by hand), so failures there are swallowed rather than
+ * risking this screen itself over a bonus cleanup step.
  * <p>
  * This can't prevent the underlying download corruption itself (that's Lunar Client's own closed-
  * source pack-download pipeline, not something a Fabric mod can safely reach into) or the freeze
  * (a normal resource-reload block on the render thread, just abnormally long because every item in a
- * broken pack fails and logs individually) - but reconnecting almost always re-downloads a clean copy,
- * so the toast says exactly that instead of leaving the user guessing.
+ * broken pack fails and logs individually) - but reconnecting almost always re-downloads a clean copy
+ * now that both caches are actually cleared, so the toast says exactly that instead of leaving the
+ * user guessing.
  * <p>
  * Every {@link DisconnectedScreen} constructor funnels into the one taking a
  * {@link DisconnectionDetails} (confirmed via bytecode - the plain-Component-reason constructors just
@@ -54,11 +65,33 @@ public abstract class ResourcePackFailureToastMixin {
 			return;
 		}
 		Minecraft.getInstance().clearDownloadedResourcePacks();
+		skymelloo$clearLunarPackCache();
 		SystemToast.add(
 				Minecraft.getInstance().getToastManager(),
 				SystemToast.SystemToastId.PACK_LOAD_FAILURE,
 				Component.literal("SkyMelloo: Resource Pack Fehler erkannt"),
 				Component.literal("Hypixels Pack war wahrscheinlich unvollständig heruntergeladen - Cache wurde automatisch geleert, einfach neu verbinden. Tritt es wieder auf, Spiel neu starten.")
 		);
+	}
+
+	/** Best-effort wipe of Lunar Client's own private pack-download cache (see class doc comment) - not a documented API, so any failure here (e.g. a still-locked file) just leaves that one entry behind instead of risking this screen. */
+	private static void skymelloo$clearLunarPackCache() {
+		try {
+			Path downloads = FabricLoader.getInstance().getGameDir().resolve("downloads");
+			if (!Files.isDirectory(downloads)) {
+				return;
+			}
+			try (var stream = Files.walk(downloads)) {
+				stream.sorted(Comparator.reverseOrder()).forEach(path -> {
+					try {
+						Files.deleteIfExists(path);
+					} catch (IOException ignored) {
+						// A locked/in-use entry just survives this pass - matches this whole
+						// cleanup's best-effort philosophy.
+					}
+				});
+			}
+		} catch (Exception ignored) {
+		}
 	}
 }
