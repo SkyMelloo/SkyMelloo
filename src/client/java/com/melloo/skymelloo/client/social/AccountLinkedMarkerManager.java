@@ -5,7 +5,6 @@ import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.contents.ObjectContents;
 import net.minecraft.network.chat.contents.objects.AtlasSprite;
 import net.minecraft.resources.Identifier;
@@ -24,9 +23,12 @@ import java.util.Optional;
  * javap against this exact game version, not guessed/remembered - the classes and
  * {@code AtlasIds.ITEMS} constant genuinely exist here). The unicode-glyph fallback (still used if
  * the sprite somehow can't resolve) is passed as {@code ObjectContents}'s own fallback component.
+ * No forced color tint on either - the dye sprite already has its own natural texture color, and
+ * multiplying a text color over it just made it look off, so both pieces use an explicit but
+ * colorless style ({@link Style#EMPTY}, not simply left unstyled) purely to still block an earlier
+ * rank/name color code from bleeding onto it.
  */
 public final class AccountLinkedMarkerManager {
-	private static final TextColor PINK = TextColor.fromRgb(0xFF6EC7);
 	private static final String FALLBACK_GLYPH = " ❖"; // used only if the sprite itself can't resolve
 	private static final Identifier PINK_DYE_SPRITE = Identifier.withDefaultNamespace("item/pink_dye");
 
@@ -48,15 +50,15 @@ public final class AccountLinkedMarkerManager {
 		if (!linked) {
 			return original;
 		}
-		MutableComponent fallback = Component.literal(FALLBACK_GLYPH).setStyle(Style.EMPTY.withColor(PINK));
+		MutableComponent fallback = Component.literal(FALLBACK_GLYPH).setStyle(Style.EMPTY);
 		MutableComponent icon = MutableComponent.create(new ObjectContents(new AtlasSprite(AtlasIds.ITEMS, PINK_DYE_SPRITE), Optional.of(fallback)));
-		// Explicit pink on the icon component ITSELF, not just its unused fallback child - real report
-		// of the dye rendering the wrong color: a rank/name colour code earlier in the component (e.g. a
-		// Hypixel rank prefix) was visibly bleeding into the dye's render. The connecting space also
-		// gets its own explicit (neutral) style for the same reason - whichever exact rendering path
-		// (nametag vs chat) was letting that inherit through, an explicit style on every piece here
-		// breaks the inheritance regardless of which one it actually was.
-		icon.setStyle(Style.EMPTY.withColor(PINK));
+		// Explicit (colorless) style on the icon component ITSELF, not just its unused fallback child -
+		// real report of the dye rendering the wrong color: a rank/name colour code earlier in the
+		// component (e.g. a Hypixel rank prefix) was visibly bleeding into the dye's render. The
+		// connecting space also gets its own explicit style for the same reason - whichever exact
+		// rendering path (nametag vs chat) was letting that inherit through, an explicit style on every
+		// piece here breaks the inheritance regardless of which one it actually was.
+		icon.setStyle(Style.EMPTY);
 		MutableComponent spacer = Component.literal(" ").setStyle(Style.EMPTY);
 		return original.copy().append(spacer).append(icon);
 	}
