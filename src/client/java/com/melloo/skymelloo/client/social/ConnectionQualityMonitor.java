@@ -2,6 +2,7 @@ package com.melloo.skymelloo.client.social;
 
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.util.ChatUtil;
+import com.melloo.skymelloo.client.util.HypixelDetector;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.multiplayer.ServerData;
@@ -10,11 +11,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * On connecting to any Minecraft server (not sky.melloo.me - see {@link WhitelistStatusHud} for
- * that, and for the always-visible ping display), samples ping every tick (20/s) for the first 5
- * seconds to judge whether the connection looks stable, then chat-reports the result plus the
- * client's own packet-rate averages. No title/subtitle anymore - that was too easy to miss/annoying
- * to see every reconnect, the persistent HUD is the only on-screen indicator now.
+ * On connecting to Hypixel specifically - real report: this used to run on ANY Minecraft server at
+ * all (explicitly documented as intentional, "unrelated to any of the Hypixel-only SkyBlock features
+ * gated below" in SkyMellooClient), which meant a totally unrelated server also got SkyMelloo's own
+ * connection-quality chat messages, and looked like the mod was doing something ("reconnecting")
+ * that made no sense off Hypixel. Gated behind {@link HypixelDetector#isHypixel} now, same as
+ * everything else Hypixel-specific, plus entirely behind
+ * {@link SkyMellooConfig#connectionQualityCheckEnabled} - no more "still warns even with the toggle
+ * off" carve-out either, since from the outside that's indistinguishable from the toggle just not
+ * working.
+ * <p>
+ * Samples ping every tick (20/s) for the first 5 seconds to judge whether the connection looks
+ * stable, then chat-reports the result plus the client's own packet-rate averages. No title/subtitle
+ * anymore - that was too easy to miss/annoying to see every reconnect, the persistent HUD is the
+ * only on-screen indicator now.
  * <p>
  * Started from {@code ClientPlayConnectionEvents.INIT} rather than {@code JOIN} - INIT fires as
  * soon as the play-protocol packet listener is set up, before the player entity/world exist yet.
@@ -29,7 +39,6 @@ public final class ConnectionQualityMonitor {
 	private static final int PING_UNSTABLE_SPREAD_MS = 150;
 
 	private static boolean active = false;
-	private static boolean fullReportEnabled = false;
 	private static int ticksElapsed = 0;
 	private static final List<Integer> pingSamples = new ArrayList<>();
 	private static String lastServerAddress = null;
@@ -43,13 +52,11 @@ public final class ConnectionQualityMonitor {
 		pingSamples.clear();
 	}
 
-	/**
-	 * Called once per connection attempt (INIT) - starts the 5-second sampling window. The full
-	 * "connected, ping X" chat report only shows when {@link SkyMellooConfig#connectionQualityCheckEnabled}
-	 * is on, but sampling always runs regardless - a genuine connection problem still gets a chat
-	 * warning either way, since that's not really the "test" feature the toggle is meant to silence.
-	 */
+	/** Called once per connection attempt (INIT) - starts the 5-second sampling window, but only on Hypixel and only with the toggle on (see class doc comment). */
 	public static void start(Minecraft client) {
+		if (!SkyMellooConfig.HANDLER.instance().connectionQualityCheckEnabled || !HypixelDetector.isHypixel(client)) {
+			return;
+		}
 		// Networks like Hypixel move you between internal sub-servers (lobby <-> Skyblock island)
 		// using the same vanilla transfer mechanism as a genuine reconnect, which re-fires INIT even
 		// though you never actually left the network. Only measure this for an address change.
@@ -60,7 +67,6 @@ public final class ConnectionQualityMonitor {
 		if (sameNetwork) {
 			return;
 		}
-		fullReportEnabled = SkyMellooConfig.HANDLER.instance().connectionQualityCheckEnabled;
 		active = true;
 		ticksElapsed = 0;
 		pingSamples.clear();
@@ -110,26 +116,18 @@ public final class ConnectionQualityMonitor {
 		report(client, stable, avg, spread, sent, received);
 	}
 
+	/** Only reached at all when {@link SkyMellooConfig#connectionQualityCheckEnabled} was on back when {@link #start} kicked off this sampling window - the toggle is a hard gate now, not just a filter on which outcomes get reported. */
 	private static void report(Minecraft client, boolean stable, int avgPing, int spread, float sent, float received) {
 		if (client.player == null) {
 			return;
 		}
 		String pingText = avgPing >= 0 ? avgPing + "ms" : "unknown";
 		String packetText = "sent: " + String.format("%.1f", sent) + "/t, received: " + String.format("%.1f", received) + "/t";
-		if (fullReportEnabled) {
-			// Toggle on - full report either way, same as before.
-			if (stable) {
-				client.player.sendSystemMessage(ChatUtil.prefixed("§aConnected! §7Ping: " + pingText + ", " + packetText));
-			} else {
-				client.player.sendSystemMessage(ChatUtil.prefixed(
-						"§aConnected§7, but your internet connection seems unstable. §7Ping: " + pingText + " (±" + spread + "ms), " + packetText
-				));
-			}
-		} else if (!stable) {
-			// Toggle off - stay silent unless something's actually wrong, since the title/"all good"
-			// chat message was the "test" the player explicitly disabled.
+		if (stable) {
+			client.player.sendSystemMessage(ChatUtil.prefixed("§aConnected! §7Ping: " + pingText + ", " + packetText));
+		} else {
 			client.player.sendSystemMessage(ChatUtil.prefixed(
-					"§cConnection issue detected. §7Ping: " + pingText + (avgPing >= 0 ? " (±" + spread + "ms)" : "") + ", " + packetText
+					"§aConnected§7, but your internet connection seems unstable. §7Ping: " + pingText + " (±" + spread + "ms), " + packetText
 			));
 		}
 	}

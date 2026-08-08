@@ -160,10 +160,13 @@ public class SkyMellooClient implements ClientModInitializer {
 		));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			// Runs regardless of sky.melloo.me whitelist status AND regardless of whether we're even
-			// on Hypixel - this is about the actual Minecraft server connection (or, for
-			// StaffEncounterTracker, recognizing SkyMelloo staff wherever they're encountered),
-			// unrelated to any of the Hypixel-only SkyBlock features gated below.
+			// Runs regardless of sky.melloo.me whitelist status - this is about the actual Minecraft
+			// server connection (or, for StaffEncounterTracker, recognizing SkyMelloo staff wherever
+			// they're encountered), unrelated to any of the Hypixel-only SkyBlock features gated
+			// below. ConnectionQualityMonitor specifically IS Hypixel-only despite sitting in this
+			// block - its own start() refuses to ever go active off Hypixel (real bug fixed: it used
+			// to fire its connection-quality chat messages on any server at all), so tick() here is
+			// just a no-op everywhere else.
 			ConnectionQualityMonitor.tick(client);
 			com.melloo.skymelloo.client.util.SkyblockDetector.tick(client);
 			com.melloo.skymelloo.client.util.AfkDetector.tick(client);
