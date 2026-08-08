@@ -11,6 +11,14 @@ import java.util.List;
  * stutter-sensitive metric FPS benchmarks use, since a plain average hides brief bad spikes. For a
  * metric where HIGHER is worse (ping), use {@link #worstAverage(boolean)} with {@code false} to get
  * the worst-1%-HIGH average instead - the equivalent "worst case" reading for that direction.
+ * <p>
+ * Every method is synchronized - real crash confirmed live: {@link ServerPingMonitor} adds samples
+ * from the ping-out Netty event loop thread (see its own {@code EventLoopGroupHolder.remote} call),
+ * while the HUD reads them from the render thread. Plain {@link ArrayDeque} has no thread-safety
+ * guarantees at all, and its fail-fast iterator threw a real {@code ConcurrentModificationException}
+ * (inside {@link #worstAverage}'s stream) the moment a sample got added mid-read. Contention here is
+ * trivially low (one write roughly per second, occasional HUD-render reads), so plain synchronization
+ * is simpler and just as fast in practice as a lock-free structure would be.
  */
 public final class RollingStats {
 	private record Sample(long timestampMillis, double value) {
@@ -23,7 +31,7 @@ public final class RollingStats {
 		this.windowMillis = windowSeconds * 1000L;
 	}
 
-	public void addSample(double value) {
+	public synchronized void addSample(double value) {
 		long now = System.currentTimeMillis();
 		samples.addLast(new Sample(now, value));
 		long cutoff = now - windowMillis;
@@ -32,11 +40,11 @@ public final class RollingStats {
 		}
 	}
 
-	public boolean hasSamples() {
+	public synchronized boolean hasSamples() {
 		return !samples.isEmpty();
 	}
 
-	public double average() {
+	public synchronized double average() {
 		if (samples.isEmpty()) {
 			return 0;
 		}
@@ -48,7 +56,7 @@ public final class RollingStats {
 	}
 
 	/** @param lowest true for "1% lows" (worst-case where LOWER is worse, e.g. FPS/TPS), false for the worst-case where HIGHER is worse (e.g. ping spikes). */
-	public double worstAverage(boolean lowest) {
+	public synchronized double worstAverage(boolean lowest) {
 		if (samples.isEmpty()) {
 			return 0;
 		}

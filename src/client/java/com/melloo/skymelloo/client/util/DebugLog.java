@@ -3,7 +3,16 @@ package com.melloo.skymelloo.client.util;
 import com.melloo.skymelloo.client.SkyMellooClient;
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.social.WhitelistManager;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Shared debug-message logging for background operations (syncs, permission/whitelist checks,
@@ -20,6 +29,17 @@ import net.minecraft.client.Minecraft;
  * dropping a debug message meant losing real diagnostic info - but that's no longer true now that
  * {@link #log} always writes to the actual game log file first, completely unthrottled, regardless of
  * whether the chat echo below actually sends - so throttling the chat side costs nothing anymore.
+ * <p>
+ * "The actual game log file" turned out to mean a SECOND, dedicated file of our own
+ * ({@code skymelloo-debug.log} in the game directory), not {@code SkyMellooClient.LOGGER.info(...)}
+ * into {@code latest.log} like the rest of the mod's logging - confirmed live that under Lunar
+ * Client, this mod's own SLF4J logger output never reaches {@code latest.log} at all (a whole
+ * multi-hour session with this ticking constantly produced zero matching lines there, while other
+ * mods' own loggers show up fine in the same file), for a reason not worth chasing further into
+ * Lunar's closed-source logging setup. Writing our own file with plain {@code java.nio.file} I/O
+ * sidesteps whatever's swallowing it, rather than depending on a routing path proven unreliable here.
+ * Truncated fresh at the start of each launch (see {@link #FILE_WRITER}) so it only ever holds the
+ * current session, not an ever-growing history.
  */
 public final class DebugLog {
 	public enum Category {
@@ -28,8 +48,37 @@ public final class DebugLog {
 
 	private static final long CHAT_THROTTLE_MILLIS = 250;
 	private static long lastChatMillis = 0;
+	private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+	// Opened once, truncating any leftover file from a previous launch - kept open for the whole JVM
+	// lifetime rather than reopened per line, since this can be called several times a second
+	// (presence reporting) for a whole play session. null if it couldn't be opened at all (read-only
+	// game dir, etc.) - every write silently no-ops rather than risking anything over a logging
+	// nice-to-have.
+	private static final Writer FILE_WRITER = openFile();
 
 	private DebugLog() {
+	}
+
+	private static Writer openFile() {
+		try {
+			return Files.newBufferedWriter(
+					FabricLoader.getInstance().getGameDir().resolve("skymelloo-debug.log"),
+					StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+		} catch (IOException e) {
+			return null;
+		}
+	}
+
+	private static synchronized void writeToFile(Category category, String message) {
+		if (FILE_WRITER == null) {
+			return;
+		}
+		try {
+			FILE_WRITER.write("[" + TIME_FORMAT.format(LocalTime.now()) + "] [" + category + "] " + message + System.lineSeparator());
+			FILE_WRITER.flush();
+		} catch (IOException ignored) {
+			// Best-effort - losing one debug line to a transient IO error isn't worth handling further.
+		}
 	}
 
 	private static boolean categoryEnabled(Category category, SkyMellooConfig config) {
@@ -58,11 +107,14 @@ public final class DebugLog {
 	}
 
 	public static void log(Category category, String message) {
-		// Always written to the actual game log file (latest.log), completely independent of the
-		// toggles below - those only ever gated the in-game CHAT echo. Without this, a bug that only
-		// shows up with a category's debug toggle off (the normal case - nobody plays with debug chat
-		// spam on) left literally zero evidence anywhere to diagnose it from afterward.
+		// Always written to skymelloo-debug.log (see class doc comment for why that's a dedicated
+		// file rather than latest.log), completely independent of the toggles below - those only ever
+		// gated the in-game CHAT echo. Without this, a bug that only shows up with a category's debug
+		// toggle off (the normal case - nobody plays with debug chat spam on) left literally zero
+		// evidence anywhere to diagnose it from afterward. Also still sent to the normal SLF4J logger -
+		// harmless, and still correct in whatever environment doesn't have Lunar's swallowing issue.
 		SkyMellooClient.LOGGER.info("[{}] {}", category, message);
+		writeToFile(category, message);
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		if (!config.debugMessagesEnabled || !categoryEnabled(category, config)) {
 			return;
