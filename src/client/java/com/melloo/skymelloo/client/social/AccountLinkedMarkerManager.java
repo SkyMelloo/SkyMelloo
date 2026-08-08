@@ -13,12 +13,14 @@ import net.minecraft.world.entity.player.Player;
 import java.util.Optional;
 
 /**
- * Appends a small pink dye marker AFTER a nearby player's name if they're also running SkyMelloo
- * right now (see {@link ModPresenceManager#isModUser}) - purely cosmetic, visible to other SkyMelloo
- * users so it's obvious at a glance who else has the mod. Not gated on a linked sky.melloo.me
- * account or presence-sharing being on beyond what's already required to be detected as a mod user
- * at all in the first place - showing for every detected mod user, not just linked-account ones, is
- * intentional.
+ * Prepends a small pink dye marker in front of a player's ENTIRE name (before any Hypixel rank
+ * prefix, before this mod's own highlight/status suffixes appended earlier in the chain - as far to
+ * the front as the component structure allows) if they're also running SkyMelloo right now (see
+ * {@link ModPresenceManager#isModUser}) - purely cosmetic, visible to other SkyMelloo users so it's
+ * obvious at a glance who else has the mod, for both other players and the local player's own name.
+ * Not gated on a linked sky.melloo.me account or presence-sharing being on beyond what's already
+ * required to be detected as a mod user at all in the first place - showing for every detected mod
+ * user, not just linked-account ones, is intentional.
  * <p>
  * A real Pink Dye item icon, not a colored unicode glyph stand-in - this game version added inline
  * sprite support to text components ({@code ObjectContents}/{@code AtlasSprite}, confirmed via
@@ -31,7 +33,7 @@ import java.util.Optional;
  * rank/name color code from bleeding onto it.
  */
 public final class AccountLinkedMarkerManager {
-	private static final String FALLBACK_GLYPH = " ❖"; // used only if the sprite itself can't resolve
+	private static final String FALLBACK_GLYPH = "❖"; // used only if the sprite itself can't resolve - no built-in spacing, the explicit spacer component below handles that
 	private static final Identifier PINK_DYE_SPRITE = Identifier.withDefaultNamespace("item/pink_dye");
 
 	private AccountLinkedMarkerManager() {
@@ -57,6 +59,9 @@ public final class AccountLinkedMarkerManager {
 		// piece here breaks the inheritance regardless of which one it actually was.
 		icon.setStyle(Style.EMPTY);
 		MutableComponent spacer = Component.literal(" ").setStyle(Style.EMPTY);
-		return original.copy().append(spacer).append(icon);
+		// Prepended, not appended - the icon leads, everything else (rank, name, any suffix already
+		// added earlier in the chain) follows. icon is a fresh local component (unlike original, which
+		// is shared/external), so it can be mutated directly without its own copy() first.
+		return icon.append(spacer).append(original);
 	}
 }
