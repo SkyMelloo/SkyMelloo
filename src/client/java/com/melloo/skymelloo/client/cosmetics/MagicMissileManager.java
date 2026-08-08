@@ -39,11 +39,13 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Purely cosmetic "magic missile": cast via the "Cast Spell" button in the SkyMelloo Menu item's
- * Spells page (previously any empty-hand punch at empty air triggered it), fires a slow particle projectile from the player's eyes that bursts
- * into a small particle explosion on impact with a solid block or another player. Client-side-only,
- * no gameplay effect (no real damage, no packets) beyond the deliberate arm swing {@link #trigger}
- * sends so other SkyMelloo users can still see it (see RemoteMissileTriggerMixin).
+ * Purely cosmetic "magic missile": cast by punching empty air with an empty hand (see
+ * EmptyHandAirClickMixin - briefly moved to a "Cast Spell" menu button instead and reverted back,
+ * since needing to open a whole menu just to cast felt worse than the incidental-punch trigger it
+ * replaced), fires a slow particle projectile from the player's eyes that bursts into a small
+ * particle explosion on impact with a solid block or another player. Client-side-only, no gameplay
+ * effect (no real damage, no packets) beyond the deliberate arm swing {@link #trigger} sends so other
+ * SkyMelloo users can still see it (see RemoteMissileTriggerMixin).
  */
 public final class MagicMissileManager {
 	private static final double SPEED = 0.9;
@@ -130,10 +132,11 @@ public final class MagicMissileManager {
 		if (player == null) {
 			return;
 		}
-		// Casting used to ride along on a real vanilla attack (punching empty air), which already
-		// swung the arm and sent the network packet other clients need to mirror it (see
-		// RemoteMissileTriggerMixin) for free. Now that casting is a menu click instead, that swing
-		// has to be triggered manually or remote players would never see it.
+		// Casting rides along on a real vanilla attack (punching empty air, see
+		// EmptyHandAirClickMixin) again, which already swings the arm and sends the network packet
+		// other clients need to mirror it (see RemoteMissileTriggerMixin) for free - this explicit
+		// swing is technically redundant with that now, but harmless (just re-plays the same
+		// animation) and cheap insurance against ever needing a non-punch trigger path again.
 		player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 		config.totalSpellsCast++;
 		SkyMellooConfig.HANDLER.save();

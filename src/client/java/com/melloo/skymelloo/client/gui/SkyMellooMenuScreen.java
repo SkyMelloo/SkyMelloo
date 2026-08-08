@@ -730,29 +730,10 @@ public class SkyMellooMenuScreen extends Screen {
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(castSpellAction(c, screen));
 			list.add(linkAction(Items.BLAZE_ROD, "Switch Spell", "Choose which spell your missile casts", new SwitchSpellPage(), screen));
 			list.add(linkAction(Items.EXPERIENCE_BOTTLE, "Stats", "Spells cast and players killed", new SpellStatsPage(), screen));
 			list.add(linkAction(Items.PAPER, "Recent Kills", "Your most recent spell kills", new LastKillsPage(), screen));
 			return list;
-		}
-
-		/** Casting moved here entirely - punching
-		 * empty air no longer fires anything; this is now the only way to actually cast. Closes the
-		 * menu on click so the cast is immediately visible instead of hidden behind the GUI. */
-		private static MenuAction castSpellAction(SkyMellooConfig c, SkyMellooMenuScreen screen) {
-			boolean canCast = c.magicMissileEnabled;
-			ItemStack icon = named(Items.BLAZE_POWDER, canCast ? "§eCast Spell" : "§7Cast Spell",
-					List.of("§7Casts your currently selected spell", "§7in whatever direction you're looking.", "",
-							canCast ? "§eClick to cast!" : "§cSelect a spell under Switch Spell first"));
-			return new MenuAction(icon, () -> {
-				if (!canCast) {
-					return;
-				}
-				Minecraft client = Minecraft.getInstance();
-				client.setScreen(null);
-				MagicMissileManager.trigger(client);
-			});
 		}
 	}
 
