@@ -992,23 +992,8 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "Automatically decline optional server resource packs on Hypixel instead of showing the prompt - avoids the pack download/load step that sometimes crashes or freezes the game and forces a restart. Packs the server marks as required (ones that could get you kicked for declining) are never touched.")
 	public boolean autoDeclineHypixelResourcePacks = true;
 
-	@SerialEntry(comment = "Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults. Off by default - an explicit opt-in, separate from account-linking itself.")
-	public boolean cloudSyncEnabled = false;
-
-	// Internal, not shown in the settings screen - true once this device has ever picked Local or
-	// Cloud from CloudSyncManager's conflict-choice screen. That choice only ever needs asking once:
-	// afterward cloud is authoritative on every later launch, so this only gates the very first
-	// decision, not a repeated "whichever side is newer" comparison.
-	@SerialEntry(comment = "Internal - true once this device has resolved a Cloud Sync conflict at least once. Not meant to be edited by hand.")
-	public boolean cloudSyncConflictResolved = false;
-
-	// Internal, not shown in the settings screen - the exact settings JSON (as a string) this device
-	// last knew to be in sync with the cloud, either because it just pushed it or just pulled it. Lets
-	// CloudSyncManager tell "cloud changed on another device, safe to silently adopt" apart from "this
-	// device itself has unsynced local edits that would be silently discarded" - only the latter is a
-	// real conflict worth asking about again.
-	@SerialEntry(comment = "Internal - snapshot of the settings last known to be in sync with the cloud. Not meant to be edited by hand.")
-	public String cloudSyncLastSyncedSnapshot = null;
+	@SerialEntry(comment = "Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults, and multiple installs under the same account stay in sync with each other. On by default once linked - cloud is always authoritative on join, and local edits are pushed up the moment the settings screen closes.")
+	public boolean cloudSyncEnabled = true;
 
 	@SerialEntry(comment = "Master switch for showing up as \"online\" to anyone else - other SkyMelloo users' mod-user detection, the in-game Credits menu's online dot, and the website's public online-user count all depend on this. Off means you still report NOTHING about yourself, but you can still see/detect others who have it on. Doesn't affect Cloud Sync (that's private, never shown to anyone else).")
 	public boolean presenceSharingEnabled = false;
