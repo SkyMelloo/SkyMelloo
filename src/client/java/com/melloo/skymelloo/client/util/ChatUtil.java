@@ -74,7 +74,7 @@ public final class ChatUtil {
 			cause = cause.getCause();
 		}
 		if (cause instanceof java.net.http.HttpTimeoutException) {
-			return "Zeitüberschreitung - Server antwortet nicht";
+			return "Timed out - server isn't responding";
 		}
 		String msg = cause.getMessage();
 		return msg != null && !msg.isBlank() ? msg : cause.getClass().getSimpleName();

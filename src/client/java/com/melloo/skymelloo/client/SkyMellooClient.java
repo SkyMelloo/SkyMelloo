@@ -306,7 +306,7 @@ public class SkyMellooClient implements ClientModInitializer {
 						.then(ClientCommands.literal("session").executes(ctx -> {
 							var stats = com.melloo.skymelloo.client.social.DungeonRunTracker.getSessionStats();
 							if (stats.runsCompleted() == 0) {
-								ctx.getSource().sendFeedback(ChatUtil.prefixed("§7Noch keine abgeschlossenen Runs diese Session."));
+								ctx.getSource().sendFeedback(ChatUtil.prefixed("§7No completed runs this session yet."));
 								return 1;
 							}
 							int hours = stats.totalSeconds() / 3600;
@@ -555,7 +555,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									if (client.player == null) {
 										return 1;
 									}
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("Prüfe Code..."));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("Checking code..."));
 									ModAuthManager.getIdentity(client).thenCompose(identity -> SkyMellooApiClient.verifyAccount(code, identity))
 											.whenComplete((result, error) ->
 													Minecraft.getInstance().execute(() -> {
@@ -607,7 +607,7 @@ public class SkyMellooClient implements ClientModInitializer {
 							if (client.player == null) {
 								return 1;
 							}
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("Öffne Browser zum Verknüpfen..."));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed("Opening browser to link your account..."));
 							ModAuthManager.getIdentity(client).thenCompose(SkyMellooApiClient::startAccountLink)
 									.whenComplete((result, error) ->
 											Minecraft.getInstance().execute(() -> {
@@ -641,7 +641,7 @@ public class SkyMellooClient implements ClientModInitializer {
 						// literals first, so this only catches genuinely unknown input, replacing vanilla's
 						// generic "Unknown command" with a SkyMelloo-branded pointer to /skymelloo help.
 						.then(ClientCommands.argument("unknown", StringArgumentType.greedyString()).executes(ctx -> {
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUnbekannter Befehl. Nutze §f/skymelloo help§c für eine Übersicht."));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUnknown command. Use §f/skymelloo help§c for an overview."));
 							return 1;
 						}))
 			);
@@ -662,29 +662,29 @@ public class SkyMellooClient implements ClientModInitializer {
 	}
 
 	private static void sendHelp(FabricClientCommandSource source) {
-		source.sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Befehle §7(auch als §f/sm§7 verfügbar) ==="));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo config §7- Einstellungen öffnen (auch Taste H)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo link §7- Account per Browser verbinden (kein Code nötig)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo verify <code> §7- Account mit sky.melloo.me verbinden (Code)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo unlink §7- Verbundenen Account trennen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo view <name> §7- Spieler-Stats als Fenster öffnen (Tabs, scrollbar)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata player <name> <stat> §7- Spieler-Stats abrufen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata party <stat> §7- Party-Stats abrufen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo version §7- Mod-Version & Update-Status (live geprüft)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo contact §7- Kontaktseite (sky.melloo.me/contact)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo legal §7- Impressum, Datenschutz, AGB (Links)"));
+		source.sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Commands §7(also available as §f/sm§7) ==="));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo config §7- open settings (also key H)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo link §7- Link your account via browser (no code needed)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo verify <code> §7- link your account to sky.melloo.me (code)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo unlink §7- unlink your account"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo view <name> §7- open player stats as a window (tabs, scrollable)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata player <name> <stat> §7- fetch player stats"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata party <stat> §7- fetch party stats"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo version §7- mod version & update status (checked live)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo contact §7- contact page (sky.melloo.me/contact)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo legal §7- imprint, privacy policy, terms (links)"));
 
 		source.sendFeedback(ChatUtil.prefixed("§6--- Party ---"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo sync §7- Party-Sync manuell anstoßen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo block <name>§7/§aunblock <name> §7- Party-Mitglied blockieren (Auto-Kick)"));
-		source.sendFeedback(ChatUtil.prefixed("§7Freunde & Relay-Chat laufen jetzt über MellooEssentials: §f/me friend§7, §f/me chat"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo roll <amount>§7/§aroll party§7/§aroll <word> <secs> §7- Zufallsauswahl in der Party"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo poll start <Frage;Antwort1;...>§7/§apoll close §7- Party-Umfrage"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo sync §7- manually trigger a party sync"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo block <name>§7/§aunblock <name> §7- block a party member (auto-kick)"));
+		source.sendFeedback(ChatUtil.prefixed("§7Friends & relay chat now run through MellooEssentials: §f/me friend§7, §f/me chat"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo roll <amount>§7/§aroll party§7/§aroll <word> <secs> §7- random pick in the party"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo poll start <question;answer1;...>§7/§apoll close §7- party poll"));
 
 		source.sendFeedback(ChatUtil.prefixed("§6--- Dungeons ---"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- Spell-Kills anzeigen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- Dungeon-Session-Stats anzeigen (Runs, Ø Score, Deaths, Zeit)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- Party-Join-Nachricht testen"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- show spell kills"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- show dungeon session stats (runs, avg score, deaths, time)"));
+		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- test the party-join message"));
 
 		// Every feature is unlocked for everyone now except Spell (Magic Missile), which genuinely
 		// still needs a linked sky.melloo.me account (the server has to know who's who to broadcast a
@@ -694,7 +694,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		if (PermissionsManager.has("spell")) {
 			unlockedFeatures.add("Spell");
 		}
-		source.sendFeedback(ChatUtil.prefixed("§7Weitere Einstellungen (" + String.join(", ", unlockedFeatures) + ") laufen über das Menü (Taste H)."));
+		source.sendFeedback(ChatUtil.prefixed("§7More settings (" + String.join(", ", unlockedFeatures) + ") are in the menu (key H)."));
 	}
 
 	public static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestOnlinePlayers(
