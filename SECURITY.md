@@ -32,6 +32,7 @@ affecting other users, a note is added to the changelog once it's safe to disclo
 
 ## Scope
 
-This covers the SkyMelloo mod (this repository) and the sky.melloo.me website/API. Third-party
-dependencies (Fabric, Minecraft itself, Hypixel's own systems) are out of scope - please report
-those to their respective maintainers.
+This covers the SkyMelloo mod (this repository), [MellooEssentials](https://github.com/SkyMelloo/MellooEssentials)
+(the shared core mod SkyMelloo depends on - same policy, no separate copy), and the sky.melloo.me
+website/API. Third-party dependencies (Fabric, Minecraft itself, Hypixel's own systems) are out of
+scope - please report those to their respective maintainers.
