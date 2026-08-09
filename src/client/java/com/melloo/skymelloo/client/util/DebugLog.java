@@ -142,7 +142,7 @@ public final class DebugLog {
 			// activity), never a shared fact duplicated across every SM party member's client - unlike
 			// DungeonRunTracker's "PARTY SM" option, this one is never leader-gated.
 			client.player.sendSystemMessage(ChatUtil.prefixed("§8[Debug] §7" + message));
-			com.melloo.skymelloo.client.social.RelayChatManager.sendPartyAnnouncement(client, "§8[Debug] §7" + message);
+			com.melloo.mellooessentials.client.social.RelayChatManager.sendPartyAnnouncement(client, "§8[Debug] §7" + message);
 		} else if ("PARTY".equalsIgnoreCase(delivery) && com.melloo.skymelloo.client.party.PartyTracker.isInParty()) {
 			// § codes don't survive /pc as a command string - Hypixel strips the § itself but leaves
 			// its format-code letter behind as literal text, which is worse than no color at all.

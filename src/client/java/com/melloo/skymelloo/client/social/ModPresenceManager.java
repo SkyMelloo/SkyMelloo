@@ -6,7 +6,6 @@ import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.util.DebugLog;
 import net.minecraft.client.Minecraft;
 
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,10 +51,6 @@ public final class ModPresenceManager {
 	// effect key -> ARGB color (dust-style effects) or -1 for a bool-only effect with no color.
 	private static final Map<UUID, Map<String, Integer>> otherCosmetics = new ConcurrentHashMap<>();
 	private static final Map<UUID, String> otherStatusText = new ConcurrentHashMap<>();
-	// "owner"/"admin"/"developer"/null, as resolved server-side by roleForUuid (server.js) from that
-	// player's actual linked account - never self-reported. SkyMelloo admins/developers/the owner
-	// get gold - see HighlightManager#classifyPlayer for how this picks the color.
-	private static final Map<UUID, String> otherRoles = new ConcurrentHashMap<>();
 
 	private ModPresenceManager() {
 	}
@@ -78,31 +73,15 @@ public final class ModPresenceManager {
 		return otherCosmetics.containsKey(uuid);
 	}
 
-	/** @return true if that player reported this cosmetic effect as currently enabled. */
+	/** @return true if that player reported this cosmetic effect as currently enabled - only ever "magicMissile" now, see {@link #collectEnabledCosmetics}. */
 	public static boolean hasCosmetic(UUID uuid, String effectKey) {
 		Map<String, Integer> cosmetics = otherCosmetics.get(uuid);
 		return cosmetics != null && cosmetics.containsKey(effectKey);
 	}
 
-	/** @return the ARGB color that player reported for this effect, or -1 if it's enabled with no custom color. 0 (transparent) if not enabled at all. */
-	public static int getCosmeticColor(UUID uuid, String effectKey) {
-		Map<String, Integer> cosmetics = otherCosmetics.get(uuid);
-		if (cosmetics == null) {
-			return 0;
-		}
-		Integer color = cosmetics.get(effectKey);
-		return color != null ? color : 0;
-	}
-
 	/** @return that player's custom status text, or "" if they haven't set one (or aren't a known mod user). */
 	public static String getStatusText(UUID uuid) {
 		return otherStatusText.getOrDefault(uuid, "");
-	}
-
-	/** @return true if that player's linked account is the SkyMelloo owner, an admin, or a developer - server-resolved, see roleForUuid. */
-	public static boolean isAdminOrOwner(UUID uuid) {
-		String role = otherRoles.get(uuid);
-		return "owner".equals(role) || "admin".equals(role) || "developer".equals(role);
 	}
 
 	private static void reportSelf(Minecraft client) {
@@ -206,7 +185,6 @@ public final class ModPresenceManager {
 			DebugLog.log(DebugLog.Category.PRESENCE, "Presence: " + present.size() + " of " + uuids.size() + " nearby player(s) also running SkyMelloo.");
 			Map<UUID, Map<String, Integer>> updated = new HashMap<>();
 			Map<UUID, String> updatedStatus = new HashMap<>();
-			Map<UUID, String> updatedRoles = new HashMap<>();
 			for (SkyMellooApiClient.PresenceEntry entry : present) {
 				UUID uuid;
 				try {
@@ -232,9 +210,6 @@ public final class ModPresenceManager {
 				if (entry.status() != null && !entry.status().isBlank()) {
 					updatedStatus.put(uuid, entry.status());
 				}
-				if (entry.role() != null) {
-					updatedRoles.put(uuid, entry.role());
-				}
 				if (entry.dungeonSync() != null) {
 					DungeonSyncManager.onReceivedPayload(uuid.toString(), entry.username(), entry.dungeonSync());
 				}
@@ -243,150 +218,21 @@ public final class ModPresenceManager {
 			otherCosmetics.putAll(updated);
 			otherStatusText.clear();
 			otherStatusText.putAll(updatedStatus);
-			otherRoles.clear();
-			otherRoles.putAll(updatedRoles);
 		});
 	}
 
+	/**
+	 * Only "magicMissile" (bare, no color) survives here - every other particle cosmetic moved to
+	 * MellooEssentials, which has its own separate presence/broadcast mechanism entirely. Magic
+	 * Missile itself stays a SkyMelloo feature (see MagicMissileManager), and {@link
+	 * com.melloo.skymelloo.client.mixin.RemoteMissileTriggerMixin} still needs {@link #hasCosmetic}
+	 * to know whether a nearby SkyMelloo user actually has it enabled before mirroring their cast.
+	 */
 	private static List<String> collectEnabledCosmetics() {
 		List<String> list = new ArrayList<>();
-		if (!PermissionsManager.has("cosmetics")) {
-			// Don't report cosmetics as active if this account isn't permitted to use them - a
-			// permission-denied user's own client already shows none of these, so other clients
-			// shouldn't render fake ones for them either.
-			return list;
-		}
-		SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
-		if (c.haloEnabled) {
-			list.add("halo:" + hex(c.haloColor));
-		}
-		if (c.cherryBlossomEnabled) {
-			list.add("cherryBlossom");
-		}
-		if (c.rainbowHelixEnabled) {
-			list.add("rainbowHelix:" + hex(c.rainbowHelixColor));
-		}
-		if (c.auraEnabled) {
-			list.add("aura:" + hex(c.auraColor));
-		}
-		if (c.magicMissileEnabled) {
-			list.add("magicMissile:" + hex(c.magicMissileColor));
-		}
-		if (c.waveEnabled) {
-			list.add("wave:" + hex(c.waveColor));
-		}
-		if (c.rainCloudEnabled) {
-			list.add("rainCloud");
-		}
-		if (c.fireRingEnabled) {
-			list.add("fireRing");
-		}
-		if (c.starRainEnabled) {
-			list.add("starRain");
-		}
-		if (c.sparkAuraEnabled) {
-			list.add("sparkAura");
-		}
-		if (c.lissajousEnabled) {
-			list.add("lissajous:" + hex(c.lissajousColor));
-		}
-		if (c.roseCurveEnabled) {
-			list.add("roseCurve:" + hex(c.roseCurveColor));
-		}
-		if (c.landingShockwaveEnabled) {
-			list.add("landingShockwave:" + hex(c.landingShockwaveColor));
-		}
-		if (c.fireworkBurstEnabled) {
-			list.add("fireworkBurst");
-		}
-		if (c.frostAuraEnabled) {
-			list.add("frostAura:" + hex(c.frostAuraColor));
-		}
-		if (c.noteMelodyEnabled) {
-			list.add("noteMelody");
-		}
-		if (c.portalVortexEnabled) {
-			list.add("portalVortex:" + hex(c.portalVortexColor));
-		}
-		if (c.heartTrailEnabled) {
-			list.add("heartTrail");
-		}
-		if (c.spiralGalaxyEnabled) {
-			list.add("spiralGalaxy:" + hex(c.spiralGalaxyColor));
-		}
-		if (c.jumpTrailEnabled) {
-			list.add("jumpTrail:" + hex(c.jumpTrailColor));
-		}
-		if (c.totemFlashEnabled) {
-			list.add("totemFlash");
-		}
-		if (c.sculkPulseEnabled) {
-			list.add("sculkPulse");
-		}
-		if (c.omenAuraEnabled) {
-			list.add("omenAura");
-		}
-		if (c.gustAuraEnabled) {
-			list.add("gustAura:" + hex(c.gustAuraColor));
-		}
-		if (c.ashFallEnabled) {
-			list.add("ashFall:" + hex(c.ashFallColor));
-		}
-		if (c.campfireSmokeEnabled) {
-			list.add("campfireSmoke");
-		}
-		if (c.tornadoEnabled) {
-			list.add("tornado:" + hex(c.tornadoColor));
-		}
-		if (c.blackHoleEnabled) {
-			list.add("blackHole:" + hex(c.blackHoleColor));
-		}
-		if (c.twinVortexEnabled) {
-			list.add("twinVortex:" + hex(c.twinVortexColor));
-		}
-		if (c.enchantedCritSparkleEnabled) {
-			list.add("enchantedCritSparkle");
-		}
-		if (c.dustPlumeTrailEnabled) {
-			list.add("dustPlumeTrail");
-		}
-		if (c.chargeUpEnabled) {
-			list.add("chargeUp:" + hex(c.chargeUpColor));
-		}
-		if (c.orbitRingsEnabled) {
-			list.add("orbitRings:" + hex(c.orbitRingsColor));
-		}
-		if (c.lightningAuraEnabled) {
-			list.add("lightningAura");
-		}
-		if (c.confettiBurstEnabled) {
-			list.add("confettiBurst");
-		}
-		if (c.phoenixWingsEnabled) {
-			list.add("phoenixWings:" + hex(c.phoenixWingsColor));
-		}
-		if (c.voidRiftEnabled) {
-			list.add("voidRift");
-		}
-		if (c.starWeaveEnabled) {
-			list.add("starWeave");
-		}
-		if (c.ascendingSparklesEnabled) {
-			list.add("ascendingSparkles");
-		}
-		if (c.cometTrailEnabled) {
-			list.add("cometTrail");
-		}
-		if (c.starVeilEnabled) {
-			list.add("starVeil");
-		}
-		if (c.radiantPulseEnabled) {
-			list.add("radiantPulse");
+		if (PermissionsManager.has("spell") && SkyMellooConfig.HANDLER.instance().magicMissileEnabled) {
+			list.add("magicMissile");
 		}
 		return list;
-	}
-
-	private static String hex(Color color) {
-		return String.format("%06X", color.getRGB() & 0xFFFFFF);
 	}
 }

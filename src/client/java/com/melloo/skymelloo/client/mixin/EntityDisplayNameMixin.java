@@ -2,7 +2,6 @@ package com.melloo.skymelloo.client.mixin;
 
 import com.melloo.skymelloo.client.highlight.HighlightManager;
 import com.melloo.skymelloo.client.hp.DistanceDisplayManager;
-import com.melloo.skymelloo.client.social.AccountLinkedMarkerManager;
 import com.melloo.skymelloo.client.social.StatusTextDisplayManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
@@ -35,7 +34,9 @@ public abstract class EntityDisplayNameMixin {
 		if (self instanceof Player player) {
 			result = HighlightManager.colorizeName(player, result);
 			result = StatusTextDisplayManager.apply(player, result);
-			result = AccountLinkedMarkerManager.apply(player, result);
+			// No marker logic here anymore - MellooEssentials' own EntityDisplayNameMixin is the only
+			// place a nametag marker gets added now, even for SkyMelloo users (see
+			// ModMarkerManager.setSpriteOverride, registered once in SkyMellooClient's init).
 		}
 		if (HighlightManager.isHighlightTarget(self)) {
 			result = DistanceDisplayManager.apply(self, result);

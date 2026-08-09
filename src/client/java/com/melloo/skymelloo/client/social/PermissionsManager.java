@@ -12,12 +12,17 @@ import java.util.Map;
 /**
  * Admin-configurable per-feature permission gating is gone entirely - every feature is available
  * to everyone now that the mod is open source, no admin grant needed. {@link #has(String)} always
- * returns {@code true} except for {@code "cosmetics"}, which keeps a genuinely separate, still-real
- * requirement: the account must be linked to a sky.melloo.me website account (Discord login +
- * "/skymelloo verify") so the server knows who's who when broadcasting cosmetics to nearby players
- * - that's a technical necessity for the feature to work at all, not an admin-configurable
- * restriction, so it stays. {@link #isAccountLinked()} still comes from a real server fetch (the
- * endpoint that used to also return per-feature permissions now just reports link status).
+ * returns {@code true} except for {@code "spell"} (the Magic Missile spell/kill-announce feature -
+ * see MagicMissileManager), which keeps a genuinely separate, still-real requirement: the account
+ * must be linked to a sky.melloo.me website account (Discord login + "/skymelloo verify") so the
+ * server knows who's who when broadcasting spell casts/kills to nearby players - that's a technical
+ * necessity for the feature to work at all, not an admin-configurable restriction, so it stays.
+ * Renamed from "cosmetics" to "spell" - MellooEssentials' own particle cosmetics moved out of this
+ * mod entirely and need NO account link at all anymore (its own ModAuthManager only proves a live
+ * Mojang session, nothing website-account-related), so keeping the old key/message text talking
+ * about "cosmetics" here was actively misleading once that split happened. {@link #isAccountLinked()}
+ * still comes from a real server fetch (the endpoint that used to also return per-feature
+ * permissions now just reports link status).
  */
 public final class PermissionsManager {
 	private static final int PERIODIC_RECHECK_TICKS = 600; // 30s at 20 ticks/s
@@ -31,7 +36,7 @@ public final class PermissionsManager {
 	}
 
 	public static boolean has(String key) {
-		if ("cosmetics".equals(key)) {
+		if ("spell".equals(key)) {
 			return isAccountLinked();
 		}
 		return true;
@@ -74,13 +79,13 @@ public final class PermissionsManager {
 			if (error == null && result != null) {
 				permissions = result;
 				DebugLog.log(DebugLog.Category.PERMISSIONS, "Account linked: " + isAccountLinked());
-				// Cosmetics silently not showing up with no explanation reads as a bug rather than a
-				// missing account link - one clear explanation per session, not repeated on every 30s
-				// recheck.
+				// The Spell (Magic Missile) silently not showing up with no explanation reads as a bug
+				// rather than a missing account link - one clear explanation per session, not repeated
+				// on every 30s recheck.
 				if (announceChanges && !isAccountLinked() && !accountLinkedHintShown && client.player != null) {
 					accountLinkedHintShown = true;
 					client.player.sendSystemMessage(ChatUtil.prefixed(
-							"§dCosmetics need a linked sky.melloo.me account - log in with Discord at §fsky.melloo.me/account §dand run §f/skymelloo verify <code>§d to use them."));
+							"§dThe Spell (Magic Missile) needs a linked sky.melloo.me account - log in with Discord at §fsky.melloo.me/account §dand run §f/skymelloo verify <code>§d to use it. Cosmetics (via MellooEssentials) don't need this."));
 				}
 			} else {
 				DebugLog.log(DebugLog.Category.PERMISSIONS, "Account-link fetch failed" + (error != null ? " (" + error.getMessage() + ")" : "") + ".");

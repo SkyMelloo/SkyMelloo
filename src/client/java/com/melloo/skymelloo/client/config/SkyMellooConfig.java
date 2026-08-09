@@ -65,14 +65,6 @@ public class SkyMellooConfig {
 
 	@AutoGen(category = "highlight", group = "players")
 	@ColorField
-	// Default changed from gold to pink, so staff (developer/admin/owner) get a consistent aura
-	// color everywhere - resolved server-side from the player's real linked account/team-role
-	// (see server.js's roleForUuid), never something another client could self-report to fake.
-	@SerialEntry(comment = "Glow color for players whose linked sky.melloo.me account is the owner, an admin, or a developer - works everywhere, not just in dungeons.")
-	public Color staffHighlightColor = new Color(0xFFFF66CC, true);
-
-	@AutoGen(category = "highlight", group = "players")
-	@ColorField
 	// Added back with its own aqua/light-blue color, after the general Friend
 	// highlighting removal - this is specifically a confirmed SkyMelloo Friend
 	// (the mod's own friends system, see FriendsManager/social menu), NOT the old Hypixel-/friend-
@@ -606,16 +598,6 @@ public class SkyMellooConfig {
 	@SerialEntry(comment = "See hudHealthManaX.")
 	public int hudHealthManaY = 300;
 
-	@AutoGen(category = "general", group = "hud")
-	@TickBox
-	@SerialEntry(comment = "FPS, ping, server address, area (real Hypixel Mod API data), coordinates, and facing direction. No TPS line - Hypixel doesn't expose real server tick rate to the client. Position set via the HUD layout editor (default J).")
-	public boolean playerInfoHudEnabled = true;
-
-	@SerialEntry(comment = "Position of the player info HUD, set via the HUD layout editor (default J).")
-	public int hudPlayerInfoX = 6;
-	@SerialEntry(comment = "See hudPlayerInfoX.")
-	public int hudPlayerInfoY = 340;
-
 	@AutoGen(category = "item", group = "item")
 	@TickBox
 	@SerialEntry(comment = "Highlight dropped items with a glowing outline and show their name, visible through walls.")
@@ -685,50 +667,9 @@ public class SkyMellooConfig {
 	public int blockHighlightRange = 24;
 
 	// Cosmetics are intentionally NOT exposed via @AutoGen/YACL - they live exclusively in the
-	// Cosmetics tab of SkyMellooSettingsScreen (opened with J/H or /skymelloo cosmetics/config),
-	// not the YACL menu. These fields still persist normally via @SerialEntry.
-	// Master switch, set under General instead of here - off hides the Cosmetics tab entirely (both
-	// in the settings screen and the SkyMelloo Menu item) and stops rendering cosmetics altogether,
-	// yours and everyone else's, rather than just hiding the tab while effects keep running.
-	@SerialEntry(comment = "Master switch for cosmetics - off hides the Cosmetics tab everywhere and stops rendering any cosmetic effect, yours or anyone else's.")
-	public boolean cosmeticsEnabled = true;
-
-	@SerialEntry(comment = "Rotating ring of particles above your head.")
-	public boolean haloEnabled = false;
-
-	@SerialEntry(comment = "Halo particle color.")
-	public Color haloColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Layer a larger, brighter particle behind Halo's normal one for a stronger glow look.")
-	public boolean haloGlow = false;
-
-	@SerialEntry(comment = "\"DUST\" uses the normal colored particle above; any other ParticleKind name uses that fixed particle instead (ignoring the color).")
-	public String haloParticleKind = "DUST";
-
-	@SerialEntry(comment = "Cherry blossom petals gently falling around you.")
-	public boolean cherryBlossomEnabled = false;
-
-	@SerialEntry(comment = "Which particle Cherry Blossom spawns (see ParticleKind).")
-	public String cherryBlossomParticle = "CHERRY_BLOSSOM";
-
-	@SerialEntry(comment = "Double-helix spiral of particles around you.")
-	public boolean rainbowHelixEnabled = false;
-
-	@SerialEntry(comment = "Rainbow helix particle color.")
-	public Color rainbowHelixColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Slow, wide double ring of particles orbiting around your body.")
-	public boolean auraEnabled = false;
-
-	@SerialEntry(comment = "Aura particle color.")
-	public Color auraColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Layer a larger, brighter particle behind Aura's normal one for a stronger glow look.")
-	public boolean auraGlow = false;
-
-	@SerialEntry(comment = "\"DUST\" uses the normal colored particle above; any other ParticleKind name uses that fixed particle instead (ignoring the color).")
-	public String auraParticleKind = "DUST";
-
+	// Particle cosmetics (the old Cosmetics tab) moved to MellooEssentials entirely (a hard
+	// dependency now) - its own config, not duplicated here. Magic Missile stays - it's a SkyBlock
+	// gameplay ability, not a generic cosmetic, and reuses the same "cosmetics" permission key.
 	@SerialEntry(comment = "Punching empty air with an empty hand shoots a small particle projectile that bursts on impact. Purely cosmetic.")
 	public boolean magicMissileEnabled = false;
 
@@ -737,206 +678,6 @@ public class SkyMellooConfig {
 
 	@SerialEntry(comment = "Which spell type punching empty air casts - \"MISSILE\" (the default travelling particle projectile) or \"LIGHTNING\" (instant, only fires if a player is directly under your crosshair, strikes them with a real but visual-only lightning bolt). Switched via the SkyMelloo Menu item's Spells page.")
 	public String magicMissileSpellType = "MISSILE";
-
-	@SerialEntry(comment = "A ring of particles that pulses/expands outward from your feet on repeat.")
-	public boolean waveEnabled = false;
-
-	@SerialEntry(comment = "Wave particle color.")
-	public Color waveColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "A small cloud above your head that continuously rains on you.")
-	public boolean rainCloudEnabled = false;
-
-	@SerialEntry(comment = "A rotating ring of small flames at your feet.")
-	public boolean fireRingEnabled = false;
-
-	@SerialEntry(comment = "Which particle Fire Ring spawns (see ParticleKind).")
-	public String fireRingParticle = "FLAME";
-
-	@SerialEntry(comment = "Sparkling particles drifting slowly down from above your head.")
-	public boolean starRainEnabled = false;
-
-	@SerialEntry(comment = "Which particle Star Rain spawns (see ParticleKind).")
-	public String starRainParticle = "SPARKLE";
-
-	@SerialEntry(comment = "Occasional electric sparks crackling around your body.")
-	public boolean sparkAuraEnabled = false;
-
-	@SerialEntry(comment = "Which particle Spark Aura spawns (see ParticleKind).")
-	public String sparkAuraParticle = "SPARK";
-
-	@SerialEntry(comment = "A 3D Lissajous curve (math-generated knot pattern) weaving around your body.")
-	public boolean lissajousEnabled = false;
-
-	@SerialEntry(comment = "Lissajous curve particle color.")
-	public Color lissajousColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "A dense, constantly-morphing rose/rhodonea curve (r = cos(k*theta)) traced with many simultaneous points - much busier/more intense than the Lissajous curve.")
-	public boolean roseCurveEnabled = false;
-
-	@SerialEntry(comment = "Rose curve particle color.")
-	public Color roseCurveColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "A one-shot expanding shockwave ring every time you land on the ground from a jump/fall.")
-	public boolean landingShockwaveEnabled = false;
-
-	@SerialEntry(comment = "Landing shockwave color.")
-	public Color landingShockwaveColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Occasional sparkle bursts above your head, like distant fireworks.")
-	public boolean fireworkBurstEnabled = false;
-
-	@SerialEntry(comment = "Which particle Firework Burst spawns (see ParticleKind).")
-	public String fireworkBurstParticle = "FIREWORK";
-
-	@SerialEntry(comment = "Snowflakes swirling tight and close around your body.")
-	public boolean frostAuraEnabled = false;
-
-	@SerialEntry(comment = "Musical notes floating up above your head occasionally.")
-	public boolean noteMelodyEnabled = false;
-
-	@SerialEntry(comment = "Which particle Note Melody spawns (see ParticleKind).")
-	public String noteMelodyParticle = "NOTE";
-
-	@SerialEntry(comment = "A fast-spinning double vortex of colored particles around your whole body.")
-	public boolean portalVortexEnabled = false;
-
-	@SerialEntry(comment = "Portal vortex particle color.")
-	public Color portalVortexColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Floating hearts drifting up above your head occasionally.")
-	public boolean heartTrailEnabled = false;
-
-	@SerialEntry(comment = "Which particle Heart Trail spawns (see ParticleKind).")
-	public String heartTrailParticle = "HEART";
-
-	@SerialEntry(comment = "A multi-arm spiral (a different curve family than Rose/Lissajous) fanning outward from your feet to above your head.")
-	public boolean spiralGalaxyEnabled = false;
-
-	@SerialEntry(comment = "Spiral galaxy particle color.")
-	public Color spiralGalaxyColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Leaves a particle trail behind you while airborne (jumping/falling), tracing your actual arc.")
-	public boolean jumpTrailEnabled = false;
-
-	@SerialEntry(comment = "Jump trail particle color.")
-	public Color jumpTrailColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Occasional Totem-of-Undying-style flash burst above your head.")
-	public boolean totemFlashEnabled = false;
-
-	@SerialEntry(comment = "Which particle Totem Flash spawns (see ParticleKind).")
-	public String totemFlashParticle = "TOTEM";
-
-	@SerialEntry(comment = "A dark, spooky pulsing ring of sculk particles at your feet.")
-	public boolean sculkPulseEnabled = false;
-
-	@SerialEntry(comment = "Which particle Sculk Pulse spawns (see ParticleKind).")
-	public String sculkPulseParticle = "SCULK";
-
-	@SerialEntry(comment = "An ominous swirling aura, like the Raid/Trial Omen status effects.")
-	public boolean omenAuraEnabled = false;
-
-	@SerialEntry(comment = "Which particle Omen Aura spawns (see ParticleKind).")
-	public String omenAuraParticle = "OMEN";
-
-	@SerialEntry(comment = "Colored wind gusts swirling around your body, like your own personal breeze.")
-	public boolean gustAuraEnabled = false;
-
-	@SerialEntry(comment = "Gust aura particle color.")
-	public Color gustAuraColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Colored fine particles gently falling around you, like ash near a volcano.")
-	public boolean ashFallEnabled = false;
-
-	@SerialEntry(comment = "Ash fall particle color.")
-	public Color ashFallColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Frost aura particle color.")
-	public Color frostAuraColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Cozy smoke wisps trailing gently from your feet.")
-	public boolean campfireSmokeEnabled = false;
-
-	@SerialEntry(comment = "A widening funnel of particles from your feet up to above your head, like a personal tornado.")
-	public boolean tornadoEnabled = false;
-
-	@SerialEntry(comment = "Tornado particle color.")
-	public Color tornadoColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Particles spiraling inward and vanishing into your body, like a personal black hole.")
-	public boolean blackHoleEnabled = false;
-
-	@SerialEntry(comment = "Black hole particle color.")
-	public Color blackHoleColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Two tight, contra-rotating spirals weaving around your whole body.")
-	public boolean twinVortexEnabled = false;
-
-	@SerialEntry(comment = "Twin vortex particle color.")
-	public Color twinVortexColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Enchanted-hit sparkles bursting around you occasionally, like a magic critical hit.")
-	public boolean enchantedCritSparkleEnabled = false;
-
-	@SerialEntry(comment = "Which particle Enchanted Crit Sparkle spawns (see ParticleKind).")
-	public String enchantedCritSparkleParticle = "ENCHANTED_CRIT";
-
-	@SerialEntry(comment = "A trailing plume of dust drifting up behind your feet, like sneaking through smoke.")
-	public boolean dustPlumeTrailEnabled = false;
-
-	@SerialEntry(comment = "Which particle Dust Plume Trail spawns (see ParticleKind).")
-	public String dustPlumeTrailParticle = "DUST_PLUME";
-
-	@SerialEntry(comment = "A ring of particles around your feet continuously drifts inward and up into your chest, like charging up energy.")
-	public boolean chargeUpEnabled = false;
-
-	@SerialEntry(comment = "Charge up particle color.")
-	public Color chargeUpColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "A single wide, flat ring of particles orbiting around your waist, like Saturn's rings.")
-	public boolean orbitRingsEnabled = false;
-
-	@SerialEntry(comment = "Orbit rings particle color.")
-	public Color orbitRingsColor = new Color(0xFFAA33FF, true);
-
-	@SerialEntry(comment = "Occasional jagged lightning bolts arcing from above down to you.")
-	public boolean lightningAuraEnabled = false;
-
-	@SerialEntry(comment = "Occasional multi-colored confetti burst above your head.")
-	public boolean confettiBurstEnabled = false;
-
-	@SerialEntry(comment = "A pair of particle wings trailing from your back, gently flapping.")
-	public boolean phoenixWingsEnabled = false;
-
-	@SerialEntry(comment = "Phoenix wings particle color.")
-	public Color phoenixWingsColor = new Color(0xFFFF8800, true);
-
-	@SerialEntry(comment = "Occasional dark glitchy particles flickering around you, like a tear in reality.")
-	public boolean voidRiftEnabled = false;
-
-	@SerialEntry(comment = "Which particle Void Rift spawns (see ParticleKind).")
-	public String voidRiftParticle = "VOID_RIFT";
-
-	@TickBox
-	@SerialEntry(comment = "Two counter-rotating rings of end-rod sparkles weaving through each other around you.")
-	public boolean starWeaveEnabled = false;
-
-	@TickBox
-	@SerialEntry(comment = "A steady stream of end-rod sparkles rising from your feet past your head, like a personal ascension.")
-	public boolean ascendingSparklesEnabled = false;
-
-	@TickBox
-	@SerialEntry(comment = "A stretched-out comet tail of end-rod sparkles streaming behind you while you move.")
-	public boolean cometTrailEnabled = false;
-
-	@TickBox
-	@SerialEntry(comment = "A soft, slow-drifting cloud of end-rod sparkles orbiting loosely around you at varying heights.")
-	public boolean starVeilEnabled = false;
-
-	@TickBox
-	@SerialEntry(comment = "A ring of end-rod sparkles that periodically pulses outward from your chest.")
-	public boolean radiantPulseEnabled = false;
 
 	@AutoGen(category = "general", group = "general")
 	@TickBox
@@ -1012,11 +753,6 @@ public class SkyMellooConfig {
 	@TickBox
 	@SerialEntry(comment = "A fake \"SkyMelloo Menu\" item in hotbar slot 8 (not 9 - that's Hypixel's own real SkyBlock Menu slot) whenever that slot is empty - right-click it to open a chest-style menu for SkyMelloo's own settings, the same way Hypixel's own menu item works. Client-side only, never overwrites a real item actually in that slot.")
 	public boolean skyMellooMenuItemEnabled = true;
-
-	@SerialEntry(comment = "Position of the sky.melloo.me status HUD, set via the HUD layout editor (default J).")
-	public int hudStatusX = 6;
-	@SerialEntry(comment = "See hudStatusX.")
-	public int hudStatusY = 6;
 
 	@SerialEntry(comment = "Position of the fishing minigame score HUD - -1 means \"not set yet\", uses the default centered-above-hotbar position.")
 	public int hudFishingScoreX = -1;

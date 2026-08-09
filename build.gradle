@@ -51,6 +51,11 @@ dependencies {
 	// Compiled against the jar the user already has installed (TerraformersMC's maven was down at build time).
 	implementation ":modmenu:${project.modmenu_version}"
 
+	// MellooEssentials - the shared core mod SkyMelloo now depends on for cosmetics and a handful of
+	// generic utility classes (see fabric.mod.json's hard "mellooessentials" depends entry). Same
+	// local-jar pattern as modmenu above - the built jar lives in libs/, no Maven publishing.
+	implementation ":mellooessentials:${project.mellooessentials_version}"
+
 	// Party detection via Hypixel's official Mod API. The actual networking bridge is provided
 	// at runtime by the separately-installed HypixelModAPI mod; we only need the packet/API classes here.
 	implementation "net.hypixel:mod-api:${project.hypixel_modapi_version}"

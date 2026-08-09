@@ -43,3 +43,7 @@ replay_*.log
 .claude/
 *.log
 player_summary.json
+
+# local flatDir dependency jar (MellooEssentials build output, copied in for the build to consume) -
+# a binary build artifact, not source - gets rebuilt/re-copied locally, never belongs in git.
+libs/*.jar

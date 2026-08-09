@@ -65,14 +65,15 @@ public final class WhitelistManager {
 	private static void performCheck(Minecraft client, boolean announceChanges) {
 		boolean wasAdmin = admin;
 		DebugLog.log(DebugLog.Category.PERMISSIONS, "Checking admin-link status...");
+		// Connection health itself (connected/connecting/failed) is MellooEssentials' own
+		// ConnectionStatusHud's job now, driven by its own ModAuthManager state - this only ever
+		// updates the admin-link flag itself, not any HUD's connection state.
 		ModAuthManager.getIdentity(client).thenCompose(SkyMellooApiClient::checkIsAdmin).whenComplete((isAdmin, error) -> Minecraft.getInstance().execute(() -> {
 			if (error != null) {
-				WhitelistStatusHud.setState(WhitelistStatusHud.State.ERROR);
 				DebugLog.log(DebugLog.Category.PERMISSIONS, "Admin-link check failed: " + error.getMessage());
 				return;
 			}
 			admin = isAdmin;
-			WhitelistStatusHud.setState(WhitelistStatusHud.State.CONNECTED);
 			DebugLog.log(DebugLog.Category.PERMISSIONS, "Admin-linked: " + admin);
 			if (announceChanges && admin && !wasAdmin && client.player != null) {
 				client.player.sendSystemMessage(ChatUtil.prefixed("§bYour account is now linked as admin."));

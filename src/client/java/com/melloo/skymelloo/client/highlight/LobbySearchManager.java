@@ -2,7 +2,7 @@ package com.melloo.skymelloo.client.highlight;
 
 import com.melloo.skymelloo.client.SkyMellooClient;
 import com.melloo.skymelloo.client.util.ChatUtil;
-import com.melloo.skymelloo.client.util.HypixelDetector;
+import com.melloo.mellooessentials.client.util.HypixelDetector;
 import com.melloo.skymelloo.client.util.SkyblockDetector;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;

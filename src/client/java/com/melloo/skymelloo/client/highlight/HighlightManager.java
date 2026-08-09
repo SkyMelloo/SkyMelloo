@@ -5,9 +5,8 @@ import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.cosmetics.MagicMissileManager;
 import com.melloo.skymelloo.client.fishing.FishingHelper;
 import com.melloo.skymelloo.client.fishing.FishingMinigameManager;
+import com.melloo.mellooessentials.client.social.FriendsManager;
 import com.melloo.skymelloo.client.party.PartyTracker;
-import com.melloo.skymelloo.client.social.FriendsManager;
-import com.melloo.skymelloo.client.social.ModPresenceManager;
 import com.melloo.skymelloo.client.social.WhitelistManager;
 import com.melloo.skymelloo.client.util.SkyblockDetector;
 import com.melloo.skymelloo.client.util.VisibilityUtil;
@@ -237,7 +236,6 @@ public final class HighlightManager {
 			}
 			return switch (classifyPlayer(player)) {
 				case PARTY -> lowHpBlinkColor(player, config, toRgb(config.partyHighlightColor));
-				case STAFF -> toRgb(config.staffHighlightColor);
 				case FRIEND -> toRgb(config.friendHighlightColor);
 				// Unreachable in practice - shouldGlow/isHighlightTarget already refuse NONE before a
 				// color is ever needed for it.
@@ -315,21 +313,26 @@ public final class HighlightManager {
 		return copy;
 	}
 
-	// Covers party, SkyMelloo staff (owner/admin/developer), and SkyMelloo Friends (a confirmed
-	// mutual friend via the mod's OWN friends system, see FriendsManager - NOT a Hypixel-/friend-
-	// list-based highlight). Self/regular-other-player/NPC/plain-mod-user get no highlight at all.
+	// Covers party and SkyMelloo Friends (a confirmed mutual friend via the mod's OWN friends system,
+	// see FriendsManager - NOT a Hypixel-/friend-list-based highlight). Staff is deliberately NOT a
+	// category here anymore - MellooEssentials' own com.melloo.mellooessentials.client.highlight.
+	// HighlightManager already independently glows staff pink (see its own PresenceManager.isStaff),
+	// and both mods' glow mixins inject into the same vanilla Entity#isCurrentlyGlowing/getTeamColor
+	// methods (cancellable, HEAD) - keeping a second, separate staff branch here raced the two
+	// mixins against each other with no defined winner, which is what made staff highlighting look
+	// broken/inconsistent. Self/regular-other-player/NPC/plain-mod-user get no highlight at all.
 	private enum PlayerCategory {
-		PARTY, STAFF, FRIEND, NONE
+		PARTY, FRIEND, NONE
 	}
 
 	private static PlayerCategory classifyPlayer(Player player) {
-		// Staff checked first - developer/admin/owner get a pink highlight everywhere, taking
-		// priority even for a staff member who also happens to be in your party.
-		// Role comes from the presence server, resolved there from the player's real linked
-		// account/team-role record (see server.js's roleForUuid) - never something the other client
-		// could self-report to fake for themselves.
-		if (ModPresenceManager.isModUser(player.getUUID()) && ModPresenceManager.isAdminOrOwner(player.getUUID())) {
-			return PlayerCategory.STAFF;
+		// Staff is MellooEssentials' job now (see the enum's own doc comment) - checking its
+		// PresenceManager.isStaff directly here (not the broader shouldGlow, which also covers ITS
+		// OWN party check and would incorrectly defer party glow too, losing the low-HP blink below)
+		// means SkyMelloo simply never tries to cancel the glow methods for a staff member at all,
+		// leaving Essentials' own mixin as the only one contending for that entity.
+		if (com.melloo.mellooessentials.client.social.PresenceManager.isStaff(player.getUUID())) {
+			return PlayerCategory.NONE;
 		}
 		if (PartyTracker.isMember(player.getUUID())) {
 			return PlayerCategory.PARTY;

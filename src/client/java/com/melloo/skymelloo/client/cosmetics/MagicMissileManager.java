@@ -125,7 +125,7 @@ public final class MagicMissileManager {
 
 	public static void trigger(Minecraft client) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-		if (!config.magicMissileEnabled || !PermissionsManager.has("cosmetics")) {
+		if (!config.magicMissileEnabled || !PermissionsManager.has("spell")) {
 			return;
 		}
 		LocalPlayer player = client.player;
@@ -417,7 +417,7 @@ public final class MagicMissileManager {
 	 * it's obvious which missiles are yours (always your own color) versus someone else's (always red).
 	 */
 	public static void spawnRemote(Minecraft client, AbstractClientPlayer other) {
-		if (!SkyMellooConfig.HANDLER.instance().magicMissileEnabled || !PermissionsManager.has("cosmetics")) {
+		if (!SkyMellooConfig.HANDLER.instance().magicMissileEnabled || !PermissionsManager.has("spell")) {
 			return;
 		}
 		Vec3 origin = other.getEyePosition();
@@ -709,7 +709,7 @@ public final class MagicMissileManager {
 
 	/** 1-3 fake, collectible-by-walking-near "Spell Essence" items scattered at the kill spot - see {@link #tickEssenceCollection}. Always on - no toggle anymore. */
 	private static void spawnCollectibleEssence(Minecraft client, Vec3 pos) {
-		if (!PermissionsManager.has("cosmetics") || !(client.level instanceof ClientLevel level)) {
+		if (!PermissionsManager.has("spell") || !(client.level instanceof ClientLevel level)) {
 			return;
 		}
 		ThreadLocalRandom random = ThreadLocalRandom.current();

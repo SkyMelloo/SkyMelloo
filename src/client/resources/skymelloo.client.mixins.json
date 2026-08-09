@@ -23,8 +23,7 @@
 		"ForcedInvisibilityExtractionMixin",
 		"AvatarForcedInvisibilityExtractionMixin",
 		"DamageEventMixin",
-		"ContainerMenuItemClickMixin",
-		"SetTimePacketMixin"
+		"ContainerMenuItemClickMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

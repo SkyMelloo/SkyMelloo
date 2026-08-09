@@ -58,16 +58,25 @@ public class HudLayoutEditorScreen extends Screen {
 	@Override
 	protected void init() {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
+		com.melloo.mellooessentials.client.config.EssentialsConfig essentialsConfig =
+				com.melloo.mellooessentials.client.config.EssentialsConfig.get();
 		elements = new ArrayList<>();
-		// Real box (see WhitelistStatusHud#extractRenderState) is 26px tall, width driven by whichever
-		// status line is actually longest - the DENIED text is the longest realistic case.
-		int statusWidth = this.font.width("Not whitelisted - see /skymelloo contact") + 18;
+		// Fixed 2-line layout now (headline + one combined detail line, see
+		// ConnectionStatusHud#extractRenderState's own doc comment) - always exactly 26px tall
+		// regardless of connection state. This is essentials' ConnectionStatusHud - the single
+		// connection-status HUD for both mods now (this mod's own former copy, WhitelistStatusHud,
+		// was a near-duplicate and got removed).
+		int statusWidth = Math.max(
+				this.font.width("Connected ★"),
+				this.font.width("sky.melloo.me · 1h 05m 30s · 999ms")
+		) + 20;
 		elements.add(new Draggable(
-				"sky.melloo.me Status",
-				() -> config.hudStatusX, () -> config.hudStatusY,
+				"Connection Status",
+				() -> essentialsConfig.hudConnectionStatusX >= 0 ? essentialsConfig.hudConnectionStatusX : 6,
+				() -> essentialsConfig.hudConnectionStatusY >= 0 ? essentialsConfig.hudConnectionStatusY : 6,
 				(x, y) -> {
-					config.hudStatusX = x;
-					config.hudStatusY = y;
+					essentialsConfig.hudConnectionStatusX = x;
+					essentialsConfig.hudConnectionStatusY = y;
 				},
 				statusWidth, 26
 		));
@@ -186,8 +195,11 @@ public class HudLayoutEditorScreen extends Screen {
 		// real FPS/ping/server/area, which meant centering the (too-wide) editor box left the real,
 		// narrower HUD off-center the moment the editor closed. This element has no "hidden right now"
 		// state worth preserving a placeholder for (unlike Fishing Combo/Score/Debug), so using its
-		// real live size here is always safe.
-		List<String> playerInfoLines = PlayerInfoHud.buildLines(Minecraft.getInstance());
+		// real live size here is always safe. This is essentials' PlayerInfoHud - the single Player
+		// Info HUD for both mods now (this mod's own former copy was a byte-for-byte duplicate and
+		// got removed; essentials has no positioning UI of its own, so this editor is the only way to
+		// move it, same cross-mod pattern already used for the Connection Status HUD above).
+		List<String> playerInfoLines = com.melloo.mellooessentials.client.gui.PlayerInfoHud.buildLines(Minecraft.getInstance());
 		int playerInfoWidth = 8;
 		for (String line : playerInfoLines) {
 			playerInfoWidth = Math.max(playerInfoWidth, this.font.width(line) + 8);
@@ -195,10 +207,11 @@ public class HudLayoutEditorScreen extends Screen {
 		int playerInfoHeight = 4 + Math.max(1, playerInfoLines.size()) * 10 + 2;
 		elements.add(new Draggable(
 				"Player Info",
-				() -> config.hudPlayerInfoX, () -> config.hudPlayerInfoY,
+				() -> essentialsConfig.hudPlayerInfoX >= 0 ? essentialsConfig.hudPlayerInfoX : 6,
+				() -> essentialsConfig.hudPlayerInfoY >= 0 ? essentialsConfig.hudPlayerInfoY : 6,
 				(x, y) -> {
-					config.hudPlayerInfoX = x;
-					config.hudPlayerInfoY = y;
+					essentialsConfig.hudPlayerInfoX = x;
+					essentialsConfig.hudPlayerInfoY = y;
 				},
 				playerInfoWidth, playerInfoHeight
 		));
@@ -226,6 +239,7 @@ public class HudLayoutEditorScreen extends Screen {
 	@Override
 	public void onClose() {
 		SkyMellooConfig.HANDLER.save();
+		com.melloo.mellooessentials.client.config.EssentialsConfig.save();
 		super.onClose();
 	}
 

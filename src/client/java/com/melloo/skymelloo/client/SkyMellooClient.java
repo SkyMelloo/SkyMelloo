@@ -5,7 +5,6 @@ import com.melloo.skymelloo.client.api.SkyMellooApiClient;
 import com.melloo.skymelloo.client.block.BlockHighlightRenderer;
 import com.melloo.skymelloo.client.combat.PlayerKillTracker;
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
-import com.melloo.skymelloo.client.cosmetics.CosmeticsRenderer;
 import com.melloo.skymelloo.client.cosmetics.MagicMissileManager;
 import com.melloo.skymelloo.client.fishing.FishingHelper;
 import com.melloo.skymelloo.client.fishing.FishingMinigameManager;
@@ -25,7 +24,6 @@ import com.melloo.skymelloo.client.social.PermissionsManager;
 import com.melloo.skymelloo.client.social.ResourcePackStatus;
 import com.melloo.skymelloo.client.social.SkyMellooPingMonitor;
 import com.melloo.skymelloo.client.social.WhitelistManager;
-import com.melloo.skymelloo.client.social.WhitelistStatusHud;
 import com.melloo.skymelloo.client.fishing.FishingScoreHud;
 import com.melloo.skymelloo.client.gui.HudLayoutEditorScreen;
 import com.melloo.skymelloo.client.util.ChatUtil;
@@ -63,7 +61,6 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static KeyMapping toggleMobHighlightKey;
 	private static KeyMapping openConfigKey;
 	private static KeyMapping hudEditorKey;
-	private static KeyMapping socialMenuKey;
 	private static KeyMapping mainMenuKey;
 
 	/** So the settings screen itself can offer a "rebind" row without going out to vanilla's separate Controls screen. */
@@ -74,6 +71,33 @@ public class SkyMellooClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		SkyMellooConfig.HANDLER.load();
+		// Upgrades MellooEssentials' default light-blue mod-user marker (nametag AND tab list) to
+		// pink specifically for players this client separately confirms are also running SkyMelloo
+		// (its own presence system, see ModPresenceManager#isModUser) - essentials' own
+		// EntityDisplayNameMixin/PlayerTabOverlayMixin are the only places a marker actually gets
+		// added, this just resolves which sprite they use. See ModMarkerManager's own doc comment
+		// for why this is a hook rather than a second mixin.
+		com.melloo.mellooessentials.client.social.ModMarkerManager.setSpriteOverride((uuid, defaultSprite) -> {
+			var localPlayer = net.minecraft.client.Minecraft.getInstance().player;
+			boolean isSkyMellooUser = (localPlayer != null && localPlayer.getUUID().equals(uuid))
+					|| com.melloo.skymelloo.client.social.ModPresenceManager.isModUser(uuid);
+			return isSkyMellooUser ? net.minecraft.resources.Identifier.withDefaultNamespace("item/pink_dye") : null;
+		});
+		// Lets essentials' own settings screen offer a "SkyMelloo Config" button back to this - H
+		// always opens essentials' screen now (the single settings/status/player-info surface for
+		// both mods), this button is the way to still reach SkyMelloo's own party/dungeon/etc tabs.
+		com.melloo.mellooessentials.client.gui.SettingsScreen.setSkyMellooScreenOpener(() ->
+				com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL));
+		// This mod's own status/player-info HUDs were removed as duplicates of essentials' - these
+		// two extension points let essentials' single ConnectionStatusHud still surface the two
+		// pieces of extra info only SkyMelloo has: whether this account is admin-linked, and the
+		// sky.melloo.me API ping (distinct from the Minecraft server ping essentials' own
+		// PlayerInfoHud already shows).
+		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setAdminBadgeSupplier(WhitelistManager::isAdmin);
+		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setExtraLineProvider(() -> {
+			int ms = com.melloo.skymelloo.client.social.SkyMellooPingMonitor.getLastPingMs();
+			return ms >= 0 ? ms + "ms" : "--";
+		});
 		PartyTracker.init();
 		com.melloo.skymelloo.client.social.HypixelLocationTracker.init();
 		PartyJoinWatcher.init();
@@ -102,14 +126,16 @@ public class SkyMellooClient implements ClientModInitializer {
 			// HypixelModAPI packets), so that one still resets normally.
 			PartyHudManager.reset();
 		});
-		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "connection_status"), WhitelistStatusHud.INSTANCE);
+		// Connection-status and Player-Info HUDs are MellooEssentials-only now (this mod's own
+		// copies of both were byte-for-byte duplicates - see SkyMellooSettingsScreen's GENERAL tab
+		// and MellooEssentials' ConnectionStatusHud/PlayerInfoHud, plus the extension points
+		// registered below for the admin badge and sky.melloo.me ping line this mod still owns).
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "fishing_score"), FishingScoreHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "party"), PartyHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "party_mp_bar"), com.melloo.skymelloo.client.party.PartyMpBarHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "dungeon_score"), DungeonScoreHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "dungeon_debug"), DungeonDebugHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "health_mana_bars"), com.melloo.skymelloo.client.gui.HealthManaBarsHud.INSTANCE);
-		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "player_info"), com.melloo.skymelloo.client.gui.PlayerInfoHud.INSTANCE);
 
 		// Unbound by default (no reasonable universal default across keyboard layouts) -
 		// bind it yourself under Controls > Key Binds > SkyMelloo, or toggle Mob Highlighting from
@@ -122,12 +148,14 @@ public class SkyMellooClient implements ClientModInitializer {
 				CATEGORY
 		));
 
-		// Opens the SkyMelloo settings screen directly, no ModMenu/commands needed.
-		// Defaults to H (free in vanilla, unaffected by keyboard layout). Rebindable as usual.
+		// Opens the SkyMelloo settings screen directly, no ModMenu/commands needed. Unbound by
+		// default now (used to default to H, but that's MellooEssentials' key now - its settings
+		// screen is the single H-menu for both mods, with a "SkyMelloo Config" button back to this
+		// screen). Still fully rebindable for anyone who wants a direct hotkey to it.
 		openConfigKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.open_config",
 				InputConstants.Type.KEYSYM,
-				GLFW.GLFW_KEY_H,
+				InputConstants.UNKNOWN.getValue(),
 				CATEGORY
 		));
 
@@ -137,15 +165,6 @@ public class SkyMellooClient implements ClientModInitializer {
 				"key.skymelloo.hud_editor",
 				InputConstants.Type.KEYSYM,
 				GLFW.GLFW_KEY_J,
-				CATEGORY
-		));
-
-		// Opens the Social menu (SkyMelloo friends + party, see SocialMenuScreen). Defaults to G
-		// (free in vanilla).
-		socialMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-				"key.skymelloo.social_menu",
-				InputConstants.Type.KEYSYM,
-				GLFW.GLFW_KEY_G,
 				CATEGORY
 		));
 
@@ -161,8 +180,7 @@ public class SkyMellooClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			// Runs regardless of sky.melloo.me whitelist status - this is about the actual Minecraft
-			// server connection (or, for StaffEncounterTracker, recognizing SkyMelloo staff wherever
-			// they're encountered), unrelated to any of the Hypixel-only SkyBlock features gated
+			// server connection, unrelated to any of the Hypixel-only SkyBlock features gated
 			// below. ConnectionQualityMonitor specifically IS Hypixel-only despite sitting in this
 			// block - its own start() refuses to ever go active off Hypixel (real bug fixed: it used
 			// to fire its connection-quality chat messages on any server at all), so tick() here is
@@ -171,19 +189,11 @@ public class SkyMellooClient implements ClientModInitializer {
 			com.melloo.skymelloo.client.util.SkyblockDetector.tick(client);
 			com.melloo.skymelloo.client.util.AfkDetector.tick(client);
 			SkyMellooPingMonitor.tick(client);
-			com.melloo.skymelloo.client.util.ServerPingMonitor.tick(client);
-			com.melloo.skymelloo.client.gui.FpsMonitor.tick(client);
 			com.melloo.skymelloo.client.util.AutoReconnect.tick(client);
-			com.melloo.skymelloo.client.social.StaffEncounterTracker.tick(client);
 
 			while (hudEditorKey.consumeClick()) {
 				if (client.screen == null) {
 					client.setScreen(new HudLayoutEditorScreen());
-				}
-			}
-			while (socialMenuKey.consumeClick()) {
-				if (client.screen == null) {
-					client.setScreen(new com.melloo.skymelloo.client.gui.SocialMenuScreen());
 				}
 			}
 			while (mainMenuKey.consumeClick()) {
@@ -198,7 +208,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			// Everything else is Hypixel-only - the whole rest of the mod (SkyBlock features, party,
 			// friends, cloud sync, the whitelist/version/permission checks that gate them) has no
 			// reason to run on any other server.
-			if (!com.melloo.skymelloo.client.util.HypixelDetector.isHypixel(client)) {
+			if (!com.melloo.mellooessentials.client.util.HypixelDetector.isHypixel(client)) {
 				TickDelay.tick();
 				return;
 			}
@@ -233,15 +243,12 @@ public class SkyMellooClient implements ClientModInitializer {
 			ResourcePackStatus.tick(client);
 			PartyJoinWatcher.tick(client);
 			BlockHighlightRenderer.tick(client);
-			CosmeticsRenderer.tick(client);
 			MagicMissileManager.tick(client);
 			com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.tick(client);
 			com.melloo.skymelloo.client.combat.DeathRecapManager.tick(client);
 			ModPresenceManager.tick(client);
 			com.melloo.skymelloo.client.social.DungeonSyncManager.sampleTick(client);
 			com.melloo.skymelloo.client.social.BossRoomScanner.tick(client);
-			com.melloo.skymelloo.client.social.FriendsManager.tick(client);
-			com.melloo.skymelloo.client.social.RelayChatManager.tick(client);
 			TickDelay.tick();
 		});
 
@@ -270,11 +277,9 @@ public class SkyMellooClient implements ClientModInitializer {
 									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party-Sync angefragt..."));
 									return 1;
 								})))
-						.then(com.melloo.skymelloo.client.social.FriendsManager.buildFriendCommand())
 						.then(com.melloo.skymelloo.client.highlight.LobbySearchManager.buildSearchCommand())
 						.then(com.melloo.skymelloo.client.social.BlockedUsersManager.buildBlockCommand())
 						.then(com.melloo.skymelloo.client.social.BlockedUsersManager.buildUnblockCommand())
-						.then(com.melloo.skymelloo.client.social.RelayChatManager.buildChatCommand())
 						.then(buildGetDataCommand())
 						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildRollCommand())
 						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildPollCommand())
@@ -298,38 +303,6 @@ public class SkyMellooClient implements ClientModInitializer {
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(
 									"Spells Cast: §e" + SkyMellooConfig.HANDLER.instance().totalSpellsCast + "§r  ·  §dKills: §e" + SkyMellooConfig.HANDLER.instance().totalPlayersKilled + "§r  ·  §dSpell Essence: §e" + SkyMellooConfig.HANDLER.instance().totalSpellEssenceCollected
 							));
-							return 1;
-						}))
-						// Named after the German "Staff getroffen" ("met/encountered staff") - a running
-						// list of every real SkyMelloo staff/owner member you've ever shared a tab list
-						// with, anywhere (see StaffEncounterTracker, the one part of the mod that keeps
-						// scanning regardless of server).
-						.then(ClientCommands.literal("hitstaff").executes(ctx -> {
-							var source = ctx.getSource();
-							Minecraft client = Minecraft.getInstance();
-							ModAuthManager.getIdentity(client)
-									.exceptionally(error -> null)
-									.thenCompose(SkyMellooApiClient::fetchStaffEncounters)
-									.thenAccept(encounters -> client.execute(() -> {
-										if (encounters.isEmpty()) {
-											source.sendFeedback(ChatUtil.prefixed("§7Noch keine SkyMelloo-Staff getroffen."));
-											return;
-										}
-										var sorted = new java.util.ArrayList<>(encounters);
-										sorted.sort((a, b) -> Long.compare(b.lastSeenMillis(), a.lastSeenMillis()));
-										source.sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo-Staff getroffen (" + sorted.size() + ") ==="));
-										long now = System.currentTimeMillis();
-										for (var entry : sorted) {
-											String roleLabel = switch (entry.role()) {
-												case "owner" -> "Owner";
-												case "admin" -> "Admin";
-												case "developer" -> "Developer";
-												case "moderator" -> "Moderator";
-												default -> entry.role();
-											};
-											source.sendFeedback(ChatUtil.prefixed("§6[" + roleLabel + "] §f" + entry.username() + " §7- zuletzt gesehen vor " + formatAgo(now - entry.lastSeenMillis())));
-										}
-									}));
 							return 1;
 						}))
 						.then(ClientCommands.literal("session").executes(ctx -> {
@@ -703,11 +676,10 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo contact §7- Kontaktseite (sky.melloo.me/contact)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo legal §7- Impressum, Datenschutz, AGB (Links)"));
 
-		source.sendFeedback(ChatUtil.prefixed("§6--- Freunde & Party ---"));
+		source.sendFeedback(ChatUtil.prefixed("§6--- Party ---"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo sync §7- Party-Sync manuell anstoßen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo friend <name>§7/§aaccept§7/§adecline§7/§aremove§7/§alist §7- SkyMelloo-Freunde verwalten"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo block <name>§7/§aunblock <name> §7- Party-Mitglied blockieren (Auto-Kick)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo chat party <msg>§7/§achat <name> <msg> §7- Relay-Chat (an Party oder direkt)"));
+		source.sendFeedback(ChatUtil.prefixed("§7Freunde & Relay-Chat laufen jetzt über MellooEssentials: §f/me friend§7, §f/me chat"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo roll <amount>§7/§aroll party§7/§aroll <word> <secs> §7- Zufallsauswahl in der Party"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo poll start <Frage;Antwort1;...>§7/§apoll close §7- Party-Umfrage"));
 
@@ -715,34 +687,16 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- Spell-Kills anzeigen"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- Dungeon-Session-Stats anzeigen (Runs, Ø Score, Deaths, Zeit)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- Party-Join-Nachricht testen"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo hitstaff §7- SkyMelloo-Staff anzeigen, die du schon getroffen hast"));
 
-		// Every feature is unlocked for everyone now except Cosmetics, which genuinely still needs a
-		// linked sky.melloo.me account (the server has to know who's who to broadcast a cosmetic to
-		// nearby players).
+		// Every feature is unlocked for everyone now except Spell (Magic Missile), which genuinely
+		// still needs a linked sky.melloo.me account (the server has to know who's who to broadcast a
+		// cast to nearby players). Particle cosmetics themselves moved to the separately-required
+		// MellooEssentials mod and aren't account-gated at all anymore.
 		java.util.List<String> unlockedFeatures = new java.util.ArrayList<>(java.util.List.of("Party", "Fishing", "Dungeons"));
-		if (PermissionsManager.has("cosmetics")) {
-			unlockedFeatures.add("Cosmetics");
+		if (PermissionsManager.has("spell")) {
+			unlockedFeatures.add("Spell");
 		}
 		source.sendFeedback(ChatUtil.prefixed("§7Weitere Einstellungen (" + String.join(", ", unlockedFeatures) + ") laufen über das Menü (Taste H)."));
-	}
-
-	/** Rough "vor X" duration for /sm hitstaff - coarsest unit only (a last-seen from 2 days ago doesn't need minute precision). */
-	private static String formatAgo(long millisAgo) {
-		long seconds = millisAgo / 1000;
-		if (seconds < 60) {
-			return "gerade eben";
-		}
-		long minutes = seconds / 60;
-		if (minutes < 60) {
-			return minutes + " Minute" + (minutes == 1 ? "" : "n");
-		}
-		long hours = minutes / 60;
-		if (hours < 24) {
-			return hours + " Stunde" + (hours == 1 ? "" : "n");
-		}
-		long days = hours / 24;
-		return days + " Tag" + (days == 1 ? "" : "en");
 	}
 
 	public static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestOnlinePlayers(

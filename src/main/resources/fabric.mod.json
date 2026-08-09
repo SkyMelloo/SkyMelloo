@@ -32,7 +32,8 @@
 		"java": ">=25",
 		"fabric-api": "*",
 		"yet_another_config_lib_v3": "*",
-		"hypixel-mod-api": "*"
+		"hypixel-mod-api": "*",
+		"mellooessentials": "*"
 	},
 	"suggests": {
 		"modmenu": "*"

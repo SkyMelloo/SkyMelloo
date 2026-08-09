@@ -1,7 +1,7 @@
 package com.melloo.skymelloo.client.party;
 
 import com.melloo.skymelloo.client.util.DebugLog;
-import com.melloo.skymelloo.client.util.HypixelDetector;
+import com.melloo.mellooessentials.client.util.HypixelDetector;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.hypixel.modapi.HypixelModAPI;

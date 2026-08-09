@@ -16,7 +16,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.component.ResolvableProfile;
 
-import java.awt.Color;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -60,7 +59,7 @@ public class SkyMellooMenuScreen extends Screen {
 			return null;
 		}
 
-		/** Optional, pinned to the nav row right next to the Back arrow - see {@link CosmeticsListPage#navExtraAction}. */
+		/** Optional, pinned to the nav row right next to the Back arrow. */
 		default MenuAction navExtraAction(SkyMellooMenuScreen screen) {
 			return null;
 		}
@@ -294,8 +293,12 @@ public class SkyMellooMenuScreen extends Screen {
 			List<MenuAction> list = new ArrayList<>();
 			list.add(linkAction(Items.WRITABLE_BOOK, "Settings", "All SkyMelloo settings", new SettingsPage(), screen));
 			list.add(linkAction(Items.BLAZE_ROD, "Spells", "Switch spell type, view recent kills", new SpellsPage(), screen));
-			if (com.melloo.skymelloo.client.config.SkyMellooConfig.HANDLER.instance().cosmeticsEnabled) {
-				list.add(linkAction(Items.FIREWORK_STAR, "Cosmetics", "Toggle and color every cosmetic effect", new CosmeticsListPage(), screen));
+			if (com.melloo.mellooessentials.client.config.EssentialsConfig.get().cosmeticsEnabled) {
+				// Opens MellooEssentials' own settings screen directly (straight to its Cosmetics tab)
+				// instead of maintaining a second, duplicate cosmetics UI here - see that screen's own
+				// two-arg constructor.
+				list.add(new MenuAction(named(Items.FIREWORK_STAR, "Cosmetics", List.of("§7Toggle and color every cosmetic effect", "", "§eOpens the MellooEssentials menu")), () ->
+						Minecraft.getInstance().setScreen(new com.melloo.mellooessentials.client.gui.SettingsScreen(screen, true))));
 			}
 			list.add(new MenuAction(named(Items.BARRIER, "§7Games", List.of("§7Coming soon")), () -> {
 			}));
@@ -836,247 +839,4 @@ public class SkyMellooMenuScreen extends Screen {
 		}
 	}
 
-	// ---- cosmetics ----
-
-	private record CosmeticDef(String name, BooleanSupplier enabledGetter, Consumer<Boolean> enabledSetter, Supplier<Color> colorGetter, Consumer<Color> colorSetter) {
-		boolean hasColor() {
-			return colorGetter != null;
-		}
-	}
-
-	/** Every purely-cosmetic particle effect (excludes Magic Missile - that's its own richer page under Spells, with spell-type switching). */
-	private static List<CosmeticDef> buildCosmeticDefs() {
-		SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
-		List<CosmeticDef> list = new ArrayList<>();
-		list.add(new CosmeticDef("Halo", () -> c.haloEnabled, v -> c.haloEnabled = v, () -> c.haloColor, v -> c.haloColor = v));
-		list.add(new CosmeticDef("Cherry Blossom", () -> c.cherryBlossomEnabled, v -> c.cherryBlossomEnabled = v, null, null));
-		list.add(new CosmeticDef("Rainbow Helix", () -> c.rainbowHelixEnabled, v -> c.rainbowHelixEnabled = v, () -> c.rainbowHelixColor, v -> c.rainbowHelixColor = v));
-		list.add(new CosmeticDef("Aura", () -> c.auraEnabled, v -> c.auraEnabled = v, () -> c.auraColor, v -> c.auraColor = v));
-		list.add(new CosmeticDef("Wave", () -> c.waveEnabled, v -> c.waveEnabled = v, () -> c.waveColor, v -> c.waveColor = v));
-		list.add(new CosmeticDef("Rain Cloud", () -> c.rainCloudEnabled, v -> c.rainCloudEnabled = v, null, null));
-		list.add(new CosmeticDef("Fire Ring", () -> c.fireRingEnabled, v -> c.fireRingEnabled = v, null, null));
-		list.add(new CosmeticDef("Star Rain", () -> c.starRainEnabled, v -> c.starRainEnabled = v, null, null));
-		list.add(new CosmeticDef("Spark Aura", () -> c.sparkAuraEnabled, v -> c.sparkAuraEnabled = v, null, null));
-		list.add(new CosmeticDef("Lissajous", () -> c.lissajousEnabled, v -> c.lissajousEnabled = v, () -> c.lissajousColor, v -> c.lissajousColor = v));
-		list.add(new CosmeticDef("Rose Curve", () -> c.roseCurveEnabled, v -> c.roseCurveEnabled = v, () -> c.roseCurveColor, v -> c.roseCurveColor = v));
-		list.add(new CosmeticDef("Landing Shockwave", () -> c.landingShockwaveEnabled, v -> c.landingShockwaveEnabled = v, () -> c.landingShockwaveColor, v -> c.landingShockwaveColor = v));
-		list.add(new CosmeticDef("Firework Burst", () -> c.fireworkBurstEnabled, v -> c.fireworkBurstEnabled = v, null, null));
-		list.add(new CosmeticDef("Frost Aura", () -> c.frostAuraEnabled, v -> c.frostAuraEnabled = v, () -> c.frostAuraColor, v -> c.frostAuraColor = v));
-		list.add(new CosmeticDef("Note Melody", () -> c.noteMelodyEnabled, v -> c.noteMelodyEnabled = v, null, null));
-		list.add(new CosmeticDef("Portal Vortex", () -> c.portalVortexEnabled, v -> c.portalVortexEnabled = v, () -> c.portalVortexColor, v -> c.portalVortexColor = v));
-		list.add(new CosmeticDef("Heart Trail", () -> c.heartTrailEnabled, v -> c.heartTrailEnabled = v, null, null));
-		list.add(new CosmeticDef("Spiral Galaxy", () -> c.spiralGalaxyEnabled, v -> c.spiralGalaxyEnabled = v, () -> c.spiralGalaxyColor, v -> c.spiralGalaxyColor = v));
-		list.add(new CosmeticDef("Jump Trail", () -> c.jumpTrailEnabled, v -> c.jumpTrailEnabled = v, () -> c.jumpTrailColor, v -> c.jumpTrailColor = v));
-		list.add(new CosmeticDef("Totem Flash", () -> c.totemFlashEnabled, v -> c.totemFlashEnabled = v, null, null));
-		list.add(new CosmeticDef("Sculk Pulse", () -> c.sculkPulseEnabled, v -> c.sculkPulseEnabled = v, null, null));
-		list.add(new CosmeticDef("Omen Aura", () -> c.omenAuraEnabled, v -> c.omenAuraEnabled = v, null, null));
-		list.add(new CosmeticDef("Gust Aura", () -> c.gustAuraEnabled, v -> c.gustAuraEnabled = v, () -> c.gustAuraColor, v -> c.gustAuraColor = v));
-		list.add(new CosmeticDef("Ash Fall", () -> c.ashFallEnabled, v -> c.ashFallEnabled = v, () -> c.ashFallColor, v -> c.ashFallColor = v));
-		list.add(new CosmeticDef("Campfire Smoke", () -> c.campfireSmokeEnabled, v -> c.campfireSmokeEnabled = v, null, null));
-		list.add(new CosmeticDef("Tornado", () -> c.tornadoEnabled, v -> c.tornadoEnabled = v, () -> c.tornadoColor, v -> c.tornadoColor = v));
-		list.add(new CosmeticDef("Black Hole", () -> c.blackHoleEnabled, v -> c.blackHoleEnabled = v, () -> c.blackHoleColor, v -> c.blackHoleColor = v));
-		list.add(new CosmeticDef("Twin Vortex", () -> c.twinVortexEnabled, v -> c.twinVortexEnabled = v, () -> c.twinVortexColor, v -> c.twinVortexColor = v));
-		list.add(new CosmeticDef("Enchanted Crit Sparkle", () -> c.enchantedCritSparkleEnabled, v -> c.enchantedCritSparkleEnabled = v, null, null));
-		list.add(new CosmeticDef("Dust Plume Trail", () -> c.dustPlumeTrailEnabled, v -> c.dustPlumeTrailEnabled = v, null, null));
-		list.add(new CosmeticDef("Charge Up", () -> c.chargeUpEnabled, v -> c.chargeUpEnabled = v, () -> c.chargeUpColor, v -> c.chargeUpColor = v));
-		list.add(new CosmeticDef("Orbit Rings", () -> c.orbitRingsEnabled, v -> c.orbitRingsEnabled = v, () -> c.orbitRingsColor, v -> c.orbitRingsColor = v));
-		list.add(new CosmeticDef("Lightning Aura", () -> c.lightningAuraEnabled, v -> c.lightningAuraEnabled = v, null, null));
-		list.add(new CosmeticDef("Confetti Burst", () -> c.confettiBurstEnabled, v -> c.confettiBurstEnabled = v, null, null));
-		list.add(new CosmeticDef("Phoenix Wings", () -> c.phoenixWingsEnabled, v -> c.phoenixWingsEnabled = v, () -> c.phoenixWingsColor, v -> c.phoenixWingsColor = v));
-		list.add(new CosmeticDef("Void Rift", () -> c.voidRiftEnabled, v -> c.voidRiftEnabled = v, null, null));
-		list.add(new CosmeticDef("Star Weave", () -> c.starWeaveEnabled, v -> c.starWeaveEnabled = v, null, null));
-		list.add(new CosmeticDef("Ascending Sparkles", () -> c.ascendingSparklesEnabled, v -> c.ascendingSparklesEnabled = v, null, null));
-		list.add(new CosmeticDef("Comet Trail", () -> c.cometTrailEnabled, v -> c.cometTrailEnabled = v, null, null));
-		list.add(new CosmeticDef("Star Veil", () -> c.starVeilEnabled, v -> c.starVeilEnabled = v, null, null));
-		list.add(new CosmeticDef("Radiant Pulse", () -> c.radiantPulseEnabled, v -> c.radiantPulseEnabled = v, null, null));
-		return list;
-	}
-
-	private static final class CosmeticsListPage implements Page {
-		@Override
-		public String title() {
-			return "Cosmetics";
-		}
-
-		@Override
-		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
-			List<MenuAction> list = new ArrayList<>();
-			for (CosmeticDef def : buildCosmeticDefs()) {
-				boolean on = def.enabledGetter().getAsBoolean();
-				ItemStack icon = toggleIcon(on, def.name(), "Left-click to configure, right-click to toggle");
-				list.add(new MenuAction(icon, () -> screen.push(new CosmeticDetailPage(def)), () -> {
-					def.enabledSetter().accept(!def.enabledGetter().getAsBoolean());
-					SkyMellooConfig.HANDLER.save();
-					screen.rebuild();
-				}));
-			}
-			return list;
-		}
-
-		@Override
-		public MenuAction navExtraAction(SkyMellooMenuScreen screen) {
-			return linkAction(Items.YELLOW_DYE, "Favorite Color", "Set one color for every colorable cosmetic at once", new FavoriteColorPickerPage(), screen);
-		}
-	}
-
-	/** Same 16 dye choices as a single cosmetic's color picker, but applies the pick to EVERY colorable cosmetic at once instead of just one. */
-	private static final class FavoriteColorPickerPage implements Page {
-		@Override
-		public String title() {
-			return "Favorite Color";
-		}
-
-		@Override
-		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
-			List<MenuAction> list = new ArrayList<>();
-			for (DyeOption dye : DYE_OPTIONS) {
-				ItemStack icon = named(dye.dye(), "§f" + dye.name(), List.of("§7Sets this color for every colorable cosmetic", "", "§eClick to apply"));
-				list.add(new MenuAction(icon, () -> {
-					Color color = new Color(0xFF000000 | dye.rgb(), true);
-					for (CosmeticDef def : buildCosmeticDefs()) {
-						if (def.hasColor()) {
-							def.colorSetter().accept(color);
-						}
-					}
-					SkyMellooConfig.HANDLER.save();
-					screen.goBack();
-				}));
-			}
-			return list;
-		}
-	}
-
-	/** Left = on/off toggle, right = a link to the color picker (only if this cosmetic actually has a color). */
-	private static final class CosmeticDetailPage implements Page {
-		private final CosmeticDef def;
-
-		CosmeticDetailPage(CosmeticDef def) {
-			this.def = def;
-		}
-
-		@Override
-		public String title() {
-			return def.name();
-		}
-
-		@Override
-		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
-			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction(def.name(), "Turn this cosmetic on or off.", def.enabledGetter(), def.enabledSetter(), screen));
-			if (def.hasColor()) {
-				ParticleKindSupport kindSupport = particleKindSupportFor(def);
-				boolean usingKind = kindSupport != null && !"DUST".equals(kindSupport.getter().get());
-				// The icon reflects whichever color/particle is actually currently selected, not a fixed dye.
-				Item colorIcon;
-				if (usingKind) {
-					colorIcon = PARTICLE_KIND_CHOICES.stream()
-							.filter(choice -> choice.kindName().equals(kindSupport.getter().get()))
-							.map(ParticleKindChoice::icon).findFirst().orElse(Items.END_ROD);
-				} else {
-					int currentRgb = def.colorGetter().get().getRGB() & 0xFFFFFF;
-					colorIcon = DYE_OPTIONS.stream().filter(d -> d.rgb() == currentRgb).map(DyeOption::dye).findFirst().orElse(Items.RED_DYE);
-				}
-				String label = kindSupport != null ? "Color / Particle" : "Color";
-				list.add(linkAction(colorIcon, label, "Pick a color or particle for " + def.name() + ".", new ColorPickerPage(def), screen));
-			}
-			return list;
-		}
-	}
-
-	private record ParticleKindSupport(Supplier<String> getter, Consumer<String> setter) {
-	}
-
-	private record ParticleKindChoice(String kindName, String label, Item icon) {
-	}
-
-	// Alternate fixed particles a cosmetic can use instead of colored dust - reuses the existing
-	// ParticleKind enum (SPARKLE is already END_ROD) rather than inventing new particle constants.
-	private static final List<ParticleKindChoice> PARTICLE_KIND_CHOICES = List.of(
-			new ParticleKindChoice("SPARKLE", "Starlight", Items.END_ROD),
-			new ParticleKindChoice("SOUL", "Soul", Items.SOUL_TORCH),
-			new ParticleKindChoice("SNOWFLAKE", "Snowflake", Items.SNOWBALL),
-			new ParticleKindChoice("HAPPY_VILLAGER", "Emerald Sparkle", Items.EMERALD)
-	);
-
-	/** Which cosmetics also support switching to a fixed particle kind instead of colored dust - only a subset for now, same pattern can be extended to more. */
-	private static ParticleKindSupport particleKindSupportFor(CosmeticDef def) {
-		SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
-		return switch (def.name()) {
-			case "Halo" -> new ParticleKindSupport(() -> c.haloParticleKind, v -> c.haloParticleKind = v);
-			case "Aura" -> new ParticleKindSupport(() -> c.auraParticleKind, v -> c.auraParticleKind = v);
-			default -> null;
-		};
-	}
-
-	private record DyeOption(Item dye, String name, int rgb) {
-	}
-
-	private static final List<DyeOption> DYE_OPTIONS = List.of(
-			new DyeOption(Items.WHITE_DYE, "White", 0xFFFFFF),
-			new DyeOption(Items.ORANGE_DYE, "Orange", 0xD87F33),
-			new DyeOption(Items.MAGENTA_DYE, "Magenta", 0xB24CD8),
-			new DyeOption(Items.LIGHT_BLUE_DYE, "Light Blue", 0x6699D8),
-			new DyeOption(Items.YELLOW_DYE, "Yellow", 0xE5E533),
-			new DyeOption(Items.LIME_DYE, "Lime", 0x7FCC19),
-			new DyeOption(Items.PINK_DYE, "Pink", 0xF27FA5),
-			new DyeOption(Items.GRAY_DYE, "Gray", 0x4C4C4C),
-			new DyeOption(Items.LIGHT_GRAY_DYE, "Light Gray", 0x999999),
-			new DyeOption(Items.CYAN_DYE, "Cyan", 0x4C7F99),
-			new DyeOption(Items.PURPLE_DYE, "Purple", 0x7F3FB2),
-			new DyeOption(Items.BLUE_DYE, "Blue", 0x334CB2),
-			new DyeOption(Items.BROWN_DYE, "Brown", 0x664C33),
-			new DyeOption(Items.GREEN_DYE, "Green", 0x667F33),
-			new DyeOption(Items.RED_DYE, "Red", 0x993333),
-			new DyeOption(Items.BLACK_DYE, "Black", 0x191919)
-	);
-
-	/** All 16 vanilla dye colors as clickable items - picking one sets the cosmetic's color and returns to its detail page. */
-	private static final class ColorPickerPage implements Page {
-		private final CosmeticDef def;
-
-		ColorPickerPage(CosmeticDef def) {
-			this.def = def;
-		}
-
-		@Override
-		public String title() {
-			return def.name() + " Color";
-		}
-
-		@Override
-		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
-			List<MenuAction> list = new ArrayList<>();
-			ParticleKindSupport kindSupport = particleKindSupportFor(def);
-			boolean usingKind = kindSupport != null && !"DUST".equals(kindSupport.getter().get());
-			int currentRgb = def.colorGetter().get().getRGB() & 0xFFFFFF;
-			for (DyeOption dye : DYE_OPTIONS) {
-				// Clicking any plain color always switches back to normal colored-dust mode, even if a
-				// particle kind was selected before.
-				boolean selected = !usingKind && dye.rgb() == currentRgb;
-				ItemStack icon = named(dye.dye(), (selected ? "§a✓ " : "§f") + dye.name(),
-						List.of("§7Click to use this color", "", selected ? "§aCurrently selected" : ""));
-				list.add(new MenuAction(icon, () -> {
-					def.colorSetter().accept(new Color(0xFF000000 | dye.rgb(), true));
-					if (kindSupport != null) {
-						kindSupport.setter().accept("DUST");
-					}
-					SkyMellooConfig.HANDLER.save();
-					screen.goBack();
-				}));
-			}
-			if (kindSupport != null) {
-				for (ParticleKindChoice choice : PARTICLE_KIND_CHOICES) {
-					boolean selected = choice.kindName().equals(kindSupport.getter().get());
-					ItemStack icon = named(choice.icon(), (selected ? "§a✓ " : "§f") + choice.label(),
-							List.of("§7Use this particle instead of a color", "", selected ? "§aCurrently selected" : ""));
-					list.add(new MenuAction(icon, () -> {
-						kindSupport.setter().accept(choice.kindName());
-						SkyMellooConfig.HANDLER.save();
-						screen.goBack();
-					}));
-				}
-			}
-			return list;
-		}
-	}
 }

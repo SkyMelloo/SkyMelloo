@@ -2,7 +2,6 @@ package com.melloo.skymelloo.client.gui;
 
 import com.melloo.skymelloo.client.SkyMellooClient;
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
-import com.melloo.skymelloo.client.cosmetics.ParticleKind;
 import com.melloo.skymelloo.client.social.CloudSyncManager;
 import com.melloo.skymelloo.client.social.PermissionsManager;
 import com.melloo.skymelloo.client.social.WhitelistManager;
@@ -31,7 +30,9 @@ import java.util.function.Supplier;
 /**
  * The full custom (non-YACL) settings screen: a rotatable 3D preview of your own character on
  * the left, a slim non-boxy row list on the right, and a tab bar across the top of the list
- * covering every config category, including Cosmetics. Replaces YACL's generated screen entirely.
+ * covering every config category. Replaces YACL's generated screen entirely. Particle cosmetics
+ * moved to MellooEssentials (a hard dependency now) - configured from its own settings screen, or
+ * from SkyMelloo's H-menu (see SkyMellooMenuScreen's Cosmetics page), not here.
  */
 public class SkyMellooSettingsScreen extends Screen {
 	private static final int PANEL_BG = 0x30000000;
@@ -57,7 +58,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		// Item/Chest/Mob highlighting all relocated into DUNGEONS (see rowsFor), Player highlighting
 		// (now "Party Highlighting", including the admin/dev/owner gold color) moved here instead.
 		// HP Armor Stand highlighting is gone entirely, not relocated.
-		COSMETICS("Cosmetics"), PARTY("Party"), FUN("Fun"), HP("HP & Distance"), FISHING("Fishing"), DUNGEONS("Dungeons"), GENERAL("General"), CLOUD("Cloud"), DEBUG("Debug");
+		PARTY("Party"), FUN("Fun"), HP("HP & Distance"), FISHING("Fishing"), DUNGEONS("Dungeons"), GENERAL("General"), CLOUD("Cloud"), DEBUG("Debug");
 
 		final String label;
 
@@ -75,7 +76,7 @@ public class SkyMellooSettingsScreen extends Screen {
 	private final List<AbstractWidget> contentWidgets = new ArrayList<>();
 	private final List<AbstractWidget> tabWidgets = new ArrayList<>();
 	private final List<AbstractWidget> dropdownWidgets = new ArrayList<>();
-	private Tab activeTab = Tab.COSMETICS;
+	private Tab activeTab = Tab.PARTY;
 	private Tab[] visibleTabsCache = new Tab[0];
 	private AbstractWidget openDropdownOwner;
 	private int dropdownX, dropdownY, dropdownW, dropdownH;
@@ -103,10 +104,9 @@ public class SkyMellooSettingsScreen extends Screen {
 				// the same day - this tab always shows since every feature it contains is available
 				// to everyone now.
 				case DUNGEONS -> true;
-				case COSMETICS -> SkyMellooConfig.HANDLER.instance().cosmeticsEnabled && PermissionsManager.has("cosmetics");
 				// Only Spell/Spell Essence live here now (Kill Tracker/Death Double removed
 				// entirely, Death Recap moved to Dungeons) - both need "cosmetics".
-				case FUN -> PermissionsManager.has("cosmetics");
+				case FUN -> PermissionsManager.has("spell");
 				case GENERAL, CLOUD, DEBUG -> true;
 			};
 			if (visible) {
@@ -245,61 +245,14 @@ public class SkyMellooSettingsScreen extends Screen {
 		SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 		List<RowFactory> rows = new ArrayList<>();
 		switch (tab) {
-			case COSMETICS -> {
-				rows.add(headerRow("Cosmetics"));
-				rows.add(tip(cosmeticColorRow("Halo", () -> c.haloEnabled, v -> c.haloEnabled = v, () -> c.haloColor, v -> c.haloColor = v), "Rotating ring of particles above your head."));
-				rows.add(tip(boolRow("Halo Glow", () -> c.haloGlow, v -> c.haloGlow = v, 0xFFAA33FF), "Layers a larger, brighter particle behind Halo for a stronger glow look. Only visible on your own screen for now, not shared to other viewers yet."));
-				rows.add(tip(particleCosmeticRow("Cherry Blossom", () -> c.cherryBlossomEnabled, v -> c.cherryBlossomEnabled = v, 0xFFFFAAD5, () -> c.cherryBlossomParticle, v -> c.cherryBlossomParticle = v, ParticleKind.CHERRY_BLOSSOM), "Particles gently falling around you - click the particle name to change which one."));
-				rows.add(tip(cosmeticColorRow("Helix", () -> c.rainbowHelixEnabled, v -> c.rainbowHelixEnabled = v, () -> c.rainbowHelixColor, v -> c.rainbowHelixColor = v), "Double-helix spiral of particles around you."));
-				rows.add(tip(cosmeticColorRow("Aura", () -> c.auraEnabled, v -> c.auraEnabled = v, () -> c.auraColor, v -> c.auraColor = v), "Slow, wide double ring of particles orbiting around your body."));
-				rows.add(tip(boolRow("Aura Glow", () -> c.auraGlow, v -> c.auraGlow = v, 0xFFAA33FF), "Layers a larger, brighter particle behind Aura for a stronger glow look. Only visible on your own screen for now, not shared to other viewers yet."));
-				rows.add(tip(cosmeticColorRow("Wave", () -> c.waveEnabled, v -> c.waveEnabled = v, () -> c.waveColor, v -> c.waveColor = v), "A ring of particles that pulses/expands outward from your feet on repeat."));
-				rows.add(tip(cosmeticRow("Rain Cloud", () -> c.rainCloudEnabled, v -> c.rainCloudEnabled = v, 0xFF66AAFF), "A small cloud above your head that continuously rains on you."));
-				rows.add(tip(particleCosmeticRow("Fire Ring", () -> c.fireRingEnabled, v -> c.fireRingEnabled = v, 0xFFFF8800, () -> c.fireRingParticle, v -> c.fireRingParticle = v, ParticleKind.FLAME), "A rotating ring of particles at your feet - click the particle name to change which one."));
-				rows.add(tip(particleCosmeticRow("Star Rain", () -> c.starRainEnabled, v -> c.starRainEnabled = v, 0xFFFFEEAA, () -> c.starRainParticle, v -> c.starRainParticle = v, ParticleKind.SPARKLE), "Particles drifting slowly down from above your head - click the particle name to change which one."));
-				rows.add(tip(particleCosmeticRow("Spark Aura", () -> c.sparkAuraEnabled, v -> c.sparkAuraEnabled = v, 0xFFFFFF55, () -> c.sparkAuraParticle, v -> c.sparkAuraParticle = v, ParticleKind.SPARK), "Occasional particles crackling around your body - click the particle name to change which one."));
-				rows.add(tip(cosmeticColorRow("Lissajous Curve", () -> c.lissajousEnabled, v -> c.lissajousEnabled = v, () -> c.lissajousColor, v -> c.lissajousColor = v), "A 3D Lissajous curve (math-generated knot pattern) weaving around your body."));
-				rows.add(tip(cosmeticColorRow("Rose Curve", () -> c.roseCurveEnabled, v -> c.roseCurveEnabled = v, () -> c.roseCurveColor, v -> c.roseCurveColor = v), "A dense, constantly-morphing rose/rhodonea curve traced with many simultaneous points."));
-				rows.add(tip(cosmeticColorRow("Landing Shockwave", () -> c.landingShockwaveEnabled, v -> c.landingShockwaveEnabled = v, () -> c.landingShockwaveColor, v -> c.landingShockwaveColor = v), "A one-shot expanding shockwave ring every time you land on the ground from a jump/fall."));
-				rows.add(tip(particleCosmeticRow("Firework Burst", () -> c.fireworkBurstEnabled, v -> c.fireworkBurstEnabled = v, 0xFFFF5555, () -> c.fireworkBurstParticle, v -> c.fireworkBurstParticle = v, ParticleKind.FIREWORK), "Occasional sparkle bursts above your head - click the particle name to change which one."));
-				rows.add(tip(cosmeticColorRow("Frost Aura", () -> c.frostAuraEnabled, v -> c.frostAuraEnabled = v, () -> c.frostAuraColor, v -> c.frostAuraColor = v), "Snowflakes swirling tight and close around your body."));
-				rows.add(tip(particleCosmeticRow("Note Melody", () -> c.noteMelodyEnabled, v -> c.noteMelodyEnabled = v, 0xFF66FF88, () -> c.noteMelodyParticle, v -> c.noteMelodyParticle = v, ParticleKind.NOTE), "Particles floating up above your head occasionally - click the particle name to change which one."));
-				rows.add(tip(cosmeticColorRow("Portal Vortex", () -> c.portalVortexEnabled, v -> c.portalVortexEnabled = v, () -> c.portalVortexColor, v -> c.portalVortexColor = v), "A fast-spinning double vortex of colored particles around your whole body."));
-				rows.add(tip(particleCosmeticRow("Heart Trail", () -> c.heartTrailEnabled, v -> c.heartTrailEnabled = v, 0xFFFF4466, () -> c.heartTrailParticle, v -> c.heartTrailParticle = v, ParticleKind.HEART), "Floating particles drifting up above your head occasionally - click the particle name to change which one."));
-				rows.add(tip(cosmeticColorRow("Spiral Galaxy", () -> c.spiralGalaxyEnabled, v -> c.spiralGalaxyEnabled = v, () -> c.spiralGalaxyColor, v -> c.spiralGalaxyColor = v), "A multi-arm spiral fanning outward from your feet to above your head."));
-				rows.add(tip(cosmeticColorRow("Jump Trail", () -> c.jumpTrailEnabled, v -> c.jumpTrailEnabled = v, () -> c.jumpTrailColor, v -> c.jumpTrailColor = v), "Leaves a particle trail behind you while airborne, tracing your actual jump arc."));
-				rows.add(tip(particleCosmeticRow("Totem Flash", () -> c.totemFlashEnabled, v -> c.totemFlashEnabled = v, 0xFFFFCC00, () -> c.totemFlashParticle, v -> c.totemFlashParticle = v, ParticleKind.TOTEM), "Occasional flash burst above your head - click the particle name to change which one."));
-				rows.add(tip(particleCosmeticRow("Sculk Pulse", () -> c.sculkPulseEnabled, v -> c.sculkPulseEnabled = v, 0xFF227777, () -> c.sculkPulseParticle, v -> c.sculkPulseParticle = v, ParticleKind.SCULK), "A dark, spooky pulsing ring of particles at your feet - click the particle name to change which one."));
-				rows.add(tip(particleCosmeticRow("Omen Aura", () -> c.omenAuraEnabled, v -> c.omenAuraEnabled = v, 0xFFCC2244, () -> c.omenAuraParticle, v -> c.omenAuraParticle = v, ParticleKind.OMEN), "An ominous swirling aura - click the particle name to change which one."));
-				rows.add(tip(cosmeticColorRow("Gust Aura", () -> c.gustAuraEnabled, v -> c.gustAuraEnabled = v, () -> c.gustAuraColor, v -> c.gustAuraColor = v), "Colored wind gusts swirling around your body, like your own personal breeze."));
-				rows.add(tip(cosmeticColorRow("Ash Fall", () -> c.ashFallEnabled, v -> c.ashFallEnabled = v, () -> c.ashFallColor, v -> c.ashFallColor = v), "Colored fine particles gently falling around you, like ash near a volcano."));
-				rows.add(tip(cosmeticRow("Campfire Smoke", () -> c.campfireSmokeEnabled, v -> c.campfireSmokeEnabled = v, 0xFFFF9944), "Cozy smoke wisps trailing gently from your feet."));
-				rows.add(tip(cosmeticColorRow("Tornado", () -> c.tornadoEnabled, v -> c.tornadoEnabled = v, () -> c.tornadoColor, v -> c.tornadoColor = v), "A widening funnel of particles from your feet up to above your head, like a personal tornado."));
-				rows.add(tip(cosmeticColorRow("Black Hole", () -> c.blackHoleEnabled, v -> c.blackHoleEnabled = v, () -> c.blackHoleColor, v -> c.blackHoleColor = v), "Particles spiraling inward and vanishing into your body, like a personal black hole."));
-				rows.add(tip(cosmeticColorRow("Twin Vortex", () -> c.twinVortexEnabled, v -> c.twinVortexEnabled = v, () -> c.twinVortexColor, v -> c.twinVortexColor = v), "Two tight, contra-rotating spirals weaving around your whole body."));
-				rows.add(tip(particleCosmeticRow("Enchanted Crit Sparkle", () -> c.enchantedCritSparkleEnabled, v -> c.enchantedCritSparkleEnabled = v, 0xFF66DDFF, () -> c.enchantedCritSparkleParticle, v -> c.enchantedCritSparkleParticle = v, ParticleKind.ENCHANTED_CRIT), "Sparkles bursting around you occasionally, like a magic critical hit - click the particle name to change which one."));
-				rows.add(tip(particleCosmeticRow("Dust Plume Trail", () -> c.dustPlumeTrailEnabled, v -> c.dustPlumeTrailEnabled = v, 0xFFBBBBBB, () -> c.dustPlumeTrailParticle, v -> c.dustPlumeTrailParticle = v, ParticleKind.DUST_PLUME), "A trailing plume drifting up behind your feet - click the particle name to change which one."));
-				rows.add(tip(cosmeticColorRow("Charge Up", () -> c.chargeUpEnabled, v -> c.chargeUpEnabled = v, () -> c.chargeUpColor, v -> c.chargeUpColor = v), "A ring of particles around your feet continuously drifts inward and up into your chest, like charging up energy."));
-				rows.add(tip(cosmeticColorRow("Orbit Rings", () -> c.orbitRingsEnabled, v -> c.orbitRingsEnabled = v, () -> c.orbitRingsColor, v -> c.orbitRingsColor = v), "Two tilted, counter-rotating rings of particles around your waist, like Saturn's rings."));
-				rows.add(tip(cosmeticRow("Lightning Aura", () -> c.lightningAuraEnabled, v -> c.lightningAuraEnabled = v, 0xFFFFFF55), "Occasional jagged lightning bolts arcing from above down to you."));
-				rows.add(tip(cosmeticRow("Confetti Burst", () -> c.confettiBurstEnabled, v -> c.confettiBurstEnabled = v, 0xFFFF66CC), "Occasional multi-colored confetti burst at a random spot around you."));
-				rows.add(tip(cosmeticColorRow("Phoenix Wings", () -> c.phoenixWingsEnabled, v -> c.phoenixWingsEnabled = v, () -> c.phoenixWingsColor, v -> c.phoenixWingsColor = v), "A pair of layered, feathered particle wings trailing from your back, gently flapping."));
-				rows.add(tip(particleCosmeticRow("Void Rift", () -> c.voidRiftEnabled, v -> c.voidRiftEnabled = v, 0xFF442266, () -> c.voidRiftParticle, v -> c.voidRiftParticle = v, ParticleKind.VOID_RIFT), "Occasional glitchy particles flickering around you, like a tear in reality - click the particle name to change which one."));
-				rows.add(tip(cosmeticRow("Star Weave", () -> c.starWeaveEnabled, v -> c.starWeaveEnabled = v, 0xFFEEEEFF), "Two counter-rotating rings of end-rod sparkles weaving through each other around you."));
-				rows.add(tip(cosmeticRow("Ascending Sparkles", () -> c.ascendingSparklesEnabled, v -> c.ascendingSparklesEnabled = v, 0xFFEEEEFF), "A steady stream of end-rod sparkles rising from your feet past your head."));
-				rows.add(tip(cosmeticRow("Comet Trail", () -> c.cometTrailEnabled, v -> c.cometTrailEnabled = v, 0xFFEEEEFF), "A stretched-out comet tail of end-rod sparkles streaming behind you while you move."));
-				rows.add(tip(cosmeticRow("Star Veil", () -> c.starVeilEnabled, v -> c.starVeilEnabled = v, 0xFFEEEEFF), "A soft, slow-drifting cloud of end-rod sparkles orbiting loosely around you at varying heights."));
-				rows.add(tip(cosmeticRow("Radiant Pulse", () -> c.radiantPulseEnabled, v -> c.radiantPulseEnabled = v, 0xFFEEEEFF), "A ring of end-rod sparkles that periodically pulses outward from your chest."));
-			}
 			case PARTY -> {
 				// Party (green), SkyMelloo staff (pink, everywhere - not dungeon-specific), and
 				// SkyMelloo Friends (aqua) are the only categories that get highlighted. Self/regular-
 				// other-player/NPC colors are gone entirely, not just defaulted off.
 				rows.add(headerRow("Party Highlighting"));
-				rows.add(tip(boolRow("Player Highlighting", () -> c.playerHighlightEnabled, v -> c.playerHighlightEnabled = v, 0xFF5599FF), "Highlight your party members, SkyMelloo staff, and SkyMelloo Friends."));
+				rows.add(tip(boolRow("Player Highlighting", () -> c.playerHighlightEnabled, v -> c.playerHighlightEnabled = v, 0xFF5599FF), "Highlight your party members and SkyMelloo Friends. SkyMelloo staff also glow (fixed pink) - that one's handled by MellooEssentials and always on, not affected by this toggle."));
 				rows.add(tip(colorRow("Party Color", () -> c.partyHighlightColor, v -> c.partyHighlightColor = v), "Glow color for your current Hypixel party members."));
 				rows.add(tip(boolRow("Low HP Blink", () -> c.lowHpBlinkEnabled, v -> c.lowHpBlinkEnabled = v, 0xFFFF5555), "A party member's highlight (glow outline and nametag marker) blinks bright red once their HP drops under 25% - an urgent \"someone needs help\" signal readable at a glance."));
-				rows.add(tip(colorRow("SkyMelloo Staff Color", () -> c.staffHighlightColor, v -> c.staffHighlightColor = v), "Glow color for players whose linked sky.melloo.me account is the owner, an admin, or a developer - resolved server-side from their real linked account, not something a player can fake for themselves. Works everywhere, not just in dungeons."));
 				rows.add(tip(colorRow("SkyMelloo Friend Color", () -> c.friendHighlightColor, v -> c.friendHighlightColor = v), "Glow color for confirmed SkyMelloo Friends (Social menu, key G) - not Hypixel's own /friend list."));
 				rows.add(tip(boolRow("Player Glow Outline", () -> c.playerGlowOutlineEnabled, v -> c.playerGlowOutlineEnabled = v, 0xFF5599FF), "Also force the glow outline (visible through walls), not just colored names."));
 				rows.add(tip(boolRow("Party Join Stats", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFFFFAA00), "When someone joins your party, look up their SkyBlock stats (sky.melloo.me/api) and post a summary in chat."));
@@ -492,9 +445,9 @@ public class SkyMellooSettingsScreen extends Screen {
 				// user-configurable, and Death Double no longer exists at all (see
 				// combat/DeathDoubleManager.java's deletion). Death Recap moved to the Dungeons tab
 				// (see case DUNGEONS below).
-				if (PermissionsManager.has("cosmetics")) {
+				if (PermissionsManager.has("spell")) {
 					rows.add(headerRow("Spell"));
-					rows.add(tip(cosmeticColorRow("Spell", () -> c.magicMissileEnabled, v -> c.magicMissileEnabled = v, () -> c.magicMissileColor, v -> c.magicMissileColor = v), "Cast via the \"Cast Spell\" button in the SkyMelloo Menu item's Spells page - shoots a small particle projectile that bursts on impact. Drops a collectible \"Spell Essence\" item on a kill too - always on, no separate toggle."));
+					rows.add(tip(cosmeticColorRow("Spell", () -> c.magicMissileEnabled, v -> c.magicMissileEnabled = v, () -> c.magicMissileColor, v -> c.magicMissileColor = v), "Cast by punching empty air with an empty hand - shoots a small particle projectile that bursts on impact. Drops a collectible \"Spell Essence\" item on a kill too - always on, no separate toggle."));
 				}
 			}
 			case GENERAL -> {
@@ -502,14 +455,12 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(keybindRow("Open This Menu", SkyMellooClient.getOpenConfigKey()), "Click, then press any key to rebind - same as vanilla's Controls > Key Binds, just without leaving this screen. Escape cancels without changing it."));
 				rows.add(headerRow("Menu"));
 				rows.add(tip(boolRow("SkyMelloo Menu Item", () -> c.skyMellooMenuItemEnabled, v -> c.skyMellooMenuItemEnabled = v, 0xFF66DDFF), "A fake \"SkyMelloo Menu\" item in hotbar slot 8 whenever that slot is empty - right-click to open a chest-style menu for SkyMelloo's own settings, the same way Hypixel's own SkyBlock Menu item (slot 9) works. Client-side only, never overwrites a real item actually in that slot."));
-				rows.add(tip(boolRow("Cosmetics", () -> c.cosmeticsEnabled, v -> c.cosmeticsEnabled = v, 0xFFFF6EC7), "Master switch for cosmetics - off hides the Cosmetics tab here and in the SkyMelloo Menu item entirely, and stops rendering any cosmetic effect at all, yours or anyone else's."));
 				rows.add(headerRow("HUD"));
 				rows.add(tip(boolRow("Health/Mana Bars", () -> c.healthManaBarsEnabled, v -> c.healthManaBarsEnabled = v, 0xFF55DD55), "Master switch - a sleek custom health (green, gold where absorption extends past normal max) and mana (light blue, %) bar pair. Flashes white briefly where health was just lost. Position set via the HUD layout editor (default J)."));
 				rows.add(tip(boolRow("Health Bar", () -> c.healthBarEnabled, v -> c.healthBarEnabled = v, 0xFF55DD55), "Show the health bar specifically."));
 				rows.add(tip(boolRow("Mana Bar", () -> c.manaBarEnabled, v -> c.manaBarEnabled = v, 0xFF55CCFF), "Show the mana bar specifically."));
 				rows.add(tip(boolRow("Side By Side", () -> c.healthManaBarsSideBySide, v -> c.healthManaBarsSideBySide = v, 0xFFAAAAAA), "Mana bar next to the health bar instead of stacked below it."));
 				rows.add(tip(boolRow("Hide Hypixel's Native Bar", () -> c.hideNativeStatusActionBarEnabled, v -> c.hideNativeStatusActionBarEnabled = v, 0xFFAAAAAA), "Hides Hypixel's own plain Health/Defense/Mana actionbar text above the hotbar, since the custom bars above already show the same info. Turn off to see both at once."));
-				rows.add(tip(boolRow("Player Info HUD", () -> c.playerInfoHudEnabled, v -> c.playerInfoHudEnabled = v, 0xFF66DDFF), "FPS, ping, server address, area, coordinates, and facing direction. Position set via the HUD layout editor (default J)."));
 				rows.add(headerRow("Chat"));
 				rows.add(tip(boolRow("Mention Highlight", () -> c.chatMentionHighlightEnabled, v -> c.chatMentionHighlightEnabled = v, 0xFFFFD700), "Highlight (bold + colored marker) any chat message that mentions your own username, and play a short sound - so a mention doesn't slip by unnoticed."));
 				rows.add(tip(colorRow("Mention Highlight Color", () -> c.chatMentionHighlightColor, v -> c.chatMentionHighlightColor = v), "Marker color for a chat mention of your own username."));
@@ -575,20 +526,10 @@ public class SkyMellooSettingsScreen extends Screen {
 		return (x, y, w, h) -> new BoolRowWidget(x, y, w, h, label, getter, setter, accent);
 	}
 
-	/** A cosmetic toggle with no customizable color - just the on/off dot and name. */
-	private RowFactory cosmeticRow(String label, BooleanSupplier getter, Consumer<Boolean> setter, int accent) {
-		return (x, y, w, h) -> new CosmeticFullRowWidget(x, y, w, h, label, getter, setter, () -> accent, null, null);
-	}
-
 	/** A cosmetic toggle with a color swatch inline on the same row, so it can never get split
 	 * across a column break the way two separate stacked rows could. */
 	private RowFactory cosmeticColorRow(String label, BooleanSupplier getter, Consumer<Boolean> setter, Supplier<Color> colorGetter, Consumer<Color> colorSetter) {
 		return (x, y, w, h) -> new CosmeticFullRowWidget(x, y, w, h, label, getter, setter, () -> colorGetter.get().getRGB(), colorGetter, colorSetter);
-	}
-
-	/** A cosmetic toggle whose particle TYPE (not color) is player-selectable - click the name on the right to cycle through {@link ParticleKind}. */
-	private RowFactory particleCosmeticRow(String label, BooleanSupplier getter, Consumer<Boolean> setter, int accent, Supplier<String> particleGetter, Consumer<String> particleSetter, ParticleKind fallback) {
-		return (x, y, w, h) -> new ParticleCosmeticRowWidget(x, y, w, h, label, getter, setter, accent, particleGetter, particleSetter, fallback);
 	}
 
 	private RowFactory colorRow(String label, Supplier<Color> getter, Consumer<Color> setter) {
@@ -746,34 +687,6 @@ public class SkyMellooSettingsScreen extends Screen {
 			int color = COLOR_PALETTE[i];
 			SwatchWidget widget = new SwatchWidget(x, y, swatch, swatch, color, () -> {
 				onPick.accept(new Color(color, true));
-				closeColorDropdown();
-			});
-			dropdownWidgets.add(widget);
-			addRenderableWidget(widget);
-		}
-	}
-
-	/** Same dropdown mechanism as {@link #openColorDropdown} but a vertical list of labeled options instead of a color grid. */
-	private void openParticleDropdown(AbstractWidget owner, int anchorX, int anchorY, Consumer<ParticleKind> onPick) {
-		closeColorDropdown();
-		openDropdownOwner = owner;
-
-		int itemW = 110;
-		int itemH = 14;
-		int gap = 2;
-		ParticleKind[] kinds = ParticleKind.values();
-
-		dropdownW = itemW + gap * 2;
-		dropdownH = kinds.length * (itemH + gap) + gap;
-		dropdownX = Math.min(anchorX, this.width - MARGIN - dropdownW);
-		dropdownY = Math.min(anchorY, this.height - MARGIN - dropdownH);
-
-		for (int i = 0; i < kinds.length; i++) {
-			ParticleKind kind = kinds[i];
-			int x = dropdownX + gap;
-			int y = dropdownY + gap + i * (itemH + gap);
-			ParticleOptionWidget widget = new ParticleOptionWidget(x, y, itemW, itemH, kind, () -> {
-				onPick.accept(kind);
 				closeColorDropdown();
 			});
 			dropdownWidgets.add(widget);
@@ -1081,87 +994,6 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/**
-	 * A cosmetic entry whose particle TYPE (not color) is player-selectable: toggle dot + name on
-	 * the left, the current {@link ParticleKind}'s label on the right - clicking the label cycles
-	 * to the next kind, clicking anywhere else toggles the cosmetic on/off.
-	 */
-	private final class ParticleCosmeticRowWidget extends AbstractWidget {
-		private final String label;
-		private final BooleanSupplier getter;
-		private final Consumer<Boolean> setter;
-		private final int accent;
-		private final Supplier<String> particleGetter;
-		private final Consumer<String> particleSetter;
-		private final ParticleKind fallback;
-
-		ParticleCosmeticRowWidget(int x, int y, int width, int height, String label, BooleanSupplier getter, Consumer<Boolean> setter,
-				int accent, Supplier<String> particleGetter, Consumer<String> particleSetter, ParticleKind fallback) {
-			super(x, y, width, height, Component.literal(label));
-			this.label = label;
-			this.getter = getter;
-			this.setter = setter;
-			this.accent = accent;
-			this.particleGetter = particleGetter;
-			this.particleSetter = particleSetter;
-			this.fallback = fallback;
-		}
-
-		private ParticleKind currentKind() {
-			return ParticleKind.byNameOr(particleGetter.get(), fallback);
-		}
-
-		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
-			boolean enabled = getter.getAsBoolean();
-			int x1 = getX();
-			int y1 = getY();
-			int x2 = getX() + getWidth();
-			int y2 = getY() + getHeight();
-
-			if (this.isHovered()) {
-				gg.fill(x1, y1, x2, y2, ROW_BG_HOVER_BONUS);
-			}
-
-			int dotSize = 6;
-			int dotY = y1 + (getHeight() - dotSize) / 2;
-			gg.fill(x1 + 2, dotY, x1 + 2 + dotSize, dotY + dotSize, enabled ? (accent | 0xFF000000) : 0xFF555555);
-			gg.text(Minecraft.getInstance().font, label, x1 + 2 + dotSize + 6, y1 + (getHeight() - 8) / 2, enabled ? TEXT_ON : TEXT_OFF);
-
-			var font = Minecraft.getInstance().font;
-			String shown = currentKind().label;
-			int shownWidth = font.width(shown);
-			gg.text(font, shown, x2 - shownWidth - 4, y1 + (getHeight() - 8) / 2, 0xFFFF6EC7);
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput output) {
-			this.defaultButtonNarrationText(output);
-		}
-
-		private int labelStartX() {
-			var font = Minecraft.getInstance().font;
-			return getX() + getWidth() - font.width(currentKind().label) - 8;
-		}
-
-		@Override
-		public void onClick(MouseButtonEvent event, boolean doubleClick) {
-			if (event.x() >= labelStartX()) {
-				if (openDropdownOwner == this) {
-					closeColorDropdown();
-					return;
-				}
-				openParticleDropdown(this, getX(), getY() + getHeight() + 2, kind -> {
-					particleSetter.accept(kind.name());
-					SkyMellooConfig.HANDLER.save();
-				});
-				return;
-			}
-			setter.accept(!getter.getAsBoolean());
-			SkyMellooConfig.HANDLER.save();
-		}
-	}
-
 	private final class SwatchWidget extends AbstractWidget {
 		private final int color;
 		private final Runnable onPick;
@@ -1182,38 +1014,6 @@ public class SkyMellooSettingsScreen extends Screen {
 			if (this.isHovered()) {
 				gg.fill(x1, y1, x2, y2, 0x50FFFFFF);
 			}
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput output) {
-			this.defaultButtonNarrationText(output);
-		}
-
-		@Override
-		public void onClick(MouseButtonEvent event, boolean doubleClick) {
-			onPick.run();
-		}
-	}
-
-	/** One labeled entry in {@link #openParticleDropdown} - a single {@link ParticleKind} option to pick. */
-	private final class ParticleOptionWidget extends AbstractWidget {
-		private final ParticleKind kind;
-		private final Runnable onPick;
-
-		ParticleOptionWidget(int x, int y, int width, int height, ParticleKind kind, Runnable onPick) {
-			super(x, y, width, height, Component.literal(kind.label));
-			this.kind = kind;
-			this.onPick = onPick;
-		}
-
-		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
-			int x1 = getX();
-			int y1 = getY();
-			int x2 = getX() + getWidth();
-			int y2 = getY() + getHeight();
-			gg.fill(x1, y1, x2, y2, this.isHovered() ? 0x50FF6EC7 : 0x30000000);
-			gg.text(Minecraft.getInstance().font, kind.label, x1 + 4, y1 + (getHeight() - 8) / 2, this.isHovered() ? TEXT_ON : TEXT_OFF);
 		}
 
 		@Override

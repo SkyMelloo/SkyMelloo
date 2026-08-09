@@ -1290,7 +1290,7 @@ public final class DungeonRunTracker {
 		if ("PARTY SM".equalsIgnoreCase(delivery)) {
 			if (!leaderOnlyForRelay || com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
 				client.player.sendSystemMessage(ChatUtil.prefixed(text));
-				com.melloo.skymelloo.client.social.RelayChatManager.sendPartyAnnouncement(client, text);
+				com.melloo.mellooessentials.client.social.RelayChatManager.sendPartyAnnouncement(client, text);
 			}
 			// Non-leader clients (when leaderOnlyForRelay) stay silent - only the leader's client
 			// actually sends, so the party sees one copy instead of one per SM user present.

@@ -2,7 +2,7 @@ package com.melloo.skymelloo.client.social;
 
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.util.ChatUtil;
-import com.melloo.skymelloo.client.util.HypixelDetector;
+import com.melloo.mellooessentials.client.util.HypixelDetector;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.multiplayer.ServerData;
