@@ -71,18 +71,16 @@ public class SkyMellooClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		SkyMellooConfig.HANDLER.load();
-		// Upgrades MellooEssentials' default light-blue mod-user marker (nametag AND tab list) to
-		// pink specifically for players this client separately confirms are also running SkyMelloo
-		// (its own presence system, see ModPresenceManager#isModUser) - essentials' own
-		// EntityDisplayNameMixin/PlayerTabOverlayMixin are the only places a marker actually gets
-		// added, this just resolves which sprite they use. See ModMarkerManager's own doc comment
-		// for why this is a hook rather than a second mixin.
-		com.melloo.mellooessentials.client.social.ModMarkerManager.setSpriteOverride((uuid, defaultSprite) -> {
-			var localPlayer = net.minecraft.client.Minecraft.getInstance().player;
-			boolean isSkyMellooUser = (localPlayer != null && localPlayer.getUUID().equals(uuid))
-					|| com.melloo.skymelloo.client.social.ModPresenceManager.isModUser(uuid);
-			return isSkyMellooUser ? net.minecraft.resources.Identifier.withDefaultNamespace("item/pink_dye") : null;
-		});
+		// The mod-user marker's pink-vs-light-blue choice used to be resolved here via a
+		// ModMarkerManager.setSpriteOverride hook - removed. It only ever saw THIS client's own
+		// SkyMelloo presence data, not the server's, so it got the sprite backwards from either side
+		// (a MellooEssentials-only player always looked pink to a SkyMelloo client, and a real
+		// SkyMelloo user always looked light-blue to an Essentials-only client) - both mods report
+		// presence to the same /presence endpoint, so "is a mod user" alone can't tell them apart.
+		// MellooEssentials' own PresenceManager#isSkyMelloo now resolves this itself from
+		// server-provided data (which client header showed up on that UUID's last presence report),
+		// correct symmetrically regardless of which mod's client is asking. See ModMarkerManager's doc
+		// comment.
 		// Lets essentials' own settings screen offer a "SkyMelloo Config" button back to this - H
 		// always opens essentials' screen now (the single settings/status/player-info surface for
 		// both mods), this button is the way to still reach SkyMelloo's own party/dungeon/etc tabs.
