@@ -61,6 +61,13 @@ maintainer's own tokens (which live outside this repo entirely and are never dis
 You're free to share a test build with others too, by the way - this is AGPL-3.0, same as the rest
 of the project.
 
+## Community
+
+Bug reports and feature requests go through the [website's Report a Bug
+form](https://sky.melloo.me/report-bug) or GitHub Issues here. See
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations and
+[SECURITY.md](SECURITY.md) if you've found a vulnerability.
+
 ## License
 
 [GNU Affero General Public License v3.0](LICENSE). Copyright (C) 2026 Maja Bekurdts (hexedmaya).
