@@ -74,4 +74,4 @@ form](https://sky.melloo.me/report-bug) or GitHub Issues here. See
 
 ## Contact
 
-[sky.melloo.me/contact](https://sky.melloo.me/contact), or email maja@melloo.me directly.
+[sky.melloo.me/contact](https://sky.melloo.me/contact)
