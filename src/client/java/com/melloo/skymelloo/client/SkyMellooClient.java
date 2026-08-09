@@ -25,7 +25,6 @@ import com.melloo.skymelloo.client.social.ResourcePackStatus;
 import com.melloo.skymelloo.client.social.SkyMellooPingMonitor;
 import com.melloo.skymelloo.client.social.WhitelistManager;
 import com.melloo.skymelloo.client.fishing.FishingScoreHud;
-import com.melloo.skymelloo.client.gui.HudLayoutEditorScreen;
 import com.melloo.skymelloo.client.util.ChatUtil;
 import com.melloo.skymelloo.client.util.DebugLog;
 import com.melloo.skymelloo.client.util.TickDelay;
@@ -60,7 +59,6 @@ public class SkyMellooClient implements ClientModInitializer {
 
 	private static KeyMapping toggleMobHighlightKey;
 	private static KeyMapping openConfigKey;
-	private static KeyMapping hudEditorKey;
 	private static KeyMapping mainMenuKey;
 
 	/** So the settings screen itself can offer a "rebind" row without going out to vanilla's separate Controls screen. */
@@ -96,6 +94,14 @@ public class SkyMellooClient implements ClientModInitializer {
 			int ms = com.melloo.skymelloo.client.social.SkyMellooPingMonitor.getLastPingMs();
 			return ms >= 0 ? ms + "ms" : "--";
 		});
+		// The HUD layout editor (key J) moved into MellooEssentials entirely - it now natively handles
+		// only the two HUD elements essentials itself renders, and this is the hook that lets it
+		// supply the ones only SkyMelloo has (Fishing Combo, Party, Dungeon Score, etc.) without
+		// essentials needing to know SkyMelloo exists. See SkyMellooHudElements/
+		// HudLayoutEditorScreen's own doc comments.
+		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraElementsProvider(
+				com.melloo.skymelloo.client.gui.SkyMellooHudElements::build);
+		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraSaveHandler(SkyMellooConfig.HANDLER::save);
 		PartyTracker.init();
 		com.melloo.skymelloo.client.social.HypixelLocationTracker.init();
 		PartyJoinWatcher.init();
@@ -157,15 +163,6 @@ public class SkyMellooClient implements ClientModInitializer {
 				CATEGORY
 		));
 
-		// Opens the HUD layout editor (drag SkyMelloo's own HUD elements around), like Lunar
-		// Client's own HUD editor. Defaults to J (free in vanilla).
-		hudEditorKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-				"key.skymelloo.hud_editor",
-				InputConstants.Type.KEYSYM,
-				GLFW.GLFW_KEY_J,
-				CATEGORY
-		));
-
 		// Opens the main SkyMelloo Menu item's screen (Credits/Spells/Cosmetics/Report a Bug nav row -
 		// see SkyMellooMenuScreen/SkyMellooMenuItemManager) - previously only reachable by right-clicking
 		// the fake hotbar item, no keybind at all. Defaults to K (free in vanilla).
@@ -189,11 +186,6 @@ public class SkyMellooClient implements ClientModInitializer {
 			SkyMellooPingMonitor.tick(client);
 			com.melloo.skymelloo.client.util.AutoReconnect.tick(client);
 
-			while (hudEditorKey.consumeClick()) {
-				if (client.screen == null) {
-					client.setScreen(new HudLayoutEditorScreen());
-				}
-			}
 			while (mainMenuKey.consumeClick()) {
 				com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.openMenu(client);
 			}
