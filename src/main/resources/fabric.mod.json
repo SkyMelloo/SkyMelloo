@@ -33,7 +33,8 @@
 		"fabric-api": "*",
 		"yet_another_config_lib_v3": "*",
 		"hypixel-mod-api": "*",
-		"mellooessentials": "*"
+		"mellooessentials": "*",
+		"skyblocker": "*"
 	},
 	"suggests": {
 		"modmenu": "*"
