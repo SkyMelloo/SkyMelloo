@@ -455,12 +455,6 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(cycleRow("Delivery", () -> c.dungeonFloorCompletionKickMaxDelivery, v -> c.dungeonFloorCompletionKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
 			}
 			case FUN -> {
-				// Kill Tracker's toggle/delivery choice and Death Double (both variants) removed
-				// entirely - the Spell kill announcement is always on and always LOCAL now, hardcoded
-				// at its call site (MagicMissileManager#announceMissileKill) rather than
-				// user-configurable, and Death Double no longer exists at all (see
-				// combat/DeathDoubleManager.java's deletion). Death Recap moved to the Dungeons tab
-				// (see case DUNGEONS below).
 				if (PermissionsManager.has("spell")) {
 					rows.add(headerRow("Spell"));
 					rows.add(tip(cosmeticColorRow("Spell", () -> c.magicMissileEnabled, v -> c.magicMissileEnabled = v, () -> c.magicMissileColor, v -> c.magicMissileColor = v), "Cast by punching empty air with an empty hand - shoots a small particle projectile that bursts on impact. Drops a collectible \"Spell Essence\" item on a kill too - always on, no separate toggle."));

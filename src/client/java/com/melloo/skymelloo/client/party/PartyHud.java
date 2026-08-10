@@ -76,10 +76,7 @@ public final class PartyHud implements HudElement {
 	}
 
 	// Standard 64x64 skin layout: base face at (8,8)-(16,16), hat overlay at (40,8)-(48,16).
-	// blit(texture, x1, y1, x2, y2, u0, u1, v0, v1) - verified via innerBlit bytecode; NOT
-	// (x, y, width, height, u0, v0, u1, v1), which is what this used to (wrongly) assume -
-	// same category of mistake as the earlier gg.outline() width/height bug, just for blit's
-	// corner-coordinate + u0/u1/v0/v1 (not u0/v0/u1/v1) ordering instead.
+	// blit(texture, x1, y1, x2, y2, u0, u1, v0, v1) - corner coordinates, not (x, y, width, height).
 	private static void drawFace(GuiGraphicsExtractor gg, Identifier texture, int x, int y, int size) {
 		gg.blit(texture, x, y, x + size, y + size, 8f / SKIN_TEX_SIZE, 16f / SKIN_TEX_SIZE, 8f / SKIN_TEX_SIZE, 16f / SKIN_TEX_SIZE);
 		gg.blit(texture, x, y, x + size, y + size, 40f / SKIN_TEX_SIZE, 48f / SKIN_TEX_SIZE, 8f / SKIN_TEX_SIZE, 16f / SKIN_TEX_SIZE);
@@ -115,9 +112,7 @@ public final class PartyHud implements HudElement {
 				localMp = self.magicalPower();
 			}
 		}
-		// Full mode renders a BIGGER face icon (see faceSize in the row loop below) - textX used to be
-		// based on the plain FACE_SIZE constant regardless, so in Full mode the wider icon overlapped
-		// straight into the name/MP text that assumed the smaller compact-mode size.
+		// Full mode renders a BIGGER face icon, so textX needs the wider size too.
 		int rowFaceSize = full ? FACE_SIZE + SUB_ROW_HEIGHT : FACE_SIZE;
 		int textX = x + rowFaceSize + 4;
 

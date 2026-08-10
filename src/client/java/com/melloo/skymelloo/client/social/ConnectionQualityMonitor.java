@@ -11,23 +11,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * On connecting to Hypixel specifically - real report: this used to run on ANY Minecraft server at
- * all (explicitly documented as intentional, "unrelated to any of the Hypixel-only SkyBlock features
- * gated below" in SkyMellooClient), which meant a totally unrelated server also got SkyMelloo's own
- * connection-quality chat messages, and looked like the mod was doing something ("reconnecting")
- * that made no sense off Hypixel. Gated behind {@link HypixelDetector#isHypixel} now, same as
- * everything else Hypixel-specific, plus entirely behind
- * {@link SkyMellooConfig#connectionQualityCheckEnabled} - no more "still warns even with the toggle
- * off" carve-out either, since from the outside that's indistinguishable from the toggle just not
- * working.
+ * On connecting to Hypixel specifically - gated behind {@link HypixelDetector#isHypixel} and
+ * {@link SkyMellooConfig#connectionQualityCheckEnabled}.
  * <p>
  * Samples ping every tick (20/s) for the first 5 seconds to judge whether the connection looks
- * stable, then chat-reports the result plus the client's own packet-rate averages. No title/subtitle
- * anymore - that was too easy to miss/annoying to see every reconnect, the persistent HUD is the
- * only on-screen indicator now.
+ * stable, then chat-reports the result plus the client's own packet-rate averages. The persistent
+ * HUD is the only on-screen indicator - no title/subtitle.
  * <p>
- * Started from {@code ClientPlayConnectionEvents.INIT} rather than {@code JOIN} - INIT fires as
- * soon as the play-protocol packet listener is set up, before the player entity/world exist yet.
+ * Started from {@code ClientPlayConnectionEvents.INIT} rather than {@code JOIN}, since INIT fires
+ * as soon as the play-protocol packet listener is set up, before the player entity/world exist.
  * <p>
  * {@link net.minecraft.network.Connection#getAverageSentPackets()}/{@code getAverageReceivedPackets()}
  * already track both directions on one object - "sent" is what this client is putting out,
@@ -97,8 +89,8 @@ public final class ConnectionQualityMonitor {
 		float received = connection != null ? connection.getAverageReceivedPackets() : 0;
 
 		if (pingSamples.isEmpty()) {
-			// Zero samples across the whole 5-second window is itself a bad sign (not "stable" as
-			// this used to treat it) - either the connection never settled, or something's wrong.
+			// Zero samples across the whole 5-second window is itself a bad sign - either the
+			// connection never settled, or something's wrong.
 			report(client, false, -1, 0, sent, received);
 			return;
 		}

@@ -479,11 +479,9 @@ public final class MagicMissileManager {
 				if (toTarget.lengthSqr() > 0.01) {
 					Vec3 targetDir = toTarget.normalize();
 					Vec3 steeredDir;
-					// Close-range terminal guidance: the wall-clearance cost used to be able to swerve
-					// the arrow wide right at the last second and fly straight over/past a target
-					// standing near a wall, missing entirely. Once genuinely close, ignore wall-proximity entirely and beeline straight at
-					// them instead - UNLESS there's an actual solid block directly on that line (not
-					// just nearby), in which case it still needs to steer around it as usual.
+					// Close-range terminal guidance: once genuinely close, ignore wall-proximity entirely
+					// and beeline straight at the target - UNLESS an actual solid block sits directly on
+					// that line (not just nearby), in which case it still steers around it.
 					if (toTarget.lengthSqr() < HOMING_DIRECT_APPROACH_DISTANCE_SQ
 							&& hasLineOfSight(steerLevel, missile.pos, missile.homingTarget.position().add(0, missile.homingTarget.getBbHeight() / 2, 0))) {
 						steeredDir = targetDir;
@@ -650,8 +648,7 @@ public final class MagicMissileManager {
 		String text = template
 				.replace("{player}", hitPlayer.getName().getString())
 				.replace("{count}", String.valueOf(config.totalPlayersKilled));
-		// Always local - a kill message used to be optionally sent to the real party via /pc,
-		// removed since it's always LOCAL-only now.
+		// Always LOCAL-only, never sent to party.
 		client.player.sendSystemMessage(ChatUtil.prefixed(text));
 	}
 
@@ -1000,13 +997,10 @@ public final class MagicMissileManager {
 	private static AbstractClientPlayer findHitPlayer(Minecraft client, Vec3 from, Vec3 to, AbstractClientPlayer shooter) {
 		for (AbstractClientPlayer other : client.level.players()) {
 			// Already invisible from a recent hit (still in their HIT_INVISIBLE_TICKS cooldown) - fly
-			// straight through instead of re-triggering the hit, which used to just refresh their
-			// invisibility timer and replay the burst/sound over and over on anyone standing still
-			// nearby rather than actually needing to become hittable again first. Also excludes anyone
-			// already mid-Plasma/mid-Levitate - those don't set the invisibility flag until the very
-			// end of their multi-second sequence, so without this a second hit during that window
-			// would start an overlapping second sequence on the same target - not hittable again
-			// while already mid-animation.
+			// straight through instead of re-triggering the hit. Also excludes anyone already
+			// mid-Plasma/mid-Levitate, since those don't set the invisibility flag until the very end
+			// of their multi-second sequence - without this a second hit mid-animation would start an
+			// overlapping second sequence on the same target.
 			if (other == shooter || HighlightManager.isNpc(other) || isTemporarilyInvisible(other) || isInActiveSequence(other)) {
 				continue;
 			}

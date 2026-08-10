@@ -78,20 +78,6 @@ public final class SkyMellooConfig {
 		}
 	}
 
-	// Everything below was drastically simplified from a fully customizable mob/player highlighting
-	// system (name filters, friendly-mob toggle, self/friend/other/NPC player colors, a separate
-	// general "Mob Highlighting" for ALL hostile mobs everywhere) down to exactly three fixed, semantic
-	// highlights: party members (green), SkyMelloo staff (pink, everywhere - not dungeon-specific),
-	// and hostile mobs in your CURRENT dungeon room only (red, dungeon-only). Regular other players and NPCs get no highlight at all anymore.
-	// Removed entirely, not just defaulted off: the general "highlight every hostile mob everywhere"
-	// toggle/name-filters/default-color/named-color, the friendly-mob toggle+color, the self color,
-	// the old Hypixel-/friend-list-based friend highlighting (name list + color, see
-	// FriendListSync.java's deletion - NOT the same as the current, still-live SkyMelloo-Friends
-	// color re-added below with its own key), the plain "other player" color, the "regular SkyMelloo
-	// user" color (non-staff users no longer get a color at all), and NPC highlighting + its color.
-	// autoSyncFriendsAndParty is gone too (only ever served the now-removed friend highlighting -
-	// party detection itself already comes from HypixelModAPI, see PartyTracker).
-
 	// Highlight hostile mobs inside your CURRENT dungeon room in red, so the ones you still need to clear stand out from mobs elsewhere on the floor. Only active during an active dungeon run.
 	public boolean dungeonRoomMobHighlightEnabled = false;
 
@@ -101,10 +87,9 @@ public final class SkyMellooConfig {
 	// A party member's highlight (both the glow outline and the nametag marker) blinks bright red once their HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a fight.
 	public boolean lowHpBlinkEnabled = true;
 
-	// playerHighlightEnabled/partyHighlightColor/friendHighlightColor/playerGlowOutlineEnabled removed
-	// entirely, not just defaulted off - party/staff/friend highlighting (toggle, color, and the
-	// glow-outline opt-in) are all MellooEssentials' job now, see its own EssentialsConfig and
-	// highlight.HighlightManager. This mod's own HighlightManager only decides /sm search anymore.
+	// Party/staff/friend highlighting (toggle, color, glow-outline) are all MellooEssentials' job -
+	// see its EssentialsConfig/highlight.HighlightManager. This mod's own HighlightManager only
+	// decides /sm search.
 
 	// Glow color for the player targeted with /sm search - only works in a Hypixel lobby (not SkyBlock, which has its own party/staff/friend highlighting in MellooEssentials).
 	public Color lobbySearchColor = new Color(0xFF55FF55, true);
@@ -227,7 +212,7 @@ public final class SkyMellooConfig {
 	// Track deaths and puzzles solved during the run and post a detailed summary in chat (with clickable [Kick] buttons, if you're the party leader) when the dungeon completes. LOCAL only, always - see Party Run Summary below for a party-safe alternative.
 	public boolean dungeonRunReportEnabled = false;
 
-	// A short, separate one-line result sent to PARTY chat when a run ends (score/grade/floor/time only, no per-death/per-puzzle detail) - independent of the detailed Run Report above, which used to be sendable to party too but a long combined line with many player names in it could crash the game client-side (a chat-rendering mod choking on it). This one is small and safe by design.
+	// A short, separate one-line result sent to PARTY chat when a run ends (score/grade/floor/time only) - the detailed Run Report above stays LOCAL-only, since a long combined line with many player names can crash some chat-rendering mods.
 	public boolean dungeonRunPartySummaryEnabled = false;
 
 	// Message template for the party run summary above. Placeholders: {floor} {score} {grade} {time}.
@@ -542,13 +527,6 @@ public final class SkyMellooConfig {
 	// Custom status text shown next to your name to other SkyMelloo users nearby (via sky.melloo.me presence). Leave empty to show nothing. Requires presenceSharingEnabled above.
 	public String customStatusText = "";
 
-	// Made user-adjustable for a while, then reverted back to a fixed 1s
-	// (ModPresenceManager.REPORT_INTERVAL_TICKS) - a per-player-configurable interval meant the website's
-	// render delay had to adapt per player too, and a mismatched interval made the live map (updates
-	// immediately) and the player marker (rendered with a delay buffer) visibly drift out of sync
-	// with each other. A single fixed interval for everyone is simpler and keeps both in lockstep -
-	// presenceSharingEnabled/dungeonSyncEnabled above are still the real on/off switches.
-
 	// A fake "SkyMelloo Menu" item in hotbar slot 8 (not 9 - that's Hypixel's own real SkyBlock Menu slot) whenever that slot is empty - right-click it to open a chest-style menu for SkyMelloo's own settings, the same way Hypixel's own menu item works. Client-side only, never overwrites a real item actually in that slot.
 	public boolean skyMellooMenuItemEnabled = true;
 
@@ -576,18 +554,8 @@ public final class SkyMellooConfig {
 	// See hudPartyMpBarX.
 	public int hudPartyMpBarY = 220;
 
-	// playerKillTrackerEnabled/missileKillMessageDelivery removed as user-facing settings -
-	// always on and always LOCAL now, hardcoded at the two call
-	// sites (PlayerKillTracker#onPlayerDied, MagicMissileManager#announceMissileKill) rather than
-	// read from config, still gated by the "killTracker" permission either way. Death Double and its
-	// "on Spell Kill" variant were removed entirely at the same time, not just defaulted off - see
-	// combat/DeathDoubleManager.java's deletion.
-
 	// Running total of players killed (each counted once per lobby/world). Internal counter, not user-editable.
 	public int totalPlayersKilled = 0;
-
-	// magicMissileEssenceEnabled removed as a user-facing toggle - always on now, whenever cosmetics
-	// permission allows it, see MagicMissileManager#spawnCollectibleEssence.
 
 	// Running total of Spell Essence collected. Internal counter, not user-editable.
 	public int totalSpellEssenceCollected = 0;

@@ -408,15 +408,9 @@ public final class DungeonRunTracker {
 			// depend on which announcements happen to be turned on.
 			if (runActive && !leaveEndScheduled && SENDING_TO_SERVER_PATTERN.matcher(colorless).find()) {
 				leaveEndScheduled = true;
-				// Fallback for a real, confirmed bug (live log): the report used to be gated
-				// on BOTH the "The Catacombs - Floor X" header AND the later "Click HERE to re-queue into
-				// ...!" line (see the REQUEUE_PATTERN handler below) - but Hypixel doesn't always send
-				// that second line. Confirmed directly from a real log: the header printed normally, the
-				// floor genuinely completed, and then NOTHING but a plain "Sending to server ..." showed
-				// up 74 seconds later - no re-queue line at all - so the report silently never fired. The
-				// floor header alone is already good enough confirmation the run actually completed, so
-				// if we're now definitely leaving and never got the (apparently optional) re-queue line,
-				// send the report right here instead of just logging that it never happened.
+				// Fallback: Hypixel doesn't always send the re-queue line (see REQUEUE_PATTERN below), so
+				// if we're leaving with the floor already confirmed complete but no report sent yet, send
+				// it here instead - the floor header alone is good enough confirmation.
 				if (dungeonCompleteDetected && !runReportSentAwaitingLeave) {
 					dungeonCompleteDetected = false;
 					finishRun(SkyMellooConfig.HANDLER.instance());
@@ -553,13 +547,9 @@ public final class DungeonRunTracker {
 			if (puzzleFailMatcher.find()) {
 				String failPlayer = puzzleFailMatcher.group(1);
 				String failDetail = extractPuzzleReason(colorless, failPlayer);
-				// Puzzle rooms can be reset and retried (confirmed directly from a real log: the SAME
-				// "PUZZLE FAIL! ... killed a Blaze in the wrong order!" line landed twice, 27 seconds
-				// apart, with "can you reset it?" asked in party chat in between) - Hypixel just sends
-				// another real "PUZZLE FAIL!" line for the retry, which used to count as a completely
-				// separate failure (double-penalizing Skill score for one puzzle, and adding a
-				// duplicate line to the Score HUD's list). Treated as the same failure repeating
-				// instead when it matches the most recently resolved entry.
+				// Puzzle rooms can be reset and retried - Hypixel sends another "PUZZLE FAIL!" line for
+				// the retry, treated as the same failure repeating (not double-penalized) when it
+				// matches the most recently resolved entry.
 				boolean isRetryOfSameFail = isSameAsLastFail(failPlayer, failDetail);
 				if (!isRetryOfSameFail) {
 					puzzlesFailed++;
@@ -1861,14 +1851,11 @@ public final class DungeonRunTracker {
 
 	/**
 	 * Called every tick (from {@link DungeonRoomTracker#tick}) while a run is active - catches puzzle
-	 * rooms that get solved on a retry without Hypixel ever sending a fresh "PUZZLE SOLVED!" chat line
-	 * for it (confirmed missing from a real log: only "PUZZLE FAIL!" repeated, no SOLVED line followed
-	 * the eventual real success), which used to leave the Score HUD/Run Report stuck showing FAILED
-	 * forever even after the player actually cleared it. Falls back to Skyblocker's own
-	 * {@link SkyblockerBridge#getCurrentRoomClearState()}, which mirrors the real dungeon-map checkmark
-	 * icon Hypixel updates regardless of chat - "cleared" here only ever corrects the DISPLAYED outcome,
-	 * it deliberately does NOT touch {@link #puzzlesFailed}/{@link #puzzlesSolved} (the real Skill-score
-	 * penalty for the original fail is permanent on Hypixel even after a successful retry).
+	 * rooms solved on a retry without Hypixel sending a fresh "PUZZLE SOLVED!" chat line, via
+	 * Skyblocker's {@link SkyblockerBridge#getCurrentRoomClearState()} (mirrors the real dungeon-map
+	 * checkmark). Only corrects the DISPLAYED outcome - deliberately does NOT touch
+	 * {@link #puzzlesFailed}/{@link #puzzlesSolved}, since the Skill-score penalty for the original
+	 * fail is permanent on Hypixel even after a successful retry.
 	 */
 	static void checkPuzzleClearedViaSkyblocker() {
 		if (!runActive) {
@@ -2200,12 +2187,9 @@ public final class DungeonRunTracker {
 					String text = config.dungeonTimeLimitExceededTemplate.replace("{floor}", floor != null ? floor : "?");
 					sendDungeonMessage(client, text, config.dungeonTimeLimitExceededDelivery);
 				}
-				// Deliberately NOT calling maybeAnnounceSPlusImpossible here (used to, with reason "the
-				// time limit passed") - per explicit correction, the per-floor time limit is just a Speed
-				// checkpoint, not a hard cutoff: S+ is still genuinely reachable after it passes (Speed
-				// score decays gradually past it, doesn't zero out), so tying the impossible-warning to
-				// this specific event read as a false alarm. Puzzle fails and deaths (the other two
-				// trigger points) are real permanent penalties and stay as-is - only this one was removed.
+				// Deliberately NOT calling maybeAnnounceSPlusImpossible here - the per-floor time limit is
+				// just a Speed checkpoint, not a hard cutoff (S+ stays reachable after it passes, Speed
+				// just decays gradually), so tying the impossible-warning to this event would be a false alarm.
 			}
 			return;
 		}
@@ -2213,13 +2197,8 @@ public final class DungeonRunTracker {
 			return;
 		}
 		// Checkpoints fire based on how much longer S+ can ACTUALLY stay reachable
-		// ({@link #getExtraSecondsForSPlus}), not the floor's raw nominal time limit (used to be
-		// `remaining` here) - a real reported bug: S+ was already locked in with a huge time buffer
-		// (Skill/Explore/Bonus alone nearly covered 300, Speed barely mattered) and the warning fired
-		// anyway purely because
-		// the floor's OWN par-time countdown hit 60/30/15/10s remaining - completely unrelated to
-		// whether hurrying actually still mattered for the score, directly contradicting the Score
-		// HUD's own "Possible"/extra-seconds display at the same moment.
+		// ({@link #getExtraSecondsForSPlus}), not the floor's raw nominal time limit - otherwise the
+		// warning can fire even when hurrying no longer matters for the score.
 		Integer extraSeconds = getExtraSecondsForSPlus();
 		// null: S+ already impossible for a non-time reason (maybeAnnounceSPlusImpossible already
 		// covers that separately - a "hurry" message here would be actively wrong once it's already

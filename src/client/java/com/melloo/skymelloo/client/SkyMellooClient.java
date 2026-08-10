@@ -69,26 +69,13 @@ public class SkyMellooClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		SkyMellooConfig.HANDLER.load();
-		// The mod-user marker's pink-vs-light-blue choice used to be resolved here via a
-		// ModMarkerManager.setSpriteOverride hook - removed. It only ever saw THIS client's own
-		// SkyMelloo presence data, not the server's, so it got the sprite backwards from either side
-		// (a MellooEssentials-only player always looked pink to a SkyMelloo client, and a real
-		// SkyMelloo user always looked light-blue to an Essentials-only client) - both mods report
-		// presence to the same /presence endpoint, so "is a mod user" alone can't tell them apart.
-		// MellooEssentials' own PresenceManager#isSkyMelloo now resolves this itself from
-		// server-provided data (which client header showed up on that UUID's last presence report),
-		// correct symmetrically regardless of which mod's client is asking. See ModMarkerManager's doc
-		// comment.
 		// Lets essentials' own settings screen offer a "SkyMelloo Config" button back to this - H
 		// always opens essentials' screen now (the single settings/status/player-info surface for
 		// both mods), this button is the way to still reach SkyMelloo's own party/dungeon/etc tabs.
 		com.melloo.mellooessentials.client.gui.SettingsScreen.setSkyMellooScreenOpener(() ->
 				com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL));
-		// This mod's own status/player-info HUDs were removed as duplicates of essentials' - these
-		// two extension points let essentials' single ConnectionStatusHud still surface the two
-		// pieces of extra info only SkyMelloo has: whether this account is admin-linked, and the
-		// sky.melloo.me API ping (distinct from the Minecraft server ping essentials' own
-		// PlayerInfoHud already shows).
+		// These two extension points let essentials' ConnectionStatusHud surface extra info only
+		// SkyMelloo has: whether this account is admin-linked, and the sky.melloo.me API ping.
 		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setAdminBadgeSupplier(WhitelistManager::isAdmin);
 		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setExtraLineProvider(() -> {
 			int ms = com.melloo.skymelloo.client.social.SkyMellooPingMonitor.getLastPingMs();
@@ -102,10 +89,8 @@ public class SkyMellooClient implements ClientModInitializer {
 		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraElementsProvider(
 				com.melloo.skymelloo.client.gui.SkyMellooHudElements::build);
 		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraSaveHandler(SkyMellooConfig.HANDLER::save);
-		// Party glow/marking is fully MellooEssentials' job now too (same treatment STAFF got earlier
-		// today) - this is the one piece of data essentials has no way to know on its own (a party
-		// member's live HP, for the low-HP blink), fed back in via this hook. See
-		// com.melloo.skymelloo.client.highlight.HighlightManager#partyBlinkOverride's own doc comment.
+		// Feeds live HP back into essentials' party glow decision - the one piece of data it can't
+		// know on its own, for the low-HP blink. See HighlightManager#partyBlinkOverride's own doc comment.
 		com.melloo.mellooessentials.client.highlight.HighlightManager.setPartyBlinkColorOverride(
 				com.melloo.skymelloo.client.highlight.HighlightManager::partyBlinkOverride);
 		PartyTracker.init();
@@ -127,13 +112,10 @@ public class SkyMellooClient implements ClientModInitializer {
 		});
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			PlayerKillTracker.resetSession();
-			// Whitelist/permissions/cloud-sync are account-level state on sky.melloo.me, not tied to
-			// a specific TCP connection - deliberately NOT reset here anymore. This event also fires
-			// on Hypixel's own internal server-hops (dungeon floor entry, "/server X"), which used to
-			// make the status HUD flash back to "connecting" and re-run every check on every single
-			// hop for no reason (each already has its own periodic 30s re-check in the background for
-			// staying up to date). Party membership IS connection-tied (comes from per-connection
-			// HypixelModAPI packets), so that one still resets normally.
+			// Whitelist/permissions/cloud-sync are account-level state on sky.melloo.me, not tied to a
+			// TCP connection, so this event's own internal-server-hop firing (dungeon floor entry,
+			// "/server X") doesn't reset them - each already has its own periodic 30s re-check. Party
+			// membership IS connection-tied (per-connection HypixelModAPI packets), so it still resets.
 			PartyHudManager.reset();
 		});
 		// Connection-status and Player-Info HUDs are MellooEssentials-only now (this mod's own
@@ -170,8 +152,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		));
 
 		// Opens the main SkyMelloo Menu item's screen (Credits/Spells/Cosmetics/Report a Bug nav row -
-		// see SkyMellooMenuScreen/SkyMellooMenuItemManager) - previously only reachable by right-clicking
-		// the fake hotbar item, no keybind at all. Defaults to K (free in vanilla).
+		// see SkyMellooMenuScreen/SkyMellooMenuItemManager). Defaults to K (free in vanilla).
 		mainMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.main_menu",
 				InputConstants.Type.KEYSYM,
@@ -218,10 +199,8 @@ public class SkyMellooClient implements ClientModInitializer {
 			WhitelistManager.checkOnce(client);
 			WhitelistManager.tickPeriodicRecheck(client);
 			com.melloo.skymelloo.client.social.ModVersionManager.checkOnce(client);
-			// Used to hard-stop the ENTIRE mod here for an unverified/outdated build, same as the old
-			// whitelist gate - permission-based blocking was removed project-wide. ModVersionManager
-			// now only ever sends an informational chat warning
-			// (see its own checkOnce), never disables anything.
+			// ModVersionManager only ever sends an informational chat warning (see its own checkOnce),
+			// never disables anything.
 			PermissionsManager.fetchIfNeeded(client);
 			PermissionsManager.tickPeriodicRecheck(client);
 			CloudSyncManager.pullIfNeeded(client);
@@ -260,9 +239,7 @@ public class SkyMellooClient implements ClientModInitializer {
 							return 1;
 						}))
 						.then(ClientCommands.literal("sync")
-								// Bare "/sm sync" == "/sm sync party" now - friend-list sync was removed
-								// entirely along with Friend highlighting, the only thing it ever fed (see
-								// FriendListSync.java's deletion). Party sync is the only thing left to sync.
+								// Bare "/sm sync" == "/sm sync party" - the only thing left to sync.
 								.executes(ctx -> {
 									PartyTracker.requestRefreshNow();
 									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party sync requested..."));
@@ -528,11 +505,6 @@ public class SkyMellooClient implements ClientModInitializer {
 							}));
 							return 1;
 						}))
-						// "/sm trust" removed entirely - a self-reported build-hash check can
-						// never actually prove anything to anyone but yourself (a modified client can just
-						// lie about which hash it reports), so it was giving a false sense of security
-						// rather than a real one. See "/sm version" above for what's left:
-						// version numbers and a reminder of where the real thing comes from, no trust claims.
 						.then(ClientCommands.literal("config").executes(ctx -> {
 							// Always open, regardless of current screen - the chat/command screen
 							// is technically still "open" when this executes, so a null-check here
@@ -1103,10 +1075,9 @@ public class SkyMellooClient implements ClientModInitializer {
 
 	/**
 	 * Combines the most important stats into one readable overview. Locally this is several English
-	 * messages (one per stat group, easier to read - used to be German-language here specifically, but
-	 * there's no good reason for it to differ from the "announce" wording below); "announce" mode
-	 * instead combines everything into ONE message sent via /pc if in a party, since firing 6 separate
-	 * /pc messages per player would spam party chat badly across a whole party.
+	 * messages (one per stat group, easier to read); "announce" mode instead combines everything into
+	 * ONE message sent via /pc if in a party, since firing 6 separate /pc messages per player would
+	 * spam party chat badly across a whole party.
 	 */
 	private static void announceAllStats(String name, String profile, Runnable onDone, boolean announce) {
 		ModAuthManager.getIdentity(Minecraft.getInstance()).thenAccept(identity ->

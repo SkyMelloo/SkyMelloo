@@ -26,9 +26,8 @@ public final class SkyMellooHudElements {
 		Font font = Minecraft.getInstance().font;
 		List<HudLayoutEditorScreen.Draggable> elements = new ArrayList<>();
 
-		// Real box is 16px tall (see FishingScoreHud) and its width includes a " +999"-style bonus
-		// suffix appended after the main text whenever a combo point was just gained - missing from
-		// the sample here used to undersize the box during exactly the moment it's most likely visible.
+		// Real box is 16px tall (see FishingScoreHud); width includes the " +999"-style bonus suffix
+		// shown right after a combo point is gained, its most-visible moment.
 		int fishWidth = font.width("Fishing Combo x9  999 pts +999") + 12;
 		elements.add(new HudLayoutEditorScreen.Draggable(
 				"Fishing Combo",
@@ -41,11 +40,8 @@ public final class SkyMellooHudElements {
 				fishWidth, 16
 		));
 
-		// Party/Score placeholder sizes used to be stale fixed numbers well below what those HUDs
-		// actually render now (Full mode's 2-line-per-member layout + bottleneck line, the score
-		// HUD's rooms-cleared line + puzzle-outcome block row) - recomputed here to track their real
-		// current layout instead. Still an approximation (member count/text length vary at runtime),
-		// assuming a representative 3-member party for sizing purposes.
+		// Recomputed to track the real current layout (member count/text length vary at runtime) -
+		// assumes a representative 3-member party for sizing purposes.
 		boolean partyFull = "FULL".equalsIgnoreCase(config.partyHudMode);
 		int partyPreviewMembers = 3;
 		// Full mode's pre-run sub-info is 3 STACKED lines (Done/Qualifies/Readiness); DURING a run
@@ -88,9 +84,8 @@ public final class SkyMellooHudElements {
 				font.width("✖ SomeLongUsername16 lost Tic Tac Toe! Yikes!")
 		) + 8;
 		// Real line count is structurally unbounded (secret rows, teammate sync lines, and every
-		// puzzle outcome hit this run all add lines on top of the fixed title/time/S+/possible/
-		// penalties/breakdown/rooms/room-secrets-header lines) - 11 only covered the bare minimum
-		// "one of everything" case. Sized for a more representative run instead.
+		// puzzle outcome hit this run add lines on top of the fixed header lines) - sized for a
+		// representative run, not just the bare minimum.
 		int scoreHeight = 4 + 15 * 10 + 2;
 		elements.add(new HudLayoutEditorScreen.Draggable(
 				"Dungeon Score",
@@ -103,9 +98,7 @@ public final class SkyMellooHudElements {
 		));
 
 		// Real lines: run-active + wither-door(s) + blood-entered + blood-cleared + boss-entered +
-		// boss-cleared + Hypixel mode + Hypixel map = 8 minimum, more with 2+ wither doors - the old
-		// 6-line/short-sample estimate undercounted both the line count and the widest realistic line.
-		// Sample text matches DungeonDebugHud's current (reworded) longest line, not the old wording.
+		// boss-cleared + Hypixel mode + Hypixel map = 8 minimum, more with 2+ wither doors.
 		int debugWidth = font.width("✖ Wither door 2 not opened yet (key obtained)") + 8;
 		int debugHeight = 4 + 9 * 10 + 2;
 		elements.add(new HudLayoutEditorScreen.Draggable(

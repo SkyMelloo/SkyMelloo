@@ -17,44 +17,24 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
- * Tracks the local player's current Hypixel party via the official HypixelModAPI
- * (net.hypixel:mod-api) - it's a request/response packet, not a push event, so Hypixel never tells
- * us proactively when party membership changes; something has to actually ask.
- * <p>
- * Used to ask every ~5 seconds forever, permanently, even with no party at all and even after
- * disconnecting - confirmed directly from a real log ("Failed to send a packet as the client is not
- * connected to a server", repeating every ~5s post-disconnect) that this was pure waste. Now: one
- * check shortly after joining a server, then only re-checks when a chat line plausibly related to
- * party membership shows up (broad "party" substring match, debounced) - covers being invited,
- * accepting, someone joining/leaving, etc. without needing to guess Hypixel's exact wording for each
- * of those (this session has been burned more than once assuming an exact chat string, so a loose
- * heuristic here is deliberate, not an oversight).
+ * Tracks the local player's current Hypixel party via the official HypixelModAPI - a
+ * request/response packet, not a push event, so something has to actively ask. Checks once shortly
+ * after joining a server, then re-checks only when a chat line plausibly relates to party
+ * membership (broad "party" substring match, debounced) - covers invites/joins/leaves without
+ * needing to match Hypixel's exact wording for each case.
  */
 public final class PartyTracker {
 	private static final int JOIN_DELAY_TICKS = 40;
 	private static final int REFRESH_DEBOUNCE_TICKS = 40; // ~2s - avoid re-asking repeatedly if several party-related lines land close together
-	// Confirmed directly from a real log: repeatedly hitting Hypixel's own rate limit during a busy
-	// stretch (e.g. switching parties - several "party"-containing chat lines landing within a couple
-	// seconds) never lets a fresh, successful packet through, which is exactly when the cached state is
-	// most likely stale/wrong. The normal 2s debounce just re-triggers into the SAME rate limit again -
-	// this backs off much harder specifically on RATE_LIMITED so the next attempt has a real chance.
+	// Backs off much harder specifically on RATE_LIMITED - the normal 2s debounce just re-triggers
+	// into the same rate limit, so the next attempt needs real breathing room to land.
 	private static final int RATE_LIMIT_BACKOFF_TICKS = 400; // ~20s
 
-	// Verified directly from real screenshots, both explicitly matched rather than a
-	// loose "disbanded" keyword (which risked a false positive on unrelated chat, e.g. someone typing
-	// "lol my other party disbanded" casually):
-	//  1. "You left the party." - self-leave.
-	//  2. "The party was disbanded because all invites expired and the party was empty." - auto-disband.
-	//  3. "<rank/icon><Name> has disbanded the party!" - the leader manually disbanding it, a DIFFERENT
-	//     word order than #2 (confirmed as a real gap: the original pattern only matched "the party was
-	//     disbanded", not "has disbanded the party", so this specific real wording silently fell
-	//     through to the slow ~1-minute fallback instead of clearing immediately). Matched by suffix,
-	//     not anchored to the start, since a name can have a rank/cosmetic icon glued directly to it
-	//     with no space (same reasoning as PartyJoinWatcher's JOINED_DUNGEON_GROUP pattern).
-	// A confirmed leave/disband like this is cleared IMMEDIATELY rather than waiting on a fresh info
-	// request, since that request can itself fail once you're no longer in a party (see the onError
-	// comment below) - which used to leave the Party HUD stuck showing the old, now-stale roster
-	// instead of updating.
+	// Matches three specific leave/disband chat lines (self-leave, auto-disband, leader disbanding),
+	// not a loose "disbanded" keyword that could false-positive on casual chat. Matched by suffix,
+	// not anchored to the start, since a name can have a rank/cosmetic icon glued to it with no
+	// space. Cleared IMMEDIATELY on a match rather than waiting on a fresh info request, since that
+	// request can itself fail once you're no longer in a party (see onError below).
 	private static final Pattern CONFIRMED_LEFT_PARTY = Pattern.compile("(?i)you left the party\\.|the party was disbanded because|has disbanded the party!");
 
 	private static volatile Set<UUID> members = Collections.emptySet();
