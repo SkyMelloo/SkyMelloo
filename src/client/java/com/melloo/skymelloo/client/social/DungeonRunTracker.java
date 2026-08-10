@@ -1694,11 +1694,6 @@ public final class DungeonRunTracker {
 		return bloodDoorOpenedMillis;
 	}
 
-	/** 0 if the Blood Room hasn't been entered yet this run. */
-	public static long getBloodRoomEnteredMillis() {
-		return watcherEncounteredMillis;
-	}
-
 	/** 0 if the Blood Room hasn't been cleared yet this run. */
 	public static long getBloodRoomClearedMillis() {
 		return bloodRoomCompletedMillis;

@@ -62,7 +62,6 @@ public final class ActionBarTracker {
 	private static Integer maxHealth;
 	private static Integer currentMana;
 	private static Integer maxMana;
-	private static long lastUpdateMillis;
 	private static volatile List<Segment> lastSegments = List.of();
 	private static volatile long lastPacketMillis = 0;
 	private static boolean initialized = false;
@@ -145,7 +144,6 @@ public final class ActionBarTracker {
 		if (fractions.size() >= 2) {
 			currentMana = fractions.get(1)[0];
 			maxMana = fractions.get(1)[1];
-			lastUpdateMillis = System.currentTimeMillis();
 		}
 	}
 
@@ -171,10 +169,6 @@ public final class ActionBarTracker {
 			return null;
 		}
 		return Math.max(0F, Math.min(1F, currentMana / (float) maxMana));
-	}
-
-	public static long getLastUpdateMillis() {
-		return lastUpdateMillis;
 	}
 
 	/** Every (color, text) run from the last actionbar packet actually received - for "Mana Debug". Empty if none seen yet (which itself is diagnostic: means the event listener never fired at all). */

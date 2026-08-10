@@ -60,10 +60,6 @@ public final class ModVersionManager {
 	private ModVersionManager() {
 	}
 
-	public static boolean isCompatible() {
-		return compatible;
-	}
-
 	public static String getLocalVersion() {
 		return localVersion;
 	}
@@ -138,11 +134,8 @@ public final class ModVersionManager {
 			lastResult = result;
 			compatible = result.compatible();
 			DebugLog.log(DebugLog.Category.PERMISSIONS, "Mod version: " + (compatible ? (result.upToDate() ? "up to date" : "behind latest, still compatible") : "outdated/unverified (min " + result.minVersion() + ")") + ", integrityOk=" + result.integrityOk() + ", buildKind=" + result.buildKind() + ", jarHash=" + jarHash);
-			// Used to hard-disable every SkyMelloo feature here for an unverified build or too-old
-			// version - permission-based blocking was removed project-wide. Now purely informational:
-			// an unverified build (not signed/registered by the
-			// maintainer - private builds included, since anyone can compile the now-open-source mod
-			// themselves) gets a one-time handshake chat notice, nothing is ever disabled.
+			// Purely informational - an unverified build (not signed/registered by the maintainer)
+			// gets a one-time handshake chat notice, nothing is ever disabled.
 			if (!result.integrityOk() && client.player != null) {
 				String maintainer = result.maintainerUsername() != null ? result.maintainerUsername() : "the maintainer";
 				client.player.sendSystemMessage(ChatUtil.prefixed(
