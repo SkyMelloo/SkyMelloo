@@ -116,8 +116,25 @@ public class SkyMellooSettingsScreen extends Screen {
 		return tabs.toArray(new Tab[0]);
 	}
 
+	// Null for every existing open path (H-menu, SkyMelloo Menu item, /skymelloo) - those all close
+	// straight back to the game via vanilla's own default onClose(), same as before. Only set when
+	// opened FROM another screen (currently just Mod Menu's config button - see ModMenuIntegration),
+	// so closing this one returns to that screen instead of exiting to the game world underneath it.
+	private final Screen parent;
+
 	public SkyMellooSettingsScreen() {
+		this(null);
+	}
+
+	/** Used by ModMenuIntegration - {@code parent} is Mod Menu's own mod-list screen, returned to on close instead of the game world. */
+	public SkyMellooSettingsScreen(Screen parent) {
 		super(Component.literal("SkyMelloo Settings"));
+		this.parent = parent;
+	}
+
+	@Override
+	public void onClose() {
+		Minecraft.getInstance().setScreen(parent);
 	}
 
 	public static void open(Tab initialTab) {

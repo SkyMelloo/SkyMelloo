@@ -44,9 +44,6 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	// Config screen (already installed as a separate mod by users, not bundled here).
-	implementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
-
 	// Mod Menu integration so the config screen is reachable without a keybind.
 	// Compiled against the jar the user already has installed (TerraformersMC's maven was down at build time).
 	implementation ":modmenu:${project.modmenu_version}"
