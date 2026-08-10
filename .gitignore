@@ -41,6 +41,7 @@ replay_*.log
 
 # tooling / local artifacts - never meant to be committed
 .claude/
+CLAUDE.md
 *.log
 player_summary.json
 
