@@ -34,17 +34,14 @@ Requires JDK 25.
 node scripts/build.js
 ```
 
-Picks between a **test** build (no requirements, unsigned/unofficial) and a **dev** build
-(signed+registered, needs the maintainer's private key - not in this repo). Public releases are
-promoted by hand via the sky.melloo.me admin panel, not built locally. Prefer raw Gradle?
+Asks a couple of questions and runs Gradle for you. Prefer raw Gradle directly?
 
 ```
-./gradlew build -PtestBuild=true                # test build, no key or changelog needed
-./gradlew build -PchangelogFile=path.txt   # dev build, needs the signing key + a changelog
+./gradlew build -PtestBuild=true                # unsigned test build, no key or changelog needed
+./gradlew build -PchangelogFile=path.txt   # signed build, requires a private key you won't have
 ```
 
-`reportBuild`/`uploadJar` talk to sky.melloo.me for release tracking and fail silently without the
-maintainer's own tokens. Test builds are shareable - this is AGPL-3.0.
+A test build is fully functional and shareable - this is AGPL-3.0.
 
 ## Community
 
