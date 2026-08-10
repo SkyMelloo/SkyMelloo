@@ -98,26 +98,15 @@ public final class SkyMellooConfig {
 	// Glow color for hostile mobs inside your current dungeon room (see above).
 	public Color dungeonRoomMobHighlightColor = new Color(0xFFFF0000, true);
 
-	// Highlight your party members and SkyMelloo staff (owner/admin/developer) - its own independent switch from the dungeon mob highlighting above.
-	public boolean playerHighlightEnabled = false;
-
-	// Glow color for your current Hypixel party members.
-	public Color partyHighlightColor = new Color(0xFF55FF55, true);
-
 	// A party member's highlight (both the glow outline and the nametag marker) blinks bright red once their HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a fight.
 	public boolean lowHpBlinkEnabled = true;
 
-	// Added back with its own aqua/light-blue color, after the general Friend
-	// highlighting removal - this is specifically a confirmed SkyMelloo Friend
-	// (the mod's own friends system, see FriendsManager/social menu), NOT the old Hypixel-/friend-
-	// list-based version, which stays gone.
-	// Glow color for confirmed SkyMelloo Friends (see the Social menu, key G) - not Hypixel's own /friend list.
-	public Color friendHighlightColor = new Color(0xFF55FFFF, true);
+	// playerHighlightEnabled/partyHighlightColor/friendHighlightColor/playerGlowOutlineEnabled removed
+	// entirely, not just defaulted off - party/staff/friend highlighting (toggle, color, and the
+	// glow-outline opt-in) are all MellooEssentials' job now, see its own EssentialsConfig and
+	// highlight.HighlightManager. This mod's own HighlightManager only decides /sm search anymore.
 
-	// Also force the glow outline (visible through walls) on players, not just colored names. Off by default: forcing glow on every player can hide cosmetic layers from mods like Lunar Client (capes/wings) for some players.
-	public boolean playerGlowOutlineEnabled = false;
-
-	// Glow color for the player targeted with /sm search - only works in a Hypixel lobby (not SkyBlock, which has its own party/staff/friend highlighting above).
+	// Glow color for the player targeted with /sm search - only works in a Hypixel lobby (not SkyBlock, which has its own party/staff/friend highlighting in MellooEssentials).
 	public Color lobbySearchColor = new Color(0xFF55FF55, true);
 
 	// Off by default, since it defeats another player's REAL invisibility (e.g. Invisibility

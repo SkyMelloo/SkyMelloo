@@ -5,9 +5,7 @@ import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.cosmetics.MagicMissileManager;
 import com.melloo.skymelloo.client.fishing.FishingHelper;
 import com.melloo.skymelloo.client.fishing.FishingMinigameManager;
-import com.melloo.mellooessentials.client.social.FriendsManager;
 import com.melloo.skymelloo.client.social.WhitelistManager;
-import com.melloo.skymelloo.client.util.SkyblockDetector;
 import com.melloo.skymelloo.client.util.VisibilityUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -99,39 +97,12 @@ public final class HighlightManager {
 		}
 
 		if (living instanceof Player player) {
-			// /sm search - a deliberate one-off command action, lobby-only (see LobbySearchManager),
-			// always glows regardless of the playerHighlightEnabled toggle below, which only gates the
-			// passive party/staff/friend highlighting.
-			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
-				return true;
-			}
-			// Player highlighting (party members and staff) is a SkyBlock-specific feature - it
-			// shouldn't apply on other Hypixel game modes or the lobby.
-			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
-				return false;
-			}
-			// playerHighlightEnabled is a separate config toggle from the dungeon mob highlight's
-			// toggle below, so switching one off doesn't affect the other.
-			if (!config.playerHighlightEnabled) {
-				return false;
-			}
-			if (player.isInvisible() && !config.showInvisiblePlayersEnabled) {
-				// Off by default - forcing the glow-outline on a REAL vanilla-invisible player
-				// defeats their invisibility entirely (glowing+invisible renders as a visible
-				// colored silhouette through walls, see EntityGlowMixin) - a much more
-				// consequential capability than just coloring an already-visible player.
-				return false;
-			}
-			// Only party members and SkyMelloo staff get highlighted at all - everyone else
-			// (regular other players, NPCs included - NPCs are never party/staff) gets nothing, no
-			// special-casing needed for them anymore.
-			if (classifyPlayer(player) == PlayerCategory.NONE) {
-				return false;
-			}
-			// Forcing the glow-outline pass on players can hide cosmetic layers from mods
-			// like Lunar Client (capes/wings) for some players, so it's opt-in; the colored
-			// nametag (see colorizeName) already gives a see-through indicator on its own.
-			return config.playerGlowOutlineEnabled;
+			// /sm search - a deliberate one-off command action, lobby-only (see LobbySearchManager) -
+			// the ONLY player-highlighting SkyMelloo still decides on its own. Party/staff/friend
+			// highlighting are entirely MellooEssentials' job now (see its own highlight.HighlightManager)
+			// - this mod's own PlayerCategory/classifyPlayer, and the config fields that used to drive
+			// them, are gone.
+			return LobbySearchManager.isSearchedPlayer(player.getUUID());
 		}
 
 		// Only the dungeon current-room mob highlight remains - isInCurrentDungeonRoom already
@@ -154,22 +125,8 @@ public final class HighlightManager {
 			if (isKillFlashing(player.getUUID())) {
 				return true;
 			}
-			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
-				return true;
-			}
-			// Same SkyBlock-only restriction as shouldGlow's player branch above - party/staff
-			// player highlighting shouldn't apply on other Hypixel game modes or the lobby.
-			if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
-				return false;
-			}
-			SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-			if (player.isInvisible() && !config.showInvisiblePlayersEnabled) {
-				return false;
-			}
-			if (!config.playerHighlightEnabled) {
-				return false;
-			}
-			return classifyPlayer(player) != PlayerCategory.NONE;
+			// /sm search is the only player-highlighting SkyMelloo still decides - see shouldGlow's own comment.
+			return LobbySearchManager.isSearchedPlayer(player.getUUID());
 		}
 		return shouldGlow(entity);
 	}
@@ -230,15 +187,9 @@ public final class HighlightManager {
 			if (isKillFlashing(player.getUUID())) {
 				return KILL_FLASH_COLOR;
 			}
-			if (LobbySearchManager.isSearchedPlayer(player.getUUID())) {
-				return toRgb(config.lobbySearchColor);
-			}
-			return switch (classifyPlayer(player)) {
-				case FRIEND -> toRgb(config.friendHighlightColor);
-				// Unreachable in practice - shouldGlow/isHighlightTarget already refuse NONE before a
-				// color is ever needed for it.
-				case NONE -> toRgb(config.partyHighlightColor);
-			};
+			// /sm search is the only player color SkyMelloo still decides on its own - see shouldGlow's
+			// own comment for why party/staff/friend colors moved to MellooEssentials.
+			return toRgb(config.lobbySearchColor);
 		}
 		// Only the dungeon current-room mob highlight remains - see shouldGlow's own comment.
 		return toRgb(config.dungeonRoomMobHighlightColor);
@@ -311,13 +262,9 @@ public final class HighlightManager {
 		if (MagicMissileManager.isTemporarilyInvisible(player)) {
 			return original;
 		}
-		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		boolean flashing = isKillFlashing(player.getUUID());
 		boolean searched = LobbySearchManager.isSearchedPlayer(player.getUUID());
-		if (!flashing && !searched && !config.playerHighlightEnabled) {
-			return original;
-		}
-		if (!flashing && !searched && classifyPlayer(player) == PlayerCategory.NONE) {
+		if (!flashing && !searched) {
 			return original;
 		}
 		TextColor color = TextColor.fromRgb(getGlowColor(player) & 0xFFFFFF);
@@ -326,36 +273,15 @@ public final class HighlightManager {
 		return copy;
 	}
 
-	// Covers only SkyMelloo Friends now (a confirmed mutual friend via the mod's OWN friends system,
-	// see FriendsManager - NOT a Hypixel-/friend-list-based highlight). Neither staff NOR party are
-	// categories here anymore - MellooEssentials' own com.melloo.mellooessentials.client.highlight.
-	// HighlightManager independently glows both (staff pink via its own PresenceManager.isStaff,
-	// party light-blue via its own PartyTracker, with SkyMelloo's low-HP blink preserved through
-	// HighlightManager#setPartyBlinkColorOverride/partyBlinkOverride above), and both mods' glow
-	// mixins inject into the same vanilla Entity#isCurrentlyGlowing/getTeamColor methods (cancellable,
-	// HEAD) - keeping a second, separate branch here for either raced the two mixins against each
-	// other with no defined winner, which is what made staff highlighting look broken/inconsistent
-	// (and would have done the same for party). Self/regular-other-player/NPC/plain-mod-user get no
-	// highlight at all.
-	private enum PlayerCategory {
-		FRIEND, NONE
-	}
-
-	private static PlayerCategory classifyPlayer(Player player) {
-		// Staff AND party are both MellooEssentials' job now (see the enum's own doc comment) -
-		// checking its PresenceManager.isStaff/PartyTracker.isMember directly here (not the broader
-		// shouldGlow, which would just recurse into the same question) means SkyMelloo simply never
-		// tries to cancel the glow methods for either, leaving Essentials' own mixin as the only one
-		// contending for that entity.
-		if (com.melloo.mellooessentials.client.social.PresenceManager.isStaff(player.getUUID())
-				|| com.melloo.mellooessentials.client.party.PartyTracker.isMember(player.getUUID())) {
-			return PlayerCategory.NONE;
-		}
-		if (FriendsManager.isFriend(player.getName().getString())) {
-			return PlayerCategory.FRIEND;
-		}
-		return PlayerCategory.NONE;
-	}
+	// Staff, party, AND friend highlighting are all MellooEssentials' job now - see its own
+	// com.melloo.mellooessentials.client.highlight.HighlightManager, which glows all three (staff pink
+	// via PresenceManager.isStaff, party light-blue via PartyTracker, friend via its own configurable
+	// color, with SkyMelloo's low-HP blink preserved through
+	// HighlightManager#setPartyBlinkColorOverride/partyBlinkOverride above). Both mods' glow mixins
+	// inject into the same vanilla Entity#isCurrentlyGlowing/getTeamColor methods (cancellable, HEAD) -
+	// keeping a second, separate branch here for any of the three would race the two mixins against
+	// each other with no defined winner, the exact bug that originally made staff highlighting look
+	// broken/inconsistent before that consolidation. /sm search is the only player highlight left here.
 
 	private static int toRgb(Color color) {
 		return color.getRGB() | 0xFF000000;

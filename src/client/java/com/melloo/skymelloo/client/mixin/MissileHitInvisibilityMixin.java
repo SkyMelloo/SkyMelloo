@@ -38,8 +38,7 @@ public abstract class MissileHitInvisibilityMixin {
 		// Never overrides the LOCAL player's own invisibility - this is about revealing OTHER
 		// players to you, not un-hiding yourself from your own client.
 		if (self instanceof Player player && player != Minecraft.getInstance().player
-				&& SkyMellooConfig.HANDLER.instance().showInvisiblePlayersEnabled
-				&& SkyMellooConfig.HANDLER.instance().playerHighlightEnabled) {
+				&& SkyMellooConfig.HANDLER.instance().showInvisiblePlayersEnabled) {
 			cir.setReturnValue(false);
 		}
 	}

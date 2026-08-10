@@ -15,14 +15,12 @@ import java.util.UUID;
 
 /**
  * Tracks the one player currently targeted by {@code /sm search}, so {@link HighlightManager} can
- * highlight them green while browsing a Hypixel lobby - the party/staff/friend highlight (see
- * HighlightManager#classifyPlayer) is deliberately SkyBlock-only, so there was otherwise no way to pick a
- * specific person out of a crowded lobby at all. Deliberately lobby-only, not usable in SkyBlock -
- * party/friend/staff highlighting already covers that case there.
- * <p>
- * Cleared automatically on leaving Hypixel entirely or entering SkyBlock (see {@link #tick}), not
- * just on disconnect - a leftover search target from the last lobby would be meaningless (and
- * misleading) anywhere else.
+ * highlight them green while browsing a Hypixel lobby - party/staff/friend highlighting (see
+ * MellooEssentials' own highlight.HighlightManager) needs an actual Hypixel party/team/friend
+ * relationship, so there was otherwise no way to pick an arbitrary specific person out of a crowded
+ * lobby at all. Deliberately cleared on entering SkyBlock (see {@link #tick}) rather than usable
+ * there too - a leftover search target from the last lobby would be meaningless (and misleading) in
+ * a dungeon/island.
  */
 public final class LobbySearchManager {
 	private static volatile UUID searchedUuid = null;
