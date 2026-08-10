@@ -246,15 +246,17 @@ public class SkyMellooSettingsScreen extends Screen {
 		List<RowFactory> rows = new ArrayList<>();
 		switch (tab) {
 			case PARTY -> {
-				// Party (green), SkyMelloo staff (pink, everywhere - not dungeon-specific), and
-				// SkyMelloo Friends (aqua) are the only categories that get highlighted. Self/regular-
-				// other-player/NPC colors are gone entirely, not just defaulted off.
+				// Party (light blue) and staff (pink) are both handled by MellooEssentials now, always
+				// on, not affected by anything below except the Low HP Blink toggle (SkyMelloo is the
+				// only one of the two mods that knows how to compute that, hooked into essentials' own
+				// color decision). SkyMelloo Friends (aqua) is the only category left that this mod
+				// still decides on its own. Self/regular-other-player/NPC colors are gone entirely, not
+				// just defaulted off.
 				rows.add(headerRow("Party Highlighting"));
-				rows.add(tip(boolRow("Player Highlighting", () -> c.playerHighlightEnabled, v -> c.playerHighlightEnabled = v, 0xFF5599FF), "Highlight your party members and SkyMelloo Friends. SkyMelloo staff also glow (fixed pink) - that one's handled by MellooEssentials and always on, not affected by this toggle."));
-				rows.add(tip(colorRow("Party Color", () -> c.partyHighlightColor, v -> c.partyHighlightColor = v), "Glow color for your current Hypixel party members."));
+				rows.add(tip(boolRow("Player Highlighting", () -> c.playerHighlightEnabled, v -> c.playerHighlightEnabled = v, 0xFF5599FF), "Highlight SkyMelloo Friends. Party members and SkyMelloo staff also glow (fixed light blue/pink) - those are handled by MellooEssentials and always on, not affected by this toggle."));
 				rows.add(tip(boolRow("Low HP Blink", () -> c.lowHpBlinkEnabled, v -> c.lowHpBlinkEnabled = v, 0xFFFF5555), "A party member's highlight (glow outline and nametag marker) blinks bright red once their HP drops under 25% - an urgent \"someone needs help\" signal readable at a glance."));
 				rows.add(tip(colorRow("SkyMelloo Friend Color", () -> c.friendHighlightColor, v -> c.friendHighlightColor = v), "Glow color for confirmed SkyMelloo Friends (Social menu, key G) - not Hypixel's own /friend list."));
-				rows.add(tip(boolRow("Player Glow Outline", () -> c.playerGlowOutlineEnabled, v -> c.playerGlowOutlineEnabled = v, 0xFF5599FF), "Also force the glow outline (visible through walls), not just colored names."));
+				rows.add(tip(boolRow("Player Glow Outline", () -> c.playerGlowOutlineEnabled, v -> c.playerGlowOutlineEnabled = v, 0xFF5599FF), "Also force the glow outline (visible through walls) for SkyMelloo Friends, not just colored names. Party/staff outline is handled by MellooEssentials and always on."));
 				rows.add(tip(boolRow("Party Join Stats", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFFFFAA00), "When someone joins your party, look up their SkyBlock stats (sky.melloo.me/api) and post a summary in chat."));
 
 				rows.add(headerRow("Lobby Player Search"));

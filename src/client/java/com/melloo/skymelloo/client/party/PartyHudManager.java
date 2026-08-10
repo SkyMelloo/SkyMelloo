@@ -59,7 +59,7 @@ public final class PartyHudManager {
 	private static final Map<UUID, Long> mojangRetryAt = new ConcurrentHashMap<>();
 	private static final Map<UUID, Boolean> mojangLookupInFlight = new ConcurrentHashMap<>();
 	// Every UUID a "party member joined" notification has already fired for (see
-	// PartyJoinWatcher#handlePartyMemberJoined) - seeded with the FULL roster the first time it's
+	// com.melloo.mellooessentials.client.party.PartyKickQueue#handleMemberJoined) - seeded with the FULL roster the first time it's
 	// seen after a reset (see haveRosterBaseline below), so members who were already in the party
 	// before this session started tracking never get mistaken for a brand-new join.
 	private static final Set<UUID> announcedJoins = new java.util.HashSet<>();
@@ -130,7 +130,7 @@ public final class PartyHudManager {
 		// The very first time a real (non-empty) roster shows up after a reset is a BASELINE, not a
 		// batch of joins - without this, everyone already in the party before this session started
 		// tracking would incorrectly trigger a "joined your party" notification (see
-		// PartyJoinWatcher#handlePartyMemberJoined) the moment their username resolves.
+		// com.melloo.mellooessentials.client.party.PartyKickQueue#handleMemberJoined) the moment their username resolves.
 		if (!haveRosterBaseline && !currentMembers.isEmpty()) {
 			announcedJoins.addAll(currentMembers);
 			haveRosterBaseline = true;
@@ -190,7 +190,7 @@ public final class PartyHudManager {
 			// baseline (see haveRosterBaseline above) - a genuine new party join, not someone who was
 			// already there. Never fires for the local player's own name.
 			if (haveRosterBaseline && announcedJoins.add(uuid) && !username.equalsIgnoreCase(client.player.getGameProfile().name())) {
-				PartyJoinWatcher.handlePartyMemberJoined(client, username);
+				com.melloo.mellooessentials.client.party.PartyKickQueue.handleMemberJoined(client, username);
 			}
 			Long lastMpFetch = mpFetchedAt.get(uuid);
 			if (lastMpFetch == null || System.currentTimeMillis() - lastMpFetch > MP_CACHE_MS) {

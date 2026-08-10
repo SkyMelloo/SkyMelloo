@@ -17,8 +17,6 @@ import net.minecraft.network.chat.MutableComponent;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,21 +52,6 @@ public final class PartyJoinWatcher {
 	private static int tickCounter = 0;
 	private static int pendingSelfJoinCheckTick = -1;
 
-	// Auto-kicks used to fire `/party kick` the instant a check failed - fine for one joiner, but
-	// Hypixel enforces its own ~1s per-command cooldown, so a second join arriving seconds later (or
-	// several checks flagging the same busy party) silently failed every kick after the first with
-	// "Command Failed: This command is on cooldown!". Kicks are now queued and
-	// drained one at a time, spaced out, instead of sent immediately.
-	private static final Deque<String> pendingKicks = new ArrayDeque<>();
-	// The username of the kick command most recently actually sent, waiting to find out (via the
-	// cooldown-failure message below) whether it actually landed.
-	private static String pendingConfirmUsername = null;
-	private static int nextKickAllowedTick = 0;
-	// Hypixel's own message says "about a second" - 22 ticks (~1.1s) leaves a small safety margin
-	// rather than cutting it exactly at 20.
-	private static final int KICK_INTERVAL_TICKS = 22;
-	private static final Pattern KICK_COOLDOWN_FAILED = Pattern.compile("Command Failed:.*cooldown", Pattern.CASE_INSENSITIVE);
-
 	private PartyJoinWatcher() {
 	}
 
@@ -80,16 +63,6 @@ public final class PartyJoinWatcher {
 			String stripped = FORMAT_CODE.matcher(message.getString()).replaceAll("");
 			for (String line : stripped.split("\n")) {
 				String trimmed = line.trim();
-				if (pendingConfirmUsername != null && KICK_COOLDOWN_FAILED.matcher(trimmed).find()) {
-					// The kick we just sent didn't actually go through - Hypixel's own per-command
-					// cooldown rejected it. Requeue at the FRONT (not the back) so it's still the very
-					// next one retried, and wait a full fresh interval again rather than assuming the
-					// cooldown clears any sooner.
-					pendingKicks.addFirst(pendingConfirmUsername);
-					pendingConfirmUsername = null;
-					nextKickAllowedTick = tickCounter + KICK_INTERVAL_TICKS;
-					continue;
-				}
 				Matcher matcher = JOINED_DUNGEON_GROUP.matcher(trimmed);
 				if (matcher.find()) {
 					String joinedName = matcher.group(1);
@@ -115,30 +88,6 @@ public final class PartyJoinWatcher {
 			pendingSelfJoinCheckTick = -1;
 			SkyMellooClient.checkPartyMagicalPowerAuto();
 		}
-		if (!pendingKicks.isEmpty() && tickCounter >= nextKickAllowedTick && client.player != null) {
-			String username = pendingKicks.pollFirst();
-			pendingConfirmUsername = username;
-			nextKickAllowedTick = tickCounter + KICK_INTERVAL_TICKS;
-			client.player.connection.sendCommand("party kick " + username);
-		}
-	}
-
-	/**
-	 * Queues a {@code /party kick} instead of sending it immediately - see the class-level fields
-	 * above for why. Deduped against both the pending queue and whatever kick is currently awaiting
-	 * confirmation, so the same username is never queued twice even if more than one independent
-	 * check (MP, level, floor, floor completion...) flags the same player.
-	 */
-	static void queueKick(String username) {
-		if (username.equalsIgnoreCase(pendingConfirmUsername)) {
-			return;
-		}
-		for (String queued : pendingKicks) {
-			if (queued.equalsIgnoreCase(username)) {
-				return;
-			}
-		}
-		pendingKicks.addLast(username);
 	}
 
 	public static void lookupAndAnnounce(String username) {
@@ -187,40 +136,6 @@ public final class PartyJoinWatcher {
 	}
 
 	/**
-	 * Called once per genuinely new party member (any join path - invite, finder, etc.), by
-	 * {@link com.melloo.skymelloo.client.party.PartyHudManager} the moment their username first
-	 * resolves. Independent of {@link #lookupAndAnnounce}'s Dungeon Party Finder stats message -
-	 * this fires for every kind of party join and just offers a plain kick/block choice, so the two
-	 * can both show up for the same join without one replacing the other.
-	 * <p>
-	 * A blocked user is auto-kicked here instead of ever showing the buttons, so blocking someone
-	 * really does mean "never let them back into my party" without needing to click anything again.
-	 */
-	public static void handlePartyMemberJoined(Minecraft client, String username) {
-		if (BlockedUsersManager.isBlocked(username)) {
-			if (com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
-				queueKick(username);
-				client.player.sendSystemMessage(ChatUtil.prefixed("§cAuto-kicked blocked user §f" + username + "§c who joined your party."));
-			}
-			return;
-		}
-		MutableComponent line = Component.literal("§d" + username + " §7joined your party. ");
-		if (com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
-			line = line.append(Component.literal("[Kick] ").withStyle(style -> style
-					.withColor(ChatFormatting.RED)
-					.withBold(true)
-					.withClickEvent(new ClickEvent.RunCommand("/party kick " + username))
-					.withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to kick " + username)))));
-		}
-		line = line.append(Component.literal("[Block]").withStyle(style -> style
-				.withColor(ChatFormatting.DARK_RED)
-				.withBold(true)
-				.withClickEvent(new ClickEvent.RunCommand("/sm block " + username))
-				.withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to block " + username + " - auto-kicks them from any party you lead from now on")))));
-		client.player.sendSystemMessage(ChatUtil.prefixed(line));
-	}
-
-	/**
 	 * Checks the joining player against the configured stat/threshold - if they're below it and
 	 * {@link SkyMellooConfig#dungeonAutoKickEnabled} is on, kicks them automatically like before;
 	 * if it's off, posts the same warning but with a manual, clickable [Kick] button instead of
@@ -242,7 +157,7 @@ public final class PartyJoinWatcher {
 		// leader too, rather than offering something that would silently fail when clicked.
 		boolean isLeader = com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader();
 		if (config.dungeonAutoKickEnabled && isLeader) {
-			queueKick(username);
+			com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
 			String text = config.dungeonAutoKickMessageTemplate
 					.replace("{player}", username)
 					.replace("{stat}", statLabel)
@@ -281,7 +196,7 @@ public final class PartyJoinWatcher {
 		if (!com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
 			return;
 		}
-		queueKick(username);
+		com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
 		String text = config.dungeonFloorKickMessageTemplate
 				.replace("{player}", username)
 				.replace("{value}", String.valueOf(value))
@@ -311,7 +226,7 @@ public final class PartyJoinWatcher {
 			return;
 		}
 		String statLabel = useMp ? "MP" : "Level";
-		queueKick(username);
+		com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
 		String text = config.dungeonAutoKickMaxMessageTemplate
 				.replace("{player}", username)
 				.replace("{stat}", statLabel)
@@ -333,7 +248,7 @@ public final class PartyJoinWatcher {
 		if (!com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
 			return;
 		}
-		queueKick(username);
+		com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
 		String text = config.dungeonFloorKickMaxMessageTemplate
 				.replace("{player}", username)
 				.replace("{value}", String.valueOf(value))
@@ -357,7 +272,7 @@ public final class PartyJoinWatcher {
 		if (!com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
 			return;
 		}
-		queueKick(username);
+		com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
 		String text = config.dungeonFloorCompletionKickMessageTemplate
 				.replace("{player}", username)
 				.replace("{value}", String.valueOf(value))
@@ -374,7 +289,7 @@ public final class PartyJoinWatcher {
 		if (!com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
 			return;
 		}
-		queueKick(username);
+		com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
 		String text = config.dungeonFloorCompletionKickMaxMessageTemplate
 				.replace("{player}", username)
 				.replace("{value}", String.valueOf(value))

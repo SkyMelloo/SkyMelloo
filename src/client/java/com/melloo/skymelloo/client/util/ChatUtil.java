@@ -59,11 +59,11 @@ public final class ChatUtil {
 	 * by the time this shows at all, the automatic 1-retry in SkyMellooApiClient already failed too.
 	 */
 	public static String errorMessage(String name, Throwable error) {
-		return "§c✖ §7Fehler bei §e" + name + "§7: §c" + friendlyError(error);
+		return "§c✖ §7Error in §e" + name + "§7: §c" + friendlyError(error);
 	}
 
 	/**
-	 * Public entry point for call sites that build their own chat line (not the "✖ Fehler bei X: ..."
+	 * Public entry point for call sites that build their own chat line (not the "✖ Error in X: ..."
 	 * shape {@link #errorMessage} produces) but still need the same CompletionException-unwrapping -
 	 * without it, a failed command chain shows "java.lang.RuntimeException: <message>" instead of just
 	 * "<message>", since CompletionException(cause)'s own getMessage() is cause.toString().

@@ -102,6 +102,12 @@ public class SkyMellooClient implements ClientModInitializer {
 		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraElementsProvider(
 				com.melloo.skymelloo.client.gui.SkyMellooHudElements::build);
 		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraSaveHandler(SkyMellooConfig.HANDLER::save);
+		// Party glow/marking is fully MellooEssentials' job now too (same treatment STAFF got earlier
+		// today) - this is the one piece of data essentials has no way to know on its own (a party
+		// member's live HP, for the low-HP blink), fed back in via this hook. See
+		// com.melloo.skymelloo.client.highlight.HighlightManager#partyBlinkOverride's own doc comment.
+		com.melloo.mellooessentials.client.highlight.HighlightManager.setPartyBlinkColorOverride(
+				com.melloo.skymelloo.client.highlight.HighlightManager::partyBlinkOverride);
 		PartyTracker.init();
 		com.melloo.skymelloo.client.social.HypixelLocationTracker.init();
 		PartyJoinWatcher.init();
@@ -259,28 +265,26 @@ public class SkyMellooClient implements ClientModInitializer {
 								// FriendListSync.java's deletion). Party sync is the only thing left to sync.
 								.executes(ctx -> {
 									PartyTracker.requestRefreshNow();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party-Sync angefragt..."));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party sync requested..."));
 									return 1;
 								})
 								.then(ClientCommands.literal("party").executes(ctx -> {
 									PartyTracker.requestRefreshNow();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party-Sync angefragt..."));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party sync requested..."));
 									return 1;
 								})))
 						.then(com.melloo.skymelloo.client.highlight.LobbySearchManager.buildSearchCommand())
-						.then(com.melloo.skymelloo.client.social.BlockedUsersManager.buildBlockCommand())
-						.then(com.melloo.skymelloo.client.social.BlockedUsersManager.buildUnblockCommand())
 						.then(buildGetDataCommand())
 						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildRollCommand())
 						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildPollCommand())
 						.then(ClientCommands.literal("partyjoin")
 								.executes(ctx -> {
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm partyjoin test <name>"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm partyjoin test <name>"));
 									return 1;
 								})
 								.then(ClientCommands.literal("test")
 										.executes(ctx -> {
-											ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm partyjoin test <name>"));
+											ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm partyjoin test <name>"));
 											return 1;
 										})
 										.then(ClientCommands.argument("name", StringArgumentType.word())
@@ -319,7 +323,7 @@ public class SkyMellooClient implements ClientModInitializer {
 						// methods the real renderer uses - so this can never drift from what's really drawn.
 						.then(ClientCommands.literal("debug")
 								.executes(ctx -> {
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/sm debug hm-bar§7, §f/sm debug bossroom§7, oder §f/sm debug score"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm debug hm-bar§7, §f/sm debug bossroom§7, or §f/sm debug score"));
 									return 1;
 								})
 								.then(ClientCommands.literal("hm-bar").executes(ctx -> {
@@ -538,7 +542,7 @@ public class SkyMellooClient implements ClientModInitializer {
 						}))
 						.then(ClientCommands.literal("verify")
 								.executes(ctx -> {
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cBenutzung: §f/skymelloo verify <code>"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/skymelloo verify <code>"));
 									return 1;
 								})
 								.then(ClientCommands.argument("code", StringArgumentType.word()).executes(ctx -> {
@@ -668,8 +672,7 @@ public class SkyMellooClient implements ClientModInitializer {
 
 		source.sendFeedback(ChatUtil.prefixed("§6--- Party ---"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo sync §7- manually trigger a party sync"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo block <name>§7/§aunblock <name> §7- block a party member (auto-kick)"));
-		source.sendFeedback(ChatUtil.prefixed("§7Friends & relay chat now run through MellooEssentials: §f/me friend§7, §f/me chat"));
+		source.sendFeedback(ChatUtil.prefixed("§7Friends, relay chat, and party block/kick now run through MellooEssentials: §f/me friend§7, §f/me chat§7, §f/me block"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo roll <amount>§7/§aroll party§7/§aroll <word> <secs> §7- random pick in the party"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo poll start <question;answer1;...>§7/§apoll close §7- party poll"));
 
@@ -821,7 +824,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			partyLiteral.then(statLiteral);
 		}
 
-		var getdataUsage = "§cBenutzung: §f/sm getdata player <name> <stat>§7 oder §f/sm getdata party <stat>";
+		var getdataUsage = "§cUsage: §f/sm getdata player <name> <stat>§7 or §f/sm getdata party <stat>";
 		return ClientCommands.literal("getdata")
 				.executes(ctx -> {
 					ctx.getSource().sendFeedback(ChatUtil.prefixed(getdataUsage));

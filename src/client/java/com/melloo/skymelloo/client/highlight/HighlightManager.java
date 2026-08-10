@@ -6,7 +6,6 @@ import com.melloo.skymelloo.client.cosmetics.MagicMissileManager;
 import com.melloo.skymelloo.client.fishing.FishingHelper;
 import com.melloo.skymelloo.client.fishing.FishingMinigameManager;
 import com.melloo.mellooessentials.client.social.FriendsManager;
-import com.melloo.skymelloo.client.party.PartyTracker;
 import com.melloo.skymelloo.client.social.WhitelistManager;
 import com.melloo.skymelloo.client.util.SkyblockDetector;
 import com.melloo.skymelloo.client.util.VisibilityUtil;
@@ -235,7 +234,6 @@ public final class HighlightManager {
 				return toRgb(config.lobbySearchColor);
 			}
 			return switch (classifyPlayer(player)) {
-				case PARTY -> lowHpBlinkColor(player, config, toRgb(config.partyHighlightColor));
 				case FRIEND -> toRgb(config.friendHighlightColor);
 				// Unreachable in practice - shouldGlow/isHighlightTarget already refuse NONE before a
 				// color is ever needed for it.
@@ -251,17 +249,32 @@ public final class HighlightManager {
 	private static final double LOW_HP_BLINK_THRESHOLD = 0.25;
 
 	/**
-	 * A party member's highlight normally stays their fixed party color, but blinks bright red once their
-	 * HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a fight,
-	 * using the same HP data already read for the Party HUD's own display. Blinks (alternates every
-	 * ~400ms) rather than just going solid red, so it's noticeably distinct from a static color choice.
+	 * A party member's highlight normally stays their fixed party color, but blinks bright red once
+	 * their HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a
+	 * fight. This mod no longer decides party glow at all (MellooEssentials owns that entirely now,
+	 * same treatment STAFF got earlier) - this is registered as
+	 * {@code com.melloo.mellooessentials.client.highlight.HighlightManager#setPartyBlinkColorOverride}
+	 * in {@code SkyMellooClient#onInitializeClient} instead, so essentials' own glow-color computation
+	 * calls back into this mod only for the one piece of data (live HP) it has no way to know itself.
+	 * Blinks (alternates every ~400ms) rather than just going solid red, so it's noticeably distinct
+	 * from a static color choice. Returns {@code null} (not {@code normalColor}) when the blink
+	 * shouldn't apply, matching the override hook's own null-means-"leave as-is" contract.
 	 */
-	private static int lowHpBlinkColor(Player player, SkyMellooConfig config, int normalColor) {
-		if (!config.lowHpBlinkEnabled || player.getMaxHealth() <= 0) {
-			return normalColor;
+	public static Integer partyBlinkOverride(java.util.UUID uuid, int normalColor) {
+		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
+		if (!config.lowHpBlinkEnabled) {
+			return null;
+		}
+		Minecraft client = Minecraft.getInstance();
+		if (client.level == null) {
+			return null;
+		}
+		Player player = client.level.getPlayerByUUID(uuid);
+		if (player == null || player.getMaxHealth() <= 0) {
+			return null;
 		}
 		if (player.getHealth() / player.getMaxHealth() >= LOW_HP_BLINK_THRESHOLD) {
-			return normalColor;
+			return null;
 		}
 		boolean blinkOn = (System.currentTimeMillis() / LOW_HP_BLINK_INTERVAL_MS) % 2 == 0;
 		return blinkOn ? LOW_HP_BLINK_COLOR : normalColor;
@@ -313,29 +326,30 @@ public final class HighlightManager {
 		return copy;
 	}
 
-	// Covers party and SkyMelloo Friends (a confirmed mutual friend via the mod's OWN friends system,
-	// see FriendsManager - NOT a Hypixel-/friend-list-based highlight). Staff is deliberately NOT a
-	// category here anymore - MellooEssentials' own com.melloo.mellooessentials.client.highlight.
-	// HighlightManager already independently glows staff pink (see its own PresenceManager.isStaff),
-	// and both mods' glow mixins inject into the same vanilla Entity#isCurrentlyGlowing/getTeamColor
-	// methods (cancellable, HEAD) - keeping a second, separate staff branch here raced the two
-	// mixins against each other with no defined winner, which is what made staff highlighting look
-	// broken/inconsistent. Self/regular-other-player/NPC/plain-mod-user get no highlight at all.
+	// Covers only SkyMelloo Friends now (a confirmed mutual friend via the mod's OWN friends system,
+	// see FriendsManager - NOT a Hypixel-/friend-list-based highlight). Neither staff NOR party are
+	// categories here anymore - MellooEssentials' own com.melloo.mellooessentials.client.highlight.
+	// HighlightManager independently glows both (staff pink via its own PresenceManager.isStaff,
+	// party light-blue via its own PartyTracker, with SkyMelloo's low-HP blink preserved through
+	// HighlightManager#setPartyBlinkColorOverride/partyBlinkOverride above), and both mods' glow
+	// mixins inject into the same vanilla Entity#isCurrentlyGlowing/getTeamColor methods (cancellable,
+	// HEAD) - keeping a second, separate branch here for either raced the two mixins against each
+	// other with no defined winner, which is what made staff highlighting look broken/inconsistent
+	// (and would have done the same for party). Self/regular-other-player/NPC/plain-mod-user get no
+	// highlight at all.
 	private enum PlayerCategory {
-		PARTY, FRIEND, NONE
+		FRIEND, NONE
 	}
 
 	private static PlayerCategory classifyPlayer(Player player) {
-		// Staff is MellooEssentials' job now (see the enum's own doc comment) - checking its
-		// PresenceManager.isStaff directly here (not the broader shouldGlow, which also covers ITS
-		// OWN party check and would incorrectly defer party glow too, losing the low-HP blink below)
-		// means SkyMelloo simply never tries to cancel the glow methods for a staff member at all,
-		// leaving Essentials' own mixin as the only one contending for that entity.
-		if (com.melloo.mellooessentials.client.social.PresenceManager.isStaff(player.getUUID())) {
+		// Staff AND party are both MellooEssentials' job now (see the enum's own doc comment) -
+		// checking its PresenceManager.isStaff/PartyTracker.isMember directly here (not the broader
+		// shouldGlow, which would just recurse into the same question) means SkyMelloo simply never
+		// tries to cancel the glow methods for either, leaving Essentials' own mixin as the only one
+		// contending for that entity.
+		if (com.melloo.mellooessentials.client.social.PresenceManager.isStaff(player.getUUID())
+				|| com.melloo.mellooessentials.client.party.PartyTracker.isMember(player.getUUID())) {
 			return PlayerCategory.NONE;
-		}
-		if (PartyTracker.isMember(player.getUUID())) {
-			return PlayerCategory.PARTY;
 		}
 		if (FriendsManager.isFriend(player.getName().getString())) {
 			return PlayerCategory.FRIEND;
