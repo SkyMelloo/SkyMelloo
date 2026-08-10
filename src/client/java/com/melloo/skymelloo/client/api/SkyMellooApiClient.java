@@ -586,17 +586,8 @@ public final class SkyMellooApiClient {
 		);
 	}
 
-	/** Result of completing the "/skymelloo verify" account-linking flow. */
+	/** Result of completing the "/skymelloo unlink" account flow (account verification itself moved to MellooEssentials' "/me verify"). */
 	public record VerifyResult(boolean ok, String error) {
-	}
-
-	/** Completes the account-linking flow: the admin generated {@code code} on sky.melloo.me/set, this proves (via the signed request) the in-game account owns it. */
-	public static CompletableFuture<VerifyResult> verifyAccount(String code, ModAuthManager.ModIdentity identity) {
-		JsonObject body = new JsonObject();
-		body.addProperty("code", code);
-		return postJson("/mod/verify", body, identity)
-				.thenApply(root -> new VerifyResult(true, null))
-				.exceptionally(error -> new VerifyResult(false, ChatUtil.friendlyError(error)));
 	}
 
 	/** Result of starting the "/sm link" browser-based linking flow - {@code token} is opened as {@code https://sky.melloo.me/link/<token>} in the system browser, see SkyMellooClient's "link" command. */

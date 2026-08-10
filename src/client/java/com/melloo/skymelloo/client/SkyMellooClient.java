@@ -540,36 +540,6 @@ public class SkyMellooClient implements ClientModInitializer {
 							com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL);
 							return 1;
 						}))
-						.then(ClientCommands.literal("verify")
-								.executes(ctx -> {
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/skymelloo verify <code>"));
-									return 1;
-								})
-								.then(ClientCommands.argument("code", StringArgumentType.word()).executes(ctx -> {
-									String code = StringArgumentType.getString(ctx, "code");
-									Minecraft client = Minecraft.getInstance();
-									if (client.player == null) {
-										return 1;
-									}
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("Checking code..."));
-									ModAuthManager.getIdentity(client).thenCompose(identity -> SkyMellooApiClient.verifyAccount(code, identity))
-											.whenComplete((result, error) ->
-													Minecraft.getInstance().execute(() -> {
-														Minecraft c = Minecraft.getInstance();
-														if (c.player == null) {
-															return;
-														}
-														if (error != null) {
-															c.player.sendSystemMessage(ChatUtil.prefixed("§cVerbindung fehlgeschlagen: " + ChatUtil.friendlyError(error)));
-														} else if (result.ok()) {
-															c.player.sendSystemMessage(ChatUtil.prefixed("§aAccount verbunden! Du bist jetzt Admin auf sky.melloo.me."));
-														} else {
-															c.player.sendSystemMessage(ChatUtil.prefixed("§cVerbindung fehlgeschlagen: " + result.error()));
-														}
-													})
-											);
-									return 1;
-								})))
 						.then(ClientCommands.literal("unlink").executes(ctx -> {
 							Minecraft client = Minecraft.getInstance();
 							if (client.player == null) {
@@ -583,18 +553,18 @@ public class SkyMellooClient implements ClientModInitializer {
 													return;
 												}
 												if (error != null) {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + ChatUtil.friendlyError(error)));
+													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + ChatUtil.friendlyError(error)));
 												} else if (result.ok()) {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§aAccount getrennt."));
+													c.player.sendSystemMessage(ChatUtil.prefixed("§aAccount unlinked."));
 												} else {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + result.error()));
+													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + result.error()));
 												}
 											})
 									);
 							return 1;
 						}))
-						// "/sm link" - the mirror image of "/skymelloo verify <code>" above: instead of typing
-						// a website-generated code in-game, this generates a token in-game and opens
+						// "/sm link" - the mirror image of MellooEssentials' "/me verify <code>": instead of
+						// typing a website-generated code in-game, this generates a token in-game and opens
 						// sky.melloo.me/link/<token> directly in the system browser, where it completes using
 						// whatever Discord session is already there (or prompts a fresh login first) - no
 						// code to type at all.
@@ -612,11 +582,11 @@ public class SkyMellooClient implements ClientModInitializer {
 													return;
 												}
 												if (error != null) {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + ChatUtil.friendlyError(error)));
+													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + ChatUtil.friendlyError(error)));
 												} else if (result.ok()) {
 													net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://sky.melloo.me/link/" + result.token()));
 												} else {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFehlgeschlagen: " + result.error()));
+													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + result.error()));
 												}
 											})
 									);
@@ -661,7 +631,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Commands §7(also available as §f/sm§7) ==="));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo config §7- open settings (also key H)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo link §7- Link your account via browser (no code needed)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo verify <code> §7- link your account to sky.melloo.me (code)"));
+		source.sendFeedback(ChatUtil.prefixed("§7Admin account verification now runs through MellooEssentials: §f/me verify <code>"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo unlink §7- unlink your account"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo view <name> §7- open player stats as a window (tabs, scrollable)"));
 		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata player <name> <stat> §7- fetch player stats"));
