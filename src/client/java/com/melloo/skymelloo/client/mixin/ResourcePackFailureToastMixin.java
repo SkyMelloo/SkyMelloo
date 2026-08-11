@@ -69,8 +69,8 @@ public abstract class ResourcePackFailureToastMixin {
 		SystemToast.add(
 				Minecraft.getInstance().getToastManager(),
 				SystemToast.SystemToastId.PACK_LOAD_FAILURE,
-				Component.literal("SkyMelloo: resource pack error detected"),
-				Component.literal("Hypixel's pack likely downloaded incompletely - cache was cleared automatically, just reconnect. If it happens again, restart the game.")
+				Component.translatable("skymelloo.toast.resource_pack_failure.title"),
+				Component.translatable("skymelloo.toast.resource_pack_failure.description")
 		);
 	}
 

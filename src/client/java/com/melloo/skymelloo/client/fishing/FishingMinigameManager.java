@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
@@ -257,7 +258,7 @@ public final class FishingMinigameManager {
 		if (chainScore > config.fishingMinigameHighscore) {
 			config.fishingMinigameHighscore = chainScore;
 			SkyMellooConfig.HANDLER.save();
-			client.player.sendSystemMessage(ChatUtil.prefixed("§6§lNeuer Fishing-Highscore: §e" + chainScore + " Punkte§6 (Combo x" + comboCount + ")!"));
+			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.fishing.new_highscore", chainScore, comboCount)));
 		}
 	}
 

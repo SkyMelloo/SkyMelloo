@@ -1,6 +1,7 @@
 package com.melloo.skymelloo.client.social;
 
 import com.melloo.skymelloo.client.api.SkyMellooApiClient;
+import net.minecraft.network.chat.Component;
 
 import java.util.Locale;
 import java.util.Map;
@@ -199,7 +200,7 @@ public final class DungeonReadiness {
 	public static String catacombsLevelTierLabel(int catacombsLevel, int targetFloor) {
 		int required = PartyJoinWatcher.requiredCatacombsLevel(Math.max(targetFloor, 1));
 		if (catacombsLevel < required) {
-			return "Not Qualified";
+			return Component.translatable("skymelloo.chat.dungeon_readiness.not_qualified").getString();
 		}
 		double ratio = (double) catacombsLevel / required;
 		return tierLabel(ratio, 1.0, 1.5, 2.5, 4.0, 8.0);
@@ -208,21 +209,21 @@ public final class DungeonReadiness {
 	/** 6-band text tier from 5 ascending thresholds: Very Low / Low / Medium / Good / Excellent / Overpowered. */
 	private static String tierLabel(double value, double t1, double t2, double t3, double t4, double t5) {
 		if (value >= t5) {
-			return "Overpowered";
+			return Component.translatable("skymelloo.chat.dungeon_readiness.tier_overpowered").getString();
 		}
 		if (value >= t4) {
-			return "Excellent";
+			return Component.translatable("skymelloo.chat.dungeon_readiness.tier_excellent").getString();
 		}
 		if (value >= t3) {
-			return "Good";
+			return Component.translatable("skymelloo.chat.dungeon_readiness.tier_good").getString();
 		}
 		if (value >= t2) {
-			return "Medium";
+			return Component.translatable("skymelloo.chat.dungeon_readiness.tier_medium").getString();
 		}
 		if (value >= t1) {
-			return "Low";
+			return Component.translatable("skymelloo.chat.dungeon_readiness.tier_low").getString();
 		}
-		return "Very Low";
+		return Component.translatable("skymelloo.chat.dungeon_readiness.tier_very_low").getString();
 	}
 
 	/**

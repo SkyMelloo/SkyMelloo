@@ -31,13 +31,15 @@ public class PlayerViewScreen extends Screen {
 	private static final int MARGIN = 10;
 
 	private enum Tab {
-		OVERVIEW("Overview"), SKILLS("Skills"), DUNGEONS("Dungeons"), SLAYERS("Slayers"),
-		MINIONS("Minions"), BESTIARY("Bestiary"), COLLECTIONS("Collections");
+		OVERVIEW("skymelloo.gui.player_view.tab.overview"), SKILLS("skymelloo.gui.player_view.tab.skills"), DUNGEONS("skymelloo.gui.player_view.tab.dungeons"), SLAYERS("skymelloo.gui.player_view.tab.slayers"),
+		MINIONS("skymelloo.gui.player_view.tab.minions"), BESTIARY("skymelloo.gui.player_view.tab.bestiary"), COLLECTIONS("skymelloo.gui.player_view.tab.collections");
 
-		final String label;
+		// Translation key, not display text - resolved at render time since Tab constants are
+		// created at class-load, before Minecraft's language system is guaranteed to be ready.
+		final String labelKey;
 
-		Tab(String label) {
-			this.label = label;
+		Tab(String labelKey) {
+			this.labelKey = labelKey;
 		}
 	}
 
@@ -62,8 +64,13 @@ public class PlayerViewScreen extends Screen {
 	private int listX1, listX2, listTop, listBottom;
 
 	public PlayerViewScreen(String username) {
-		super(Component.literal("SkyMelloo Player View"));
+		super(Component.translatable("skymelloo.gui.player_view.title"));
 		this.username = username;
+	}
+
+	/** Resolves a translation key to its display string, for row labels rendered as raw text. */
+	private static String tr(String key) {
+		return Component.translatable(key).getString();
 	}
 
 	public static void open(String username) {
@@ -189,9 +196,9 @@ public class PlayerViewScreen extends Screen {
 
 		List<RowFactory> rows = new ArrayList<>();
 		if (loading) {
-			rows.add(textRow("Loading " + username + "..."));
+			rows.add(textRow(Component.translatable("skymelloo.gui.player_view.loading", username).getString()));
 		} else if (errorMessage != null) {
-			rows.add(textRow("Error: " + errorMessage));
+			rows.add(textRow(Component.translatable("skymelloo.gui.player_view.error", errorMessage).getString()));
 		} else if (data != null) {
 			rows.addAll(rowsFor(activeTab, data));
 		}
@@ -217,40 +224,40 @@ public class PlayerViewScreen extends Screen {
 		List<RowFactory> rows = new ArrayList<>();
 		switch (tab) {
 			case OVERVIEW -> {
-				rows.add(infoRow("SkyBlock Level", String.valueOf(d.skyblockLevel())));
-				rows.add(infoRow("Rank", d.rankLabel() != null ? d.rankLabel() : "None"));
-				rows.add(infoRow("Guild", d.guildName() != null ? d.guildName() + (d.guildTag() != null ? " [" + d.guildTag() + "]" : "") : "None"));
-				rows.add(infoRow("Purse", formatAmount(d.purse())));
-				rows.add(infoRow("Bank", formatAmount(d.bank())));
-				rows.add(infoRow("Networth", formatAmount(d.netWorth())));
-				rows.add(infoRow("Fairy Souls", String.valueOf(d.fairySouls())));
-				rows.add(infoRow("Pets", d.petCount() + (d.bestPetLabel() != null ? " (best: " + d.bestPetLabel() + ")" : "")));
-				rows.add(infoRow("Minion Slots", String.valueOf(d.minionSlots())));
-				rows.add(infoRow("Dungeon Runs", String.valueOf(d.dungeonCompletions())));
-				rows.add(infoRow("Bestiary Kills", String.valueOf(d.bestiaryKills())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.skyblock_level"), String.valueOf(d.skyblockLevel())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.rank"), d.rankLabel() != null ? d.rankLabel() : tr("skymelloo.gui.player_view.value.none")));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.guild"), d.guildName() != null ? (d.guildTag() != null ? Component.translatable("skymelloo.gui.player_view.value.guild_with_tag", d.guildName(), d.guildTag()).getString() : d.guildName()) : tr("skymelloo.gui.player_view.value.none")));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.purse"), formatAmount(d.purse())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.bank"), formatAmount(d.bank())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.networth"), formatAmount(d.netWorth())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.fairy_souls"), String.valueOf(d.fairySouls())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.pets"), d.bestPetLabel() != null ? Component.translatable("skymelloo.gui.player_view.value.pets_with_best", d.petCount(), d.bestPetLabel()).getString() : String.valueOf(d.petCount())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.minion_slots"), String.valueOf(d.minionSlots())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.dungeon_runs"), String.valueOf(d.dungeonCompletions())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.bestiary_kills"), String.valueOf(d.bestiaryKills())));
 				if (d.firstJoin() > 0) {
 					long days = (System.currentTimeMillis() - d.firstJoin()) / 86_400_000L;
-					rows.add(infoRow("Playing Since", days + " days ago"));
+					rows.add(infoRow(tr("skymelloo.gui.player_view.row.playing_since"), Component.translatable("skymelloo.gui.player_view.value.days_ago", days).getString()));
 				}
 			}
 			case SKILLS -> {
-				rows.add(infoRow("Average Level", String.format("%.1f", d.averageSkillLevel())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.average_level"), String.format("%.1f", d.averageSkillLevel())));
 				rows.addAll(mapRows(d.skillLevels()));
 			}
 			case DUNGEONS -> {
-				rows.add(infoRow("Catacombs", String.valueOf(d.catacombsLevel())));
-				rows.add(infoRow("Selected Class", d.selectedClass() != null ? d.selectedClass() : "None"));
-				rows.add(infoRow("Highest Floor", d.highestFloor() == 0 ? "None" : "F/M" + d.highestFloor()));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.catacombs"), String.valueOf(d.catacombsLevel())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.selected_class"), d.selectedClass() != null ? d.selectedClass() : tr("skymelloo.gui.player_view.value.none")));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.highest_floor"), d.highestFloor() == 0 ? tr("skymelloo.gui.player_view.value.none") : "F/M" + d.highestFloor()));
 				rows.addAll(mapRows(d.classLevels()));
 			}
 			case SLAYERS -> rows.addAll(mapRows(d.slayerLevels()));
 			case MINIONS -> {
-				rows.add(infoRow("Unique Minions", String.valueOf(d.minionUniqueCount())));
-				rows.add(infoRow("Total Upgrades", String.valueOf(d.minionUpgrades())));
-				rows.add(infoRow("Minion Slots", String.valueOf(d.minionSlots())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.unique_minions"), String.valueOf(d.minionUniqueCount())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.total_upgrades"), String.valueOf(d.minionUpgrades())));
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.minion_slots"), String.valueOf(d.minionSlots())));
 			}
-			case BESTIARY -> rows.add(infoRow("Total Kills", String.valueOf(d.bestiaryKills())));
-			case COLLECTIONS -> rows.add(infoRow("Collections Started", String.valueOf(d.collectionsStarted())));
+			case BESTIARY -> rows.add(infoRow(tr("skymelloo.gui.player_view.row.total_kills"), String.valueOf(d.bestiaryKills())));
+			case COLLECTIONS -> rows.add(infoRow(tr("skymelloo.gui.player_view.row.collections_started"), String.valueOf(d.collectionsStarted())));
 		}
 		return rows;
 	}
@@ -262,7 +269,7 @@ public class PlayerViewScreen extends Screen {
 			rows.add(infoRow(name, String.valueOf(entry.getValue())));
 		}
 		if (rows.isEmpty()) {
-			rows.add(textRow("No data"));
+			rows.add(textRow(tr("skymelloo.gui.player_view.no_data")));
 		}
 		return rows;
 	}
@@ -308,7 +315,7 @@ public class PlayerViewScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
 		gg.fill(0, 0, this.width, this.height, PANEL_BG);
 		gg.centeredText(this.font, username, this.width / 2, MARGIN + 6, TEXT_ON);
-		gg.centeredText(this.font, "Esc to close, scroll to see more", this.width / 2, MARGIN + 20, TEXT_OFF);
+		gg.centeredText(this.font, tr("skymelloo.gui.player_view.hint"), this.width / 2, MARGIN + 20, TEXT_OFF);
 		super.extractRenderState(gg, mouseX, mouseY, partialTick);
 	}
 
@@ -316,7 +323,7 @@ public class PlayerViewScreen extends Screen {
 		private final Tab tab;
 
 		TabButtonWidget(int x, int y, int width, int height, Tab tab) {
-			super(x, y, width, height, Component.literal(tab.label));
+			super(x, y, width, height, Component.translatable(tab.labelKey));
 			this.tab = tab;
 		}
 
@@ -334,7 +341,7 @@ public class PlayerViewScreen extends Screen {
 			if (active) {
 				gg.fill(x1, y2 - 2, x2, y2, ACCENT);
 			}
-			gg.centeredText(Minecraft.getInstance().font, tab.label, (x1 + x2) / 2, y1 + (getHeight() - 8) / 2, active ? TEXT_ON : TEXT_OFF);
+			gg.centeredText(Minecraft.getInstance().font, tr(tab.labelKey), (x1 + x2) / 2, y1 + (getHeight() - 8) / 2, active ? TEXT_ON : TEXT_OFF);
 		}
 
 		@Override

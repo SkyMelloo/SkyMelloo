@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +66,7 @@ public final class DungeonDebugHud implements HudElement {
 		}
 
 		List<String> lines = new ArrayList<>();
-		lines.add(flag("Run active", DungeonRunTracker.isRunActive()));
+		lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.run_active").getString(), DungeonRunTracker.isRunActive()));
 		// One line per Wither Key obtained this run (a floor can have several Wither Doors) - added the
 		// moment a key is picked up, well before that door is actually opened, rather than one shared
 		// flag for the whole run. Label text used to always read "...opened (key: yes)" regardless of
@@ -73,12 +74,15 @@ public final class DungeonDebugHud implements HudElement {
 		// it's red?") - the text now actually says whether it's opened or not, matching the ✓/✖.
 		List<Boolean> witherDoors = DungeonRunTracker.getWitherDoors();
 		List<Long> witherDoorMillis = DungeonRunTracker.getWitherDoorOpenedMillis();
+		String stateOpened = Component.translatable("skymelloo.chat.dungeon_debug.state_opened").getString();
+		String stateNotOpenedYet = Component.translatable("skymelloo.chat.dungeon_debug.state_not_opened_yet").getString();
 		if (witherDoors.isEmpty()) {
-			lines.add(flag("Wither key obtained", false));
+			lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.wither_key_obtained").getString(), false));
 		} else {
 			for (int i = 0; i < witherDoors.size(); i++) {
 				boolean opened = witherDoors.get(i);
-				lines.add(flag("Wither door " + (i + 1) + " " + (opened ? "opened" : "not opened yet") + " (key obtained)" + elapsedSuffix(witherDoorMillis.get(i)), opened));
+				lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.wither_door_state",
+						i + 1, opened ? stateOpened : stateNotOpenedYet, elapsedSuffix(witherDoorMillis.get(i))).getString(), opened));
 			}
 		}
 		// Same "key obtained" framing as Wither Doors above - Catacombs has no separate pickup message
@@ -91,14 +95,18 @@ public final class DungeonDebugHud implements HudElement {
 		boolean bloodEntered = DungeonRunTracker.isBloodRoomEntered();
 		boolean bloodCleared = DungeonRunTracker.isBloodRoomCleared();
 		if (!bloodEntered) {
-			lines.add(flag("Blood key obtained", false));
+			lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.blood_key_obtained").getString(), false));
 		} else {
 			boolean bloodDoorOpened = DungeonRunTracker.isBloodDoorOpened();
-			lines.add(flag("Blood door " + (bloodDoorOpened ? "opened" : "not opened yet") + " (key obtained)" + elapsedSuffix(DungeonRunTracker.getBloodDoorOpenedMillis()), bloodDoorOpened));
+			lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.blood_door_state",
+					bloodDoorOpened ? stateOpened : stateNotOpenedYet, elapsedSuffix(DungeonRunTracker.getBloodDoorOpenedMillis())).getString(), bloodDoorOpened));
 		}
-		lines.add(flag("Blood room " + (bloodCleared ? "cleared" : "not cleared yet") + elapsedSuffix(DungeonRunTracker.getBloodRoomClearedMillis()), bloodCleared));
-		lines.add(flag("Boss room entered" + elapsedSuffix(DungeonRunTracker.getBossRoomEnteredMillis()), DungeonRunTracker.isBossRoomEntered()));
-		lines.add(flag("Boss room cleared" + elapsedSuffix(DungeonRunTracker.getBossRoomClearedMillis()), DungeonRunTracker.isBossRoomCleared()));
+		String stateCleared = Component.translatable("skymelloo.chat.dungeon_debug.state_cleared").getString();
+		String stateNotClearedYet = Component.translatable("skymelloo.chat.dungeon_debug.state_not_cleared_yet").getString();
+		lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.blood_room_state",
+				bloodCleared ? stateCleared : stateNotClearedYet, elapsedSuffix(DungeonRunTracker.getBloodRoomClearedMillis())).getString(), bloodCleared));
+		lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.boss_room_entered", elapsedSuffix(DungeonRunTracker.getBossRoomEnteredMillis())).getString(), DungeonRunTracker.isBossRoomEntered()));
+		lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.boss_room_cleared", elapsedSuffix(DungeonRunTracker.getBossRoomClearedMillis())).getString(), DungeonRunTracker.isBossRoomCleared()));
 		// Only shown at all once it's actually happened - the death case that would otherwise make
 		// "Boss room cleared" look like a contradiction (it can legitimately still go green even after
 		// this, since the PARTY can finish the floor around a dead/ghosted player - see
@@ -107,14 +115,14 @@ public final class DungeonDebugHud implements HudElement {
 		// BOTH ways a run can fail: the local player personally dying, and the local player surviving
 		// while the rest of the party wipes.
 		if (DungeonRunTracker.hasLocalPlayerDied()) {
-			lines.add(flag("Run failed (you died)", true));
+			lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.run_failed_died").getString(), true));
 		} else if (DungeonRunTracker.isEntirePartyDead()) {
-			lines.add(flag("Run failed (party wiped)", true));
+			lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.run_failed_wiped").getString(), true));
 		}
 		// Raw values straight from Hypixel's own Mod API location event - not documented anywhere
 		// public, shown here so the real strings can actually be read off live instead of guessed at.
-		lines.add("§7Hypixel mode: §f" + (HypixelLocationTracker.getMode() != null ? HypixelLocationTracker.getMode() : "?"));
-		lines.add("§7Hypixel map: §f" + (HypixelLocationTracker.getMap() != null ? HypixelLocationTracker.getMap() : "?"));
+		lines.add(Component.translatable("skymelloo.chat.dungeon_debug.hypixel_mode", HypixelLocationTracker.getMode() != null ? HypixelLocationTracker.getMode() : "?").getString());
+		lines.add(Component.translatable("skymelloo.chat.dungeon_debug.hypixel_map", HypixelLocationTracker.getMap() != null ? HypixelLocationTracker.getMap() : "?").getString());
 
 		int x = config.hudDebugX;
 		int y = config.hudDebugY;

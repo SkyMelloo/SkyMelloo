@@ -6,6 +6,7 @@ import com.mojang.authlib.exceptions.AuthenticationException;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
+import net.minecraft.network.chat.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -181,7 +182,7 @@ public final class ModAuthManager {
 							var player = Minecraft.getInstance().player;
 							if (player != null) {
 								player.sendSystemMessage(ChatUtil.prefixed(
-										"§cYour Minecraft session has expired - SkyMelloo's account-linked features (Friends, Cloud Sync, Party stats, /skymelloo view, etc.) won't work again until you §lrestart the game§r§c to get a fresh session."));
+										Component.translatable("skymelloo.chat.session_expired")));
 							}
 						});
 					}

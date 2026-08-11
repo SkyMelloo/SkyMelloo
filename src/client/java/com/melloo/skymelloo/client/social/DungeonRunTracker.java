@@ -565,7 +565,7 @@ public final class DungeonRunTracker {
 						}
 					}
 				} else {
-					maybeAnnounceSPlusImpossible("a puzzle failed");
+					maybeAnnounceSPlusImpossible(Component.translatable("skymelloo.chat.dungeon_report.reason_puzzle_failed").getString());
 				}
 				return;
 			}
@@ -598,7 +598,7 @@ public final class DungeonRunTracker {
 					bossRoomEnteredMillis = System.currentTimeMillis();
 					Minecraft client = Minecraft.getInstance();
 					if (config.dungeonBossRoomAnnounceEnabled && client.player != null) {
-						sendDungeonMessage(client, bossRoomMessageFor(config, "The party", true), config.dungeonBossRoomMessageDelivery);
+						sendDungeonMessage(client, bossRoomMessageFor(config, Component.translatable("skymelloo.chat.dungeon_report.the_party").getString(), true), config.dungeonBossRoomMessageDelivery);
 					}
 				}
 			}
@@ -784,7 +784,7 @@ public final class DungeonRunTracker {
 				afkKicked.add(name);
 				client.player.connection.sendCommand("party kick " + name);
 				client.player.sendSystemMessage(ChatUtil.prefixed(
-						"§cAFK Auto-Kick: §f" + name + "§c (no movement for " + afkKickThresholdSeconds(config) + "s)"
+						Component.translatable("skymelloo.chat.dungeon_report.afk_auto_kick", name, afkKickThresholdSeconds(config))
 				));
 			}
 		}
@@ -1557,7 +1557,7 @@ public final class DungeonRunTracker {
 			String text = config.dungeonDeathMessageTemplate.replace("{player}", name).replace("{count}", String.valueOf(count));
 			sendDungeonMessage(client, text, config.dungeonDeathMessageDelivery);
 		}
-		maybeAnnounceSPlusImpossible("a death occurred");
+		maybeAnnounceSPlusImpossible(Component.translatable("skymelloo.chat.dungeon_report.reason_death").getString());
 
 		if (client.player == null || client.player.getGameProfile().name().equalsIgnoreCase(name)) {
 			return; // never auto/prompt-kick yourself
@@ -1571,7 +1571,7 @@ public final class DungeonRunTracker {
 			return;
 		}
 		client.player.connection.sendCommand("party kick " + name);
-		client.player.sendSystemMessage(ChatUtil.prefixed("§cDeath Auto-Kick: §f" + name + "§c (" + count + " deaths > " + config.dungeonDeathKickThreshold + ")"));
+		client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.dungeon_report.death_auto_kick", name, count, config.dungeonDeathKickThreshold)));
 	}
 
 	/**
@@ -2230,7 +2230,7 @@ public final class DungeonRunTracker {
 		// not a chat message), regardless of dungeonTimeLimitWarningDelivery.
 		if (remaining <= 10 && remaining != lastCountdownSecondShown) {
 			lastCountdownSecondShown = remaining;
-			client.gui.setOverlayMessage(Component.literal("§c§l" + remaining + "s §7- time limit"), false);
+			client.gui.setOverlayMessage(Component.translatable("skymelloo.chat.dungeon_report.time_limit_countdown", remaining), false);
 		}
 	}
 
@@ -2411,23 +2411,21 @@ public final class DungeonRunTracker {
 		boolean canShowKickButtons = com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader();
 		java.util.function.Consumer<String> emit = line -> client.player.sendSystemMessage(ChatUtil.prefixed(line));
 
-		emit.accept("§6=== Dungeon Run Report ===");
+		emit.accept(Component.translatable("skymelloo.chat.dungeon_report.header").getString());
 
 		// Skyblocker's live score is silently used as the ONE number shown whenever it's available and
 		// preferred (see currentDisplayedScore()) - no separate "[Skyblocker: X]" annotation cluttering
 		// the line, since that just invited confusion about which number to trust.
 		int displayedScore = currentDisplayedScore();
-		String scoreLine = "§dFloor: §f" + (floor != null ? floor : "?")
-				+ "§7  ·  §dTime: §f" + formatElapsed(elapsedSeconds)
-				+ "§7  ·  §dScore: §f" + displayedScore + " (" + gradeForTotal(displayedScore) + ")";
+		String scoreLine = Component.translatable("skymelloo.chat.dungeon_report.score_line",
+				floor != null ? floor : "?", formatElapsed(elapsedSeconds), displayedScore, gradeForTotal(displayedScore)).getString();
 		emit.accept(scoreLine);
-		emit.accept("§dRooms cleared: §f" + (int) clearedPercent + "%"
-				+ "§7  ·  §dSecrets: §f" + getSecretsPercentage() + "%"
-				+ "§7  ·  §dCrypts: §f" + cryptsFound);
-		emit.accept("§dPuzzles: §a" + puzzlesSolved + " solved§7, §c" + puzzlesFailed + " failed"
-				+ (bossRoomEntered ? "§7  ·  §dBoss room: §fentered" : "")
-				+ (mimicKilled ? "§7  ·  §dMimic: §fkilled" : "")
-				+ (princeKilled ? "§7  ·  §dPrince: §fkilled" : ""));
+		emit.accept(Component.translatable("skymelloo.chat.dungeon_report.rooms_line",
+				(int) clearedPercent, getSecretsPercentage(), cryptsFound).getString());
+		emit.accept(Component.translatable("skymelloo.chat.dungeon_report.puzzles_line", puzzlesSolved, puzzlesFailed).getString()
+				+ (bossRoomEntered ? Component.translatable("skymelloo.chat.dungeon_report.boss_room_entered_suffix").getString() : "")
+				+ (mimicKilled ? Component.translatable("skymelloo.chat.dungeon_report.mimic_killed_suffix").getString() : "")
+				+ (princeKilled ? Component.translatable("skymelloo.chat.dungeon_report.prince_killed_suffix").getString() : ""));
 		// Named per-puzzle results (who, and why) instead of just a count - the reason text is
 		// Hypixel's own SOLVED/FAIL wording, see extractPuzzleReason().
 		for (PuzzleResult puzzle : puzzleOutcomes) {
@@ -2440,28 +2438,29 @@ public final class DungeonRunTracker {
 		// Blood Room summary line - only shown if the
 		// Blood Room was actually reached this run, same as the mimic/prince lines above.
 		if (watcherEncountered) {
-			emit.accept("§dBlood Room: §f" + (bloodRoomCompleted ? "cleared" : "entered")
-					+ "§7  ·  §dKey: §f" + (bloodKeyPlayer != null ? bloodKeyPlayer : "not obtained")
-					+ "§7  ·  §dDoor: §f" + (bloodDoorOpened ? "opened" : "not opened"));
+			String bloodDoorKeyText = bloodKeyPlayer != null ? bloodKeyPlayer : Component.translatable("skymelloo.chat.dungeon_report.blood_key_not_obtained").getString();
+			String bloodDoorStateText = bloodDoorOpened ? Component.translatable("skymelloo.chat.dungeon_report.blood_door_opened").getString() : Component.translatable("skymelloo.chat.dungeon_report.blood_door_not_opened").getString();
+			String bloodRoomStateText = bloodRoomCompleted ? Component.translatable("skymelloo.chat.dungeon_report.blood_room_cleared").getString() : Component.translatable("skymelloo.chat.dungeon_report.blood_room_entered").getString();
+			emit.accept(Component.translatable("skymelloo.chat.dungeon_report.blood_room_line", bloodRoomStateText, bloodDoorKeyText, bloodDoorStateText).getString());
 		}
 		if (earlyBossRoomEntryScore != null) {
-			emit.accept("§c⚠ §f" + earlyBossRoomEntryPlayer + "§c entered the boss room at only §f" + earlyBossRoomEntryScore + "§c score - no more points could be earned from there, so S+ (300) was already out of reach.");
+			emit.accept(Component.translatable("skymelloo.chat.dungeon_report.early_boss_room_entry", earlyBossRoomEntryPlayer, earlyBossRoomEntryScore).getString());
 		}
 		if (!playersEnteredBossRoom.isEmpty()) {
-			emit.accept("§dEntered boss room: §f" + String.join("§7, §f", playersEnteredBossRoom));
+			emit.accept(Component.translatable("skymelloo.chat.dungeon_report.entered_boss_room", String.join("§7, §f", playersEnteredBossRoom)).getString());
 		}
 		// Real wall-clock duration spent in the boss room until the boss died (elapsedSeconds
 		// itself is frozen for the whole boss fight, see FLOOR_NULL_END_RUN_TICKS's own comment on why).
 		if (bossRoomEnteredMillis > 0 && bossRoomClearedMillis > 0) {
 			int bossSeconds = (int) Math.max(0, (bossRoomClearedMillis - bossRoomEnteredMillis) / 1000);
-			emit.accept("§dTime in boss room: §f" + formatElapsed(bossSeconds));
+			emit.accept(Component.translatable("skymelloo.chat.dungeon_report.time_in_boss_room", formatElapsed(bossSeconds)).getString());
 		}
 		if (!doorsOpened.isEmpty()) {
 			// Renamed from the old generic "Doors opened" to specifically "Wither Doors opened":
 			// this map is only ever actually populated from Wither Door opens (the Blood
 			// Door's real chat message is a nameless broadcast, see BLOOD_DOOR_OPENED_PATTERN, so it can
 			// never attribute a player here), so the old generic label was misleading.
-			StringBuilder doorsLine = new StringBuilder("§dWither Doors opened: ");
+			StringBuilder doorsLine = new StringBuilder(Component.translatable("skymelloo.chat.dungeon_report.wither_doors_opened").getString());
 			boolean first = true;
 			for (Map.Entry<String, Integer> entry : doorsOpened.entrySet()) {
 				if (!first) {
@@ -2473,25 +2472,25 @@ public final class DungeonRunTracker {
 			emit.accept(doorsLine.toString());
 		}
 		if (deaths.isEmpty()) {
-			emit.accept("§aNo deaths this run.");
+			emit.accept(Component.translatable("skymelloo.chat.dungeon_report.no_deaths").getString());
 		} else {
-			emit.accept("§dDeaths:");
+			emit.accept(Component.translatable("skymelloo.chat.dungeon_report.deaths_header").getString());
 			for (Map.Entry<String, Integer> entry : deaths.entrySet()) {
 				String name = entry.getKey();
 				int count = entry.getValue();
 				boolean isSelf = client.player.getGameProfile().name().equalsIgnoreCase(name);
 				if (!canShowKickButtons || isSelf) {
-					emit.accept("§c" + count + "x §f" + name);
+					emit.accept(Component.translatable("skymelloo.chat.dungeon_report.death_count_line", count, name).getString());
 					continue;
 				}
 				// Rich kick-button line - LOCAL-only (see canShowKickButtons), sent directly rather
 				// than batched, since a ClickEvent can't survive being flattened to plain text anyway.
-				MutableComponent line = Component.literal("§c" + count + "x §f" + name);
-				MutableComponent kickButton = Component.literal(" [Kick]").withStyle(style -> style
+				MutableComponent line = Component.translatable("skymelloo.chat.dungeon_report.death_count_line", count, name);
+				MutableComponent kickButton = Component.translatable("skymelloo.chat.dungeon_report.kick_button").withStyle(style -> style
 						.withColor(ChatFormatting.RED)
 						.withBold(true)
 						.withClickEvent(new ClickEvent.RunCommand("/party kick " + name))
-						.withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to kick " + name))));
+						.withHoverEvent(new HoverEvent.ShowText(Component.translatable("skymelloo.chat.dungeon_report.kick_button_hover", name))));
 				client.player.sendSystemMessage(ChatUtil.prefixed(line.append(kickButton)));
 			}
 		}

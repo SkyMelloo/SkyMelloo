@@ -6,6 +6,7 @@ import com.melloo.skymelloo.client.util.ChatUtil;
 import com.melloo.skymelloo.client.util.DebugLog;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
@@ -139,7 +140,7 @@ public final class ModVersionManager {
 			if (!result.integrityOk() && client.player != null) {
 				String maintainer = result.maintainerUsername() != null ? result.maintainerUsername() : "the maintainer";
 				client.player.sendSystemMessage(ChatUtil.prefixed(
-						"§eYou're on an unofficial SkyMelloo build (not one " + maintainer + " built/signed) - everything still works, this is just so you know. Official builds: §fsky.melloo.me/download"));
+						Component.translatable("skymelloo.chat.version.unofficial_build", maintainer)));
 			} else if (!compatible && client.player != null) {
 				client.player.sendSystemMessage(ChatUtil.prefixed("§e" + result.message()));
 			} else if (compatible && !result.upToDate() && client.player != null && result.updateAvailableMessage() != null) {

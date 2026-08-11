@@ -242,12 +242,12 @@ public class SkyMellooClient implements ClientModInitializer {
 								// Bare "/sm sync" == "/sm sync party" - the only thing left to sync.
 								.executes(ctx -> {
 									PartyTracker.requestRefreshNow();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party sync requested..."));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.sync.requested")));
 									return 1;
 								})
 								.then(ClientCommands.literal("party").executes(ctx -> {
 									PartyTracker.requestRefreshNow();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("Party sync requested..."));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.sync.requested")));
 									return 1;
 								})))
 						.then(com.melloo.skymelloo.client.highlight.LobbySearchManager.buildSearchCommand())
@@ -256,12 +256,12 @@ public class SkyMellooClient implements ClientModInitializer {
 						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildPollCommand())
 						.then(ClientCommands.literal("partyjoin")
 								.executes(ctx -> {
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm partyjoin test <name>"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.usage.partyjoin_test")));
 									return 1;
 								})
 								.then(ClientCommands.literal("test")
 										.executes(ctx -> {
-											ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm partyjoin test <name>"));
+											ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.usage.partyjoin_test")));
 											return 1;
 										})
 										.then(ClientCommands.argument("name", StringArgumentType.word())
@@ -271,26 +271,25 @@ public class SkyMellooClient implements ClientModInitializer {
 													return 1;
 												}))))
 						.then(ClientCommands.literal("kills").executes(ctx -> {
-							ctx.getSource().sendFeedback(ChatUtil.prefixed(
-									"Spells Cast: §e" + SkyMellooConfig.HANDLER.instance().totalSpellsCast + "§r  ·  §dKills: §e" + SkyMellooConfig.HANDLER.instance().totalPlayersKilled + "§r  ·  §dSpell Essence: §e" + SkyMellooConfig.HANDLER.instance().totalSpellEssenceCollected
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.kills.summary",
+									SkyMellooConfig.HANDLER.instance().totalSpellsCast, SkyMellooConfig.HANDLER.instance().totalPlayersKilled, SkyMellooConfig.HANDLER.instance().totalSpellEssenceCollected)
 							));
 							return 1;
 						}))
 						.then(ClientCommands.literal("session").executes(ctx -> {
 							var stats = com.melloo.skymelloo.client.social.DungeonRunTracker.getSessionStats();
 							if (stats.runsCompleted() == 0) {
-								ctx.getSource().sendFeedback(ChatUtil.prefixed("§7No completed runs this session yet."));
+								ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.session.none")));
 								return 1;
 							}
 							int hours = stats.totalSeconds() / 3600;
 							int minutes = (stats.totalSeconds() % 3600) / 60;
 							String timeText = hours > 0 ? hours + "h " + minutes + "m" : minutes + "m";
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== Session (Dungeons) ==="));
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§dRuns: §f" + stats.runsCompleted()
-									+ "§7  ·  §dS+: §f" + stats.splusRuns()
-									+ "§7  ·  §dØ Score: §f" + String.format("%.0f", stats.averageScore())));
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§dDeaths: §f" + stats.totalDeaths()
-									+ "§7  ·  §dZeit in Dungeons: §f" + timeText));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.session.header")));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.session.runs",
+									stats.runsCompleted(), stats.splusRuns(), String.format("%.0f", stats.averageScore()))));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.session.deaths",
+									stats.totalDeaths(), timeText)));
 							return 1;
 						}))
 						// "/sm debug hm-bar" (renamed from "mana") - dumps the FULL pipeline to chat: the raw actionbar segments,
@@ -300,21 +299,21 @@ public class SkyMellooClient implements ClientModInitializer {
 						// methods the real renderer uses - so this can never drift from what's really drawn.
 						.then(ClientCommands.literal("debug")
 								.executes(ctx -> {
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm debug hm-bar§7, §f/sm debug bossroom§7, or §f/sm debug score"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.usage")));
 									return 1;
 								})
 								.then(ClientCommands.literal("hm-bar").executes(ctx -> {
 									long lastPacketMillis = com.melloo.skymelloo.client.social.ActionBarTracker.getLastPacketMillis();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== HM-Bar Debug (Health/Mana Bar) ==="));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.header")));
 									if (lastPacketMillis == 0) {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§cno actionbar packet seen yet"));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.no_packet")));
 										return 1;
 									}
 									long sincePacket = System.currentTimeMillis() - lastPacketMillis;
 									var segments = com.melloo.skymelloo.client.social.ActionBarTracker.getLastSegments();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§7--- Raw actionbar (last packet " + sincePacket + "ms ago, " + segments.size() + " segment(s)) ---"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.raw_header", sincePacket, segments.size())));
 									for (com.melloo.skymelloo.client.social.ActionBarTracker.Segment seg : segments) {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§7[" + seg.colorHex() + "] \"" + seg.text() + "\""));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.segment", seg.colorHex(), seg.text())));
 									}
 
 									StringBuilder flattened = new StringBuilder();
@@ -322,17 +321,20 @@ public class SkyMellooClient implements ClientModInitializer {
 										flattened.append(seg.text());
 									}
 									var fractionMatcher = java.util.regex.Pattern.compile("([\\d,]+)\\s*/\\s*([\\d,]+)").matcher(flattened);
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§7--- Parsed fractions (0=health, 1=mana, positional) ---"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.fractions_header")));
 									int fractionIndex = 0;
 									while (fractionMatcher.find()) {
-										String label = fractionIndex == 0 ? "§ahealth" : fractionIndex == 1 ? "§bmana" : "§7(unused)";
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§7[" + fractionIndex + "] §f" + fractionMatcher.group() + " §7- " + label));
+										Component label = fractionIndex == 0 ? Component.translatable("skymelloo.command.debug.hmbar.label_health")
+												: fractionIndex == 1 ? Component.translatable("skymelloo.command.debug.hmbar.label_mana")
+												: Component.translatable("skymelloo.command.debug.hmbar.label_unused");
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.fraction", fractionIndex, fractionMatcher.group(), label)));
 										fractionIndex++;
 									}
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dHealth: §fcur=" + com.melloo.skymelloo.client.social.ActionBarTracker.getCurrentHealth()
-											+ " max=" + com.melloo.skymelloo.client.social.ActionBarTracker.getMaxHealth()
-											+ "§7  ·  §dMana: §fcur=" + com.melloo.skymelloo.client.social.ActionBarTracker.getCurrentMana()
-											+ " max=" + com.melloo.skymelloo.client.social.ActionBarTracker.getMaxMana()));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.health_mana",
+											com.melloo.skymelloo.client.social.ActionBarTracker.getCurrentHealth(),
+											com.melloo.skymelloo.client.social.ActionBarTracker.getMaxHealth(),
+											com.melloo.skymelloo.client.social.ActionBarTracker.getCurrentMana(),
+											com.melloo.skymelloo.client.social.ActionBarTracker.getMaxMana())));
 
 									Minecraft mc = Minecraft.getInstance();
 									if (mc.player == null) {
@@ -342,30 +344,37 @@ public class SkyMellooClient implements ClientModInitializer {
 									var manaState = com.melloo.skymelloo.client.gui.HealthManaBarsHud.computeManaBarState();
 									var hud = com.melloo.skymelloo.client.gui.HealthManaBarsHud.INSTANCE;
 									int barWidth = com.melloo.skymelloo.client.gui.HealthManaBarsHud.BAR_WIDTH;
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§7--- Displayed (bar is " + barWidth + "x" + com.melloo.skymelloo.client.gui.HealthManaBarsHud.BAR_HEIGHT + "px) ---"));
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dHealth bar: §f" + healthState.health() + "/" + healthState.maxHealth()
-											+ " §7(source: " + (healthState.fromActionBar() ? "§aactionbar" : "§evanilla fallback") + "§7)"
-											+ "  §7- §agreen " + healthState.healthPx() + "/" + barWidth + "px §7(" + String.format("%.1f%%", healthState.healthFraction() * 100) + ")"
-											+ (healthState.absorptionPx() > 0 ? "  §7+ §6gold " + healthState.absorptionPx() + "/" + barWidth + "px §7(absorption " + String.format("%.1f", healthState.absorption()) + ")" : "")));
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§7white trail (\"just lost\"): §f"
-											+ (hud.isHealthTrailInitialized() ? Math.round(barWidth * hud.getDisplayedHealthFraction()) + "/" + barWidth + "px" : "not initialized yet (HUD hasn't rendered this session)")
-											+ "  §7·§c red gain-highlight (\"just gained, catching up\"): §f"
-											+ (hud.isHealthTrailInitialized() ? Math.round(barWidth * hud.getRisingHealthFraction()) + "/" + healthState.healthPx() + "px" : "not initialized yet")));
-									if (manaState.fraction() != null) {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§dMana bar: §f" + manaState.current() + "/" + manaState.max()
-												+ "  §7- §bfilled " + manaState.manaPx() + "/" + barWidth + "px §7(" + String.format("%.1f%%", manaState.fraction() * 100) + ")"));
-									} else {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§dMana bar: §7no reading yet this session"));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.displayed_header",
+											barWidth, com.melloo.skymelloo.client.gui.HealthManaBarsHud.BAR_HEIGHT)));
+									Component healthSource = healthState.fromActionBar()
+											? Component.translatable("skymelloo.command.debug.hmbar.source_actionbar")
+											: Component.translatable("skymelloo.command.debug.hmbar.source_vanilla");
+									net.minecraft.network.chat.MutableComponent healthBarLine = Component.translatable("skymelloo.command.debug.hmbar.health_bar",
+											healthState.health(), healthState.maxHealth(), healthSource, healthState.healthPx(), barWidth,
+											String.format("%.1f%%", healthState.healthFraction() * 100));
+									if (healthState.absorptionPx() > 0) {
+										healthBarLine.append(Component.translatable("skymelloo.command.debug.hmbar.absorption_suffix",
+												healthState.absorptionPx(), barWidth, String.format("%.1f", healthState.absorption())));
 									}
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§7white trail (\"just lost\"): §f"
-											+ (hud.isManaTrailInitialized() ? Math.round(barWidth * hud.getDisplayedManaFraction()) + "/" + barWidth + "px" : "not initialized yet (HUD hasn't rendered this session)")
-											+ "  §7·§c red gain-highlight (\"just gained, catching up\"): §f"
-											+ (hud.isManaTrailInitialized() ? Math.round(barWidth * hud.getRisingManaFraction()) + "/" + manaState.manaPx() + "px" : "not initialized yet")));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(healthBarLine));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.trail_line",
+											hud.isHealthTrailInitialized() ? Component.literal(Math.round(barWidth * hud.getDisplayedHealthFraction()) + "/" + barWidth + "px") : Component.translatable("skymelloo.command.debug.hmbar.not_initialized_long"),
+											hud.isHealthTrailInitialized() ? Component.literal(Math.round(barWidth * hud.getRisingHealthFraction()) + "/" + healthState.healthPx() + "px") : Component.translatable("skymelloo.command.debug.hmbar.not_initialized_short"))));
+									if (manaState.fraction() != null) {
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.mana_bar",
+												manaState.current(), manaState.max(), manaState.manaPx(), barWidth, String.format("%.1f%%", manaState.fraction() * 100))));
+									} else {
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.mana_none")));
+									}
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.trail_line",
+											hud.isManaTrailInitialized() ? Component.literal(Math.round(barWidth * hud.getDisplayedManaFraction()) + "/" + barWidth + "px") : Component.translatable("skymelloo.command.debug.hmbar.not_initialized_long"),
+											hud.isManaTrailInitialized() ? Component.literal(Math.round(barWidth * hud.getRisingManaFraction()) + "/" + manaState.manaPx() + "px") : Component.translatable("skymelloo.command.debug.hmbar.not_initialized_short"))));
 
 									SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§7Enabled: healthManaBarsEnabled=" + config.healthManaBarsEnabled
-											+ " healthBarEnabled=" + config.healthBarEnabled + " manaBarEnabled=" + config.manaBarEnabled
-											+ " sideBySide=" + config.healthManaBarsSideBySide));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.hmbar.enabled_prefix")
+											.append(Component.literal("healthManaBarsEnabled=" + config.healthManaBarsEnabled
+													+ " healthBarEnabled=" + config.healthBarEnabled + " manaBarEnabled=" + config.manaBarEnabled
+													+ " sideBySide=" + config.healthManaBarsSideBySide))));
 									return 1;
 								}))
 								// "/sm debug bossroom" - diagnostic for the boss-room 3D scanner prototype
@@ -373,17 +382,17 @@ public class SkyMellooClient implements ClientModInitializer {
 								// this exposes whether it's even active and how many blocks it's found,
 								// instead of it working (or not) completely silently.
 								.then(ClientCommands.literal("bossroom").executes(ctx -> {
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== Boss Room Scanner Debug ==="));
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dbossRoomEntered: §f" + com.melloo.skymelloo.client.social.DungeonRunTracker.isBossRoomEntered()
-											+ "§7  ·  §dbossRoomCleared: §f" + com.melloo.skymelloo.client.social.DungeonRunTracker.isBossRoomCleared()));
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dScanner active: §f" + com.melloo.skymelloo.client.social.BossRoomScanner.isActive()));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.header")));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.entered_cleared",
+											com.melloo.skymelloo.client.social.DungeonRunTracker.isBossRoomEntered(), com.melloo.skymelloo.client.social.DungeonRunTracker.isBossRoomCleared())));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.scanner_active", com.melloo.skymelloo.client.social.BossRoomScanner.isActive())));
 									if (com.melloo.skymelloo.client.social.BossRoomScanner.isActive()) {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§dOrigin: §f" + com.melloo.skymelloo.client.social.BossRoomScanner.getOrigin()
-												+ "§7  ·  §dscanId: §f" + com.melloo.skymelloo.client.social.BossRoomScanner.getScanId()));
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§dPositions checked so far: §f" + com.melloo.skymelloo.client.social.BossRoomScanner.getSeenCount()
-												+ "§7  ·  §dQueued, not yet sent: §f" + com.melloo.skymelloo.client.social.BossRoomScanner.getPendingCount()));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.origin",
+												com.melloo.skymelloo.client.social.BossRoomScanner.getOrigin(), com.melloo.skymelloo.client.social.BossRoomScanner.getScanId())));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.positions",
+												com.melloo.skymelloo.client.social.BossRoomScanner.getSeenCount(), com.melloo.skymelloo.client.social.BossRoomScanner.getPendingCount())));
 									} else {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§7Not scanning - walk into an active (not yet cleared) boss room first."));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.not_scanning")));
 									}
 									// "Queued, not yet sent: 0" above only proves the data was drained LOCALLY,
 									// never that the HTTP report carrying it actually reached the server - these
@@ -392,10 +401,9 @@ public class SkyMellooClient implements ClientModInitializer {
 									long attempts = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendAttempts();
 									long successes = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendSuccesses();
 									long failures = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendFailures();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dReports with boss-room data sent: §f" + attempts
-											+ " §7- §asucceeded: §f" + successes + "§7  ·  §cfailed: §f" + failures));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.reports", attempts, successes, failures)));
 									if (failures > 0) {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§cLast send error: §f" + com.melloo.skymelloo.client.social.ModPresenceManager.getLastBossRoomSendError()));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.last_error", com.melloo.skymelloo.client.social.ModPresenceManager.getLastBossRoomSendError())));
 									}
 									return 1;
 								}))
@@ -407,26 +415,24 @@ public class SkyMellooClient implements ClientModInitializer {
 								// empty, or Skyblocker's own score just isn't being used - instead of guessing.
 								.then(ClientCommands.literal("score").executes(ctx -> {
 									var info = com.melloo.skymelloo.client.social.DungeonRunTracker.debugScoreInfo();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== Score Debug ==="));
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dSkyblocker available: §f" + info.skyblockerAvailable()
-											+ "§7  ·  §dSkyblocker score: §f" + info.skyblockerScore()));
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dtotalRooms: §f" + info.totalRooms()
-											+ "§7  ·  §dcompletedRooms: §f" + info.completedRooms()
-											+ "§7  ·  §dextraCompletedRooms: §f" + info.extraCompletedRooms()
-											+ "§7  ·  §dclearedPercentUsed: §f" + info.clearedPercentUsed()));
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dOur estimate: §fSkill=" + info.skill() + " Explore=" + info.explore()
-											+ " Speed=" + info.speed() + " Bonus=" + info.bonus() + " §7-> §fTotal=" + info.total()));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.header")));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.skyblocker", info.skyblockerAvailable(), info.skyblockerScore())));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.rooms",
+											info.totalRooms(), info.completedRooms(), info.extraCompletedRooms(), info.clearedPercentUsed())));
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.estimate",
+											info.skill(), info.explore(), info.speed(), info.bonus(), info.total())));
 									java.util.List<String> lines = com.melloo.skymelloo.client.social.DungeonTabList.getAllLines();
-									ctx.getSource().sendFeedback(ChatUtil.prefixed("§dTab list: §f" + lines.size() + " lines §7- line[43]: §f\"" + (43 < lines.size() ? lines.get(43) : "(out of range)") + "\""));
+									Component line43 = 43 < lines.size() ? Component.literal(lines.get(43)) : Component.translatable("skymelloo.command.debug.score.out_of_range");
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.tablist", lines.size(), line43)));
 									boolean foundElsewhere = false;
 									for (int i = 0; i < lines.size(); i++) {
 										if (lines.get(i) != null && lines.get(i).contains("Completed Rooms")) {
-											ctx.getSource().sendFeedback(ChatUtil.prefixed("§7  match at line[" + i + "]: \"" + lines.get(i) + "\""));
+											ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.match", i, lines.get(i))));
 											foundElsewhere = true;
 										}
 									}
 									if (!foundElsewhere) {
-										ctx.getSource().sendFeedback(ChatUtil.prefixed("§c\"Completed Rooms\" not found on ANY tab-list line - our reconstructed tab list may be missing Hypixel's dungeon-stat entries entirely."));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.not_found")));
 									}
 									return 1;
 								})))
@@ -442,10 +448,10 @@ public class SkyMellooClient implements ClientModInitializer {
 							String version = com.melloo.skymelloo.client.social.ModVersionManager.getLocalVersion();
 							String publicVersion = com.melloo.skymelloo.client.social.ModVersionManager.getPublicVersion();
 							String jarHash = com.melloo.skymelloo.client.social.ModVersionManager.getLocalJarHash();
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Version ==="));
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§dRunning: §fv" + publicVersion + " §7(dev " + version + ")"
-									+ "§7  ·  §djarHash: §f" + (jarHash != null ? jarHash : "unknown (dev/exploded classpath)")));
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§7Checking for the latest version…"));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.header")));
+							Component jarHashText = jarHash != null ? Component.literal(jarHash) : Component.translatable("skymelloo.command.version.jarhash_unknown");
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.running", publicVersion, version, jarHashText)));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.checking")));
 							com.melloo.skymelloo.client.social.ModVersionManager.checkNow(
 									result -> {
 										Minecraft c = Minecraft.getInstance();
@@ -453,26 +459,26 @@ public class SkyMellooClient implements ClientModInitializer {
 											return;
 										}
 										if (result == null) {
-											c.player.sendSystemMessage(ChatUtil.prefixed("§cCouldn't reach sky.melloo.me to check for updates - try again shortly."));
+											c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.unreachable")));
 											return;
 										}
 										if (result.latestPublicVersion() != null) {
-											c.player.sendSystemMessage(ChatUtil.prefixed("§dLatest published: §fv" + result.latestPublicVersion()));
+											c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.latest_published", result.latestPublicVersion())));
 										}
 										if (result.upToDate()) {
-											c.player.sendSystemMessage(ChatUtil.prefixed("§aYou're on the latest version."));
+											c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.up_to_date")));
 										} else {
-											c.player.sendSystemMessage(ChatUtil.prefixed("§eYou're NOT on the latest version - make sure to get it from our official site: §fsky.melloo.me"));
+											c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.outdated")));
 										}
-										c.player.sendSystemMessage(legalLink("Always get SkyMelloo from", "https://sky.melloo.me/download"));
+										c.player.sendSystemMessage(legalLink(Component.translatable("skymelloo.command.version.get_from_official"), "https://sky.melloo.me/download"));
 									},
 									cooldownSeconds -> {
 										Minecraft c = Minecraft.getInstance();
 										if (c.player == null) {
 											return;
 										}
-										c.player.sendSystemMessage(ChatUtil.prefixed("§7Already checked recently - try again in " + cooldownSeconds + "s."));
-										c.player.sendSystemMessage(legalLink("Always get SkyMelloo from", "https://sky.melloo.me/download"));
+										c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.cooldown", cooldownSeconds)));
+										c.player.sendSystemMessage(legalLink(Component.translatable("skymelloo.command.version.get_from_official"), "https://sky.melloo.me/download"));
 									}
 							);
 							return 1;
@@ -491,17 +497,19 @@ public class SkyMellooClient implements ClientModInitializer {
 									// this command still points at the real maintainer's own legal pages and
 									// probably shouldn't ship as-is in a real fork, not just a generic refusal.
 									var lastResult = com.melloo.skymelloo.client.social.ModVersionManager.getLastResult();
-									String maintainer = lastResult != null && lastResult.maintainerUsername() != null ? lastResult.maintainerUsername() : "the maintainer";
+									Component maintainer = lastResult != null && lastResult.maintainerUsername() != null
+											? Component.literal(lastResult.maintainerUsername())
+											: Component.translatable("skymelloo.command.legal.fallback_maintainer");
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(
-											"§cThis isn't an official SkyMelloo version, so legal info isn't shown here."));
+											Component.translatable("skymelloo.command.legal.not_official")));
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(
-											"§7If you built this yourself: you forgot to remove/customize \"/sm legal\" - it points to " + maintainer + "'s own legal pages, not yours."));
+											Component.translatable("skymelloo.command.legal.fork_reminder", maintainer)));
 									return;
 								}
-								ctx.getSource().sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Legal ==="));
-								ctx.getSource().sendFeedback(legalLink("Imprint", info.imprint()));
-								ctx.getSource().sendFeedback(legalLink("Privacy Policy", info.privacy()));
-								ctx.getSource().sendFeedback(legalLink("Terms of Service", info.terms()));
+								ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.legal.header")));
+								ctx.getSource().sendFeedback(legalLink(Component.translatable("skymelloo.command.legal.label_imprint"), info.imprint()));
+								ctx.getSource().sendFeedback(legalLink(Component.translatable("skymelloo.command.legal.label_privacy"), info.privacy()));
+								ctx.getSource().sendFeedback(legalLink(Component.translatable("skymelloo.command.legal.label_terms"), info.terms()));
 							}));
 							return 1;
 						}))
@@ -525,11 +533,11 @@ public class SkyMellooClient implements ClientModInitializer {
 													return;
 												}
 												if (error != null) {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + ChatUtil.friendlyError(error)));
+													c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", ChatUtil.friendlyError(error))));
 												} else if (result.ok()) {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§aAccount unlinked."));
+													c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.unlink.success")));
 												} else {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + result.error()));
+													c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", result.error())));
 												}
 											})
 									);
@@ -545,7 +553,7 @@ public class SkyMellooClient implements ClientModInitializer {
 							if (client.player == null) {
 								return 1;
 							}
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("Opening browser to link your account..."));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.link.opening")));
 							ModAuthManager.getIdentity(client).thenCompose(SkyMellooApiClient::startAccountLink)
 									.whenComplete((result, error) ->
 											Minecraft.getInstance().execute(() -> {
@@ -554,18 +562,18 @@ public class SkyMellooClient implements ClientModInitializer {
 													return;
 												}
 												if (error != null) {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + ChatUtil.friendlyError(error)));
+													c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", ChatUtil.friendlyError(error))));
 												} else if (result.ok()) {
 													net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://sky.melloo.me/link/" + result.token()));
 												} else {
-													c.player.sendSystemMessage(ChatUtil.prefixed("§cFailed: " + result.error()));
+													c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", result.error())));
 												}
 											})
 									);
 							return 1;
 						}))
 						.then(ClientCommands.literal("contact").executes(ctx -> {
-							ctx.getSource().sendFeedback(legalLink("Contact", "https://sky.melloo.me/contact"));
+							ctx.getSource().sendFeedback(legalLink(Component.translatable("skymelloo.command.contact.label"), "https://sky.melloo.me/contact"));
 							return 1;
 						}))
 						.then(ClientCommands.literal("view")
@@ -579,7 +587,7 @@ public class SkyMellooClient implements ClientModInitializer {
 						// literals first, so this only catches genuinely unknown input, replacing vanilla's
 						// generic "Unknown command" with a SkyMelloo-branded pointer to /skymelloo help.
 						.then(ClientCommands.argument("unknown", StringArgumentType.greedyString()).executes(ctx -> {
-							ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUnknown command. Use §f/skymelloo help§c for an overview."));
+							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.unknown_command")));
 							return 1;
 						}))
 			);
@@ -593,35 +601,35 @@ public class SkyMellooClient implements ClientModInitializer {
 	}
 
 	/** Clickable "§dLabel: §fhttps://..." chat line - opens the URL in the system browser. Used by {@code /sm legal} and {@code /sm version}/{@code /sm info}'s download reminder. */
-	private static net.minecraft.network.chat.MutableComponent legalLink(String label, String url) {
-		return Component.literal("§d" + label + ": §f§n" + url).withStyle(style -> style
+	private static net.minecraft.network.chat.MutableComponent legalLink(Component label, String url) {
+		return Component.translatable("skymelloo.command.legal.link_line", label, url).withStyle(style -> style
 				.withClickEvent(new net.minecraft.network.chat.ClickEvent.OpenUrl(java.net.URI.create(url)))
-				.withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(Component.literal("Click to open in your browser"))));
+				.withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(Component.translatable("skymelloo.command.legal.hover_open_browser"))));
 	}
 
 	private static void sendHelp(FabricClientCommandSource source) {
-		source.sendFeedback(ChatUtil.prefixed("§6=== SkyMelloo Commands §7(also available as §f/sm§7) ==="));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo config §7- open settings (also key H)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo link §7- Link your account via browser (no code needed)"));
-		source.sendFeedback(ChatUtil.prefixed("§7Admin account verification now runs through MellooEssentials: §f/me verify <code>"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo unlink §7- unlink your account"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo view <name> §7- open player stats as a window (tabs, scrollable)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata player <name> <stat> §7- fetch player stats"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo getdata party <stat> §7- fetch party stats"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo version §7- mod version & update status (checked live)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo contact §7- contact page (sky.melloo.me/contact)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo legal §7- imprint, privacy policy, terms (links)"));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.header")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.config")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.link")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.verify_note")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.unlink")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.view")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.getdata_player")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.getdata_party")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.version")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.contact")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.legal")));
 
-		source.sendFeedback(ChatUtil.prefixed("§6--- Party ---"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo sync §7- manually trigger a party sync"));
-		source.sendFeedback(ChatUtil.prefixed("§7Friends, relay chat, and party block/kick now run through MellooEssentials: §f/me friend§7, §f/me chat§7, §f/me block"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo roll <amount>§7/§aroll party§7/§aroll <word> <secs> §7- random pick in the party"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo poll start <question;answer1;...>§7/§apoll close §7- party poll"));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.party_header")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.sync")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.social_note")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.roll")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.poll")));
 
-		source.sendFeedback(ChatUtil.prefixed("§6--- Dungeons ---"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo kills §7- show spell kills"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo session §7- show dungeon session stats (runs, avg score, deaths, time)"));
-		source.sendFeedback(ChatUtil.prefixed("§a/skymelloo partyjoin test <name> §7- test the party-join message"));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.dungeons_header")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.kills")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.session")));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.partyjoin")));
 
 		// Every feature is unlocked for everyone now except Spell (Magic Missile), which genuinely
 		// still needs a linked sky.melloo.me account (the server has to know who's who to broadcast a
@@ -631,7 +639,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		if (PermissionsManager.has("spell")) {
 			unlockedFeatures.add("Spell");
 		}
-		source.sendFeedback(ChatUtil.prefixed("§7More settings (" + String.join(", ", unlockedFeatures) + ") are in the menu (key H)."));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.more_settings", String.join(", ", unlockedFeatures))));
 	}
 
 	public static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestOnlinePlayers(
@@ -766,7 +774,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			partyLiteral.then(statLiteral);
 		}
 
-		var getdataUsage = "§cUsage: §f/sm getdata player <name> <stat>§7 or §f/sm getdata party <stat>";
+		var getdataUsage = Component.translatable("skymelloo.command.usage.getdata");
 		return ClientCommands.literal("getdata")
 				.executes(ctx -> {
 					ctx.getSource().sendFeedback(ChatUtil.prefixed(getdataUsage));
@@ -793,12 +801,12 @@ public class SkyMellooClient implements ClientModInitializer {
 		}
 		switch (stat) {
 			case "all" -> {
-				source.sendFeedback(ChatUtil.prefixed("Loading overview for §a" + name + "§r..."));
+				source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.getdata.loading_overview", name)));
 				announceAllStats(name, profile, () -> {
 				}, announce);
 			}
 			case "mp" -> {
-				source.sendFeedback(ChatUtil.prefixed("Looking up Magical Power for §a" + name + "§r..."));
+				source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.getdata.looking_mp", name)));
 				announceMagicalPower(name, profile, announce);
 			}
 			default -> announceExtraStat(ExtraStat.byCommandName(stat), name, profile, announce);
@@ -819,102 +827,105 @@ public class SkyMellooClient implements ClientModInitializer {
 	 */
 	private enum ExtraStat {
 		NETWORTH("networth") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "Networth §6" + formatAmount(s.netWorth());
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.networth", formatAmount(s.netWorth()));
 			}
 		},
 		BANK("bank") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "Bank §6" + formatAmount(s.bank());
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.bank", formatAmount(s.bank()));
 			}
 		},
 		PURSE("purse") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "Purse §6" + formatAmount(s.purse());
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.purse", formatAmount(s.purse()));
 			}
 		},
 		FAIRYSOULS("fairysouls") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "§d" + s.fairySouls() + " Fairy Souls";
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.fairysouls", s.fairySouls());
 			}
 		},
 		GUILD("guild") {
-			String format(SkyMellooApiClient.SummaryResult s) {
+			Component format(SkyMellooApiClient.SummaryResult s) {
 				if (s.guildName() == null) {
-					return "Guild §7None";
+					return Component.translatable("skymelloo.command.stat.guild_none");
 				}
-				String tag = s.guildTag() != null ? " §7[" + s.guildTag() + "]" : "";
-				String members = s.guildMemberCount() > 0 ? " §7(" + s.guildMemberCount() + " members)" : "";
-				return "Guild §b" + s.guildName() + tag + members;
+				Component tag = s.guildTag() != null ? Component.literal(" §7[" + s.guildTag() + "]") : Component.empty();
+				Component members = s.guildMemberCount() > 0 ? Component.translatable("skymelloo.command.stat.guild_members", s.guildMemberCount()) : Component.empty();
+				return Component.translatable("skymelloo.command.stat.guild", s.guildName(), tag, members);
 			}
 		},
 		RANK("rank") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "Rank §b" + (s.rankLabel() != null ? s.rankLabel() : "§7None");
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				Component rank = s.rankLabel() != null ? Component.literal(s.rankLabel()) : Component.translatable("skymelloo.command.stat.rank_none");
+				return Component.translatable("skymelloo.command.stat.rank", rank);
 			}
 		},
 		SKILLS("skills") {
-			String format(SkyMellooApiClient.SummaryResult s) {
+			Component format(SkyMellooApiClient.SummaryResult s) {
 				return formatLevelMap(s.skillLevels());
 			}
 		},
 		SLAYER("slayer") {
-			String format(SkyMellooApiClient.SummaryResult s) {
+			Component format(SkyMellooApiClient.SummaryResult s) {
 				return formatLevelMap(s.slayerLevels());
 			}
 		},
 		CLASSES("classes") {
-			String format(SkyMellooApiClient.SummaryResult s) {
+			Component format(SkyMellooApiClient.SummaryResult s) {
 				return formatLevelMap(s.classLevels());
 			}
 		},
 		MINIONS("minions") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "§d" + s.minionUniqueCount() + "§r unique minions, §d" + s.minionUpgrades() + "§r upgrades";
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.minions", s.minionUniqueCount(), s.minionUpgrades());
 			}
 		},
 		BESTIARY("bestiary") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "§d" + s.bestiaryKills() + "§r Bestiary kills";
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.bestiary", s.bestiaryKills());
 			}
 		},
 		HIGHESTFLOOR("highestfloor") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "Highest dungeon floor: §d" + (s.highestFloor() == 0 ? "none" : "F/M" + s.highestFloor());
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				Component floor = s.highestFloor() == 0 ? Component.translatable("skymelloo.command.stat.highestfloor_none") : Component.literal("F/M" + s.highestFloor());
+				return Component.translatable("skymelloo.command.stat.highestfloor", floor);
 			}
 		},
 		FIRSTJOIN("firstjoin") {
-			String format(SkyMellooApiClient.SummaryResult s) {
+			Component format(SkyMellooApiClient.SummaryResult s) {
 				if (s.firstJoin() <= 0) {
-					return "Join date unknown";
+					return Component.translatable("skymelloo.command.stat.firstjoin_unknown");
 				}
 				long days = (System.currentTimeMillis() - s.firstJoin()) / 86_400_000L;
-				return "On SkyBlock for §d" + days + "§r days";
+				return Component.translatable("skymelloo.command.stat.firstjoin", days);
 			}
 		},
 		PETS("pets") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "§d" + s.petCount() + "§r pets" + (s.bestPetLabel() != null ? ", best: §b" + s.bestPetLabel() + "§r" : "");
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				Component best = s.bestPetLabel() != null ? Component.translatable("skymelloo.command.stat.pets_best", s.bestPetLabel()) : Component.empty();
+				return Component.translatable("skymelloo.command.stat.pets", s.petCount(), best);
 			}
 		},
 		COLLECTIONS("collections") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "§d" + s.collectionsStarted() + "§r collections started";
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.collections", s.collectionsStarted());
 			}
 		},
 		MINIONSLOTS("minionslots") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "§d" + s.minionSlots() + "§r minion slots";
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.minionslots", s.minionSlots());
 			}
 		},
 		PROFILES("profiles") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return s.profilesLabel();
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.literal(s.profilesLabel());
 			}
 		},
 		DUNGEONRUNS("dungeonruns") {
-			String format(SkyMellooApiClient.SummaryResult s) {
-				return "§d" + s.dungeonCompletions() + "§r dungeon runs total (all floors)";
+			Component format(SkyMellooApiClient.SummaryResult s) {
+				return Component.translatable("skymelloo.command.stat.dungeonruns", s.dungeonCompletions());
 			}
 		};
 
@@ -924,7 +935,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			this.commandName = commandName;
 		}
 
-		abstract String format(SkyMellooApiClient.SummaryResult summary);
+		abstract Component format(SkyMellooApiClient.SummaryResult summary);
 
 		static ExtraStat byCommandName(String commandName) {
 			for (ExtraStat stat : values()) {
@@ -936,21 +947,21 @@ public class SkyMellooClient implements ClientModInitializer {
 		}
 	}
 
-	private static String formatLevelMap(java.util.Map<String, Integer> levels) {
+	private static Component formatLevelMap(java.util.Map<String, Integer> levels) {
 		if (levels.isEmpty()) {
-			return "§7No data";
+			return Component.translatable("skymelloo.command.stat.no_data");
 		}
-		StringBuilder sb = new StringBuilder();
+		net.minecraft.network.chat.MutableComponent result = Component.empty();
 		boolean first = true;
 		for (var entry : levels.entrySet()) {
 			if (!first) {
-				sb.append("§r, ");
+				result.append(Component.literal("§r, "));
 			}
 			first = false;
 			String name = entry.getKey().substring(0, 1).toUpperCase() + entry.getKey().substring(1);
-			sb.append(name).append(" §d").append(entry.getValue());
+			result.append(Component.literal(name + " §d" + entry.getValue()));
 		}
-		return sb.toString();
+		return result;
 	}
 
 	private static String formatAmount(double amount) {
@@ -976,7 +987,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			return "";
 		}
 		long ageSeconds = Math.max(0, (System.currentTimeMillis() - dataFetchedAt) / 1000);
-		return " §8(data from " + ageSeconds + "s ago, just requested)";
+		return Component.translatable("skymelloo.command.common.cache_age_suffix", ageSeconds).getString();
 	}
 
 	private static void announceExtraStat(ExtraStat stat, String name, String profile, boolean announce) {
@@ -990,14 +1001,14 @@ public class SkyMellooClient implements ClientModInitializer {
 						client.player.sendSystemMessage(ChatUtil.prefixed(ChatUtil.errorMessage(name, error)));
 						return;
 					}
-					String text = "§a" + name + "§r: " + stat.format(summary) + debugCacheAgeSuffix(summary.dataFetchedAt());
+					Component textComponent = Component.translatable("skymelloo.command.getdata.result_line", name, stat.format(summary), debugCacheAgeSuffix(summary.dataFetchedAt()));
 					if (announce) {
 						// §-codes above don't survive /pc (Hypixel strips them, see ChatUtil.partyPrefixed)
 						// so they're harmlessly stripped for the party delivery, kept as-is for local.
-						DungeonRunTracker.sendDungeonMessage(client, text, "PARTY");
+						DungeonRunTracker.sendDungeonMessage(client, textComponent.getString(), "PARTY");
 						return;
 					}
-					client.player.sendSystemMessage(ChatUtil.prefixed(text));
+					client.player.sendSystemMessage(ChatUtil.prefixed(textComponent));
 				})
 		);
 	}
@@ -1005,14 +1016,14 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static void announcePartyExtraStat(ExtraStat stat, FabricClientCommandSource source, boolean announce) {
 		java.util.List<String> names = resolvePartyMemberNames(false);
 		if (names == null) {
-			source.sendFeedback(ChatUtil.prefixed("§cNo party found (or Hypixel Mod API not connected)."));
+			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_party")));
 			return;
 		}
 		if (names.isEmpty()) {
-			source.sendFeedback(ChatUtil.prefixed("§cCouldn't resolve any party members (not in view range/tab list?)."));
+			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_resolved_members")));
 			return;
 		}
-		source.sendFeedback(ChatUtil.prefixed("Checking " + stat.commandName + " for §a" + names.size() + "§r party members, one by one..."));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.getdata.checking_stat", stat.commandName, names.size())));
 		announcePartyExtraStatSequentially(stat, names.iterator(), announce);
 	}
 
@@ -1033,11 +1044,11 @@ public class SkyMellooClient implements ClientModInitializer {
 						if (error != null) {
 							client.player.sendSystemMessage(ChatUtil.prefixed(ChatUtil.errorMessage(name, error)));
 						} else {
-							String text = "§a" + name + "§r: " + stat.format(summary) + debugCacheAgeSuffix(summary.dataFetchedAt());
+							Component textComponent = Component.translatable("skymelloo.command.getdata.result_line", name, stat.format(summary), debugCacheAgeSuffix(summary.dataFetchedAt()));
 							if (announce) {
-								DungeonRunTracker.sendDungeonMessage(client, text, "PARTY");
+								DungeonRunTracker.sendDungeonMessage(client, textComponent.getString(), "PARTY");
 							} else {
-								client.player.sendSystemMessage(ChatUtil.prefixed(text));
+								client.player.sendSystemMessage(ChatUtil.prefixed(textComponent));
 							}
 						}
 					}
@@ -1058,17 +1069,18 @@ public class SkyMellooClient implements ClientModInitializer {
 						return;
 					}
 					if (result.magicalPower() < 0) {
-						client.player.sendSystemMessage(ChatUtil.prefixed("§cNo Magical Power data found for §f" + name + "§c."));
+						client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.mp.not_found", name)));
 						return;
 					}
-					String text = "§a" + name + "§r has §d" + result.magicalPower() + " Magical Power§r"
-							+ (result.selectedPower() != null ? " (active: §b" + result.selectedPower() + "§r)" : "");
+					Component activeSuffix = result.selectedPower() != null
+							? Component.translatable("skymelloo.command.mp.active_suffix", result.selectedPower())
+							: Component.empty();
+					Component textComponent = Component.translatable("skymelloo.command.mp.result", name, result.magicalPower(), activeSuffix);
 					if (announce) {
-						DungeonRunTracker.sendDungeonMessage(client, name + " has " + result.magicalPower() + " Magical Power"
-								+ (result.selectedPower() != null ? " (active: " + result.selectedPower() + ")" : ""), "PARTY");
+						DungeonRunTracker.sendDungeonMessage(client, textComponent.getString(), "PARTY");
 						return;
 					}
-					client.player.sendSystemMessage(ChatUtil.prefixed(text));
+					client.player.sendSystemMessage(ChatUtil.prefixed(textComponent));
 				})
 		);
 	}
@@ -1094,56 +1106,42 @@ public class SkyMellooClient implements ClientModInitializer {
 									return;
 								}
 								String mpValue = (mpError == null && mp.magicalPower() >= 0) ? String.valueOf(mp.magicalPower()) : "?";
+								Component rank = summary.rankLabel() != null ? Component.literal(summary.rankLabel()) : Component.translatable("skymelloo.command.common.none");
+								Component guild = summary.guildName() != null ? Component.literal(summary.guildName()) : Component.translatable("skymelloo.command.common.none");
+								String classSuffix = summary.selectedClass() != null ? " (" + summary.selectedClass() + ")" : "";
+								String avgSkillText = String.format("%.1f", summary.averageSkillLevel());
 								if (announce) {
 									// Previously trimmed down to just the "most important" handful of fields
 									// specifically to avoid Minecraft's 256-char /pc command limit - now that
 									// sendDungeonMessage auto-splits long party messages into multiple chunks,
 									// there's no need to hold back the rest of what the LOCAL view already
 									// shows.
-									String text = name + ": SB Level " + summary.skyblockLevel()
-											+ ", Rank " + (summary.rankLabel() != null ? summary.rankLabel() : "None")
-											+ ", Guild " + (summary.guildName() != null ? summary.guildName() : "None")
-											+ ", Cata " + summary.catacombsLevel() + (summary.selectedClass() != null ? " (" + summary.selectedClass() + ")" : "")
-											+ ", MP " + mpValue
-											+ ", Skill Avg " + String.format("%.1f", summary.averageSkillLevel())
-											+ ", Purse " + formatAmount(summary.purse())
-											+ ", Bank " + formatAmount(summary.bank())
-											+ ", Networth " + formatAmount(summary.netWorth())
-											+ ", " + summary.fairySouls() + " Fairy Souls"
-											+ ", " + summary.petCount() + " Pets"
-											+ ", " + summary.minionSlots() + " Minion Slots"
-											+ ", " + summary.dungeonCompletions() + " Dungeon Runs"
-											+ debugCacheAgeSuffix(summary.dataFetchedAt());
-									DungeonRunTracker.sendDungeonMessage(client, text, "PARTY");
+									Component textComponent = Component.translatable("skymelloo.command.getdata.all.party_summary",
+											name, summary.skyblockLevel(), rank, guild, summary.catacombsLevel(), classSuffix, mpValue, avgSkillText,
+											formatAmount(summary.purse()), formatAmount(summary.bank()), formatAmount(summary.netWorth()),
+											summary.fairySouls(), summary.petCount(), summary.minionSlots(), summary.dungeonCompletions(),
+											debugCacheAgeSuffix(summary.dataFetchedAt()));
+									DungeonRunTracker.sendDungeonMessage(client, textComponent.getString(), "PARTY");
 									return;
 								}
-								String mpText = "§d" + mpValue;
+								String profileSuffix = profile != null ? " §7(" + profile + ")" : "";
 								client.player.sendSystemMessage(ChatUtil.prefixed(
-										"§6=== §a" + name + "§r" + (profile != null ? " §7(" + profile + ")" : "") + " §6==="
+										Component.translatable("skymelloo.command.getdata.all.header", name, profileSuffix)
 								));
 								client.player.sendSystemMessage(ChatUtil.prefixed(
-										"SB Level §d" + summary.skyblockLevel()
-												+ "§r, Rank §b" + (summary.rankLabel() != null ? summary.rankLabel() : "None")
-												+ "§r, Guild §b" + (summary.guildName() != null ? summary.guildName() : "None")
+										Component.translatable("skymelloo.command.getdata.all.line1", summary.skyblockLevel(), rank, guild)
 								));
 								client.player.sendSystemMessage(ChatUtil.prefixed(
-										"Purse §6" + formatAmount(summary.purse())
-												+ "§r, Bank §6" + formatAmount(summary.bank())
-												+ "§r, Networth §6" + formatAmount(summary.netWorth())
+										Component.translatable("skymelloo.command.getdata.all.line2", formatAmount(summary.purse()), formatAmount(summary.bank()), formatAmount(summary.netWorth()))
 								));
 								client.player.sendSystemMessage(ChatUtil.prefixed(
-										"MP " + mpText + "§r, Cata §b" + summary.catacombsLevel()
-												+ (summary.selectedClass() != null ? " (" + summary.selectedClass() + ")" : "")
-												+ "§r, Skill Avg §e" + String.format("%.1f", summary.averageSkillLevel())
+										Component.translatable("skymelloo.command.getdata.all.line3", mpValue, summary.catacombsLevel(), classSuffix, avgSkillText)
 								));
 								client.player.sendSystemMessage(ChatUtil.prefixed(
-										"§d" + summary.fairySouls() + "§r Fairy Souls"
-												+ "§r, §d" + summary.petCount() + "§r Pets"
-												+ "§r, §d" + summary.minionSlots() + "§r Minion Slots"
+										Component.translatable("skymelloo.command.getdata.all.line4", summary.fairySouls(), summary.petCount(), summary.minionSlots())
 								));
 								client.player.sendSystemMessage(ChatUtil.prefixed(
-										"§d" + summary.dungeonCompletions() + "§r Dungeon Runs"
-												+ "§r, §d" + summary.bestiaryKills() + "§r Bestiary Kills"
+										Component.translatable("skymelloo.command.getdata.all.line5", summary.dungeonCompletions(), summary.bestiaryKills())
 								));
 								String debugSuffix = debugCacheAgeSuffix(summary.dataFetchedAt());
 								if (!debugSuffix.isEmpty()) {
@@ -1171,19 +1169,20 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static void announcePartyAllStats(FabricClientCommandSource source, boolean announce) {
 		java.util.List<String> names = resolvePartyMemberNames(false);
 		if (names == null) {
-			source.sendFeedback(ChatUtil.prefixed("§cNo party found (or Hypixel Mod API not connected)."));
+			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_party")));
 			return;
 		}
 		if (names.isEmpty()) {
-			source.sendFeedback(ChatUtil.prefixed("§cCouldn't resolve any party members (not in view range/tab list?)."));
+			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_resolved_members")));
 			return;
 		}
 		// The command-typing feedback always stays local (only you see it, same convention as every
 		// other command reply) - "announce" additionally posts a heads-up to the party itself, since
 		// everyone's about to see a string of stat messages land one by one.
-		source.sendFeedback(ChatUtil.prefixed("Loading overview for §a" + names.size() + "§r party members, one by one..."));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.party.loading_overview", names.size())));
 		if (announce) {
-			DungeonRunTracker.sendDungeonMessage(Minecraft.getInstance(), "Loading overview for " + names.size() + " party members...", "PARTY");
+			DungeonRunTracker.sendDungeonMessage(Minecraft.getInstance(),
+					Component.translatable("skymelloo.command.party.loading_overview_announce", names.size()).getString(), "PARTY");
 		}
 		announcePartyAllStatsSequentially(names.iterator(), announce);
 	}
@@ -1205,14 +1204,14 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static void announcePartyMagicalPower(FabricClientCommandSource source, boolean announce) {
 		java.util.List<String> names = resolvePartyMemberNames(false);
 		if (names == null) {
-			source.sendFeedback(ChatUtil.prefixed("§cNo party found (or Hypixel Mod API not connected)."));
+			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_party")));
 			return;
 		}
 		if (names.isEmpty()) {
-			source.sendFeedback(ChatUtil.prefixed("§cCouldn't resolve any party members (not in view range/tab list?)."));
+			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_resolved_members")));
 			return;
 		}
-		source.sendFeedback(ChatUtil.prefixed("Checking Magical Power for §a" + names.size() + "§r party members, one by one..."));
+		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.party.checking_mp", names.size())));
 		announcePartyMagicalPowerSequentially(names.iterator(), announce);
 	}
 
@@ -1229,7 +1228,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		}
 		Minecraft client = Minecraft.getInstance();
 		if (client.player != null) {
-			client.player.sendSystemMessage(ChatUtil.prefixed("Joined party - checking Magical Power for §a" + names.size() + "§r members..."));
+			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.party.joined_checking_mp", names.size())));
 		}
 		announcePartyMagicalPowerSequentially(names.iterator(), false);
 	}
@@ -1292,10 +1291,10 @@ public class SkyMellooClient implements ClientModInitializer {
 						if (error != null) {
 							client.player.sendSystemMessage(ChatUtil.prefixed(ChatUtil.errorMessage(name, error)));
 						} else if (result.magicalPower() < 0) {
-							client.player.sendSystemMessage(ChatUtil.prefixed("§cNo MP data for §f" + name + "§c."));
+							client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.mp.no_data", name)));
 						} else {
-							String text = "§a" + name + "§r: §d" + result.magicalPower() + " Magical Power§r"
-									+ (result.selectedPower() != null ? " (active: §b" + result.selectedPower() + "§r)" : "");
+							String text = Component.translatable("skymelloo.command.mp.result_colon", name, result.magicalPower()).getString()
+									+ (result.selectedPower() != null ? Component.translatable("skymelloo.command.mp.active_suffix", result.selectedPower()).getString() : "");
 							if (announce) {
 								DungeonRunTracker.sendDungeonMessage(client, text, "PARTY");
 							} else {
@@ -1314,7 +1313,8 @@ public class SkyMellooClient implements ClientModInitializer {
 		SkyMellooConfig.HANDLER.instance().dungeonRoomMobHighlightEnabled = enabled;
 		SkyMellooConfig.HANDLER.save();
 		if (feedback != null) {
-			feedback.accept(ChatUtil.prefixed("Mob Highlighting " + (enabled ? "§aan" : "§caus")));
+			feedback.accept(ChatUtil.prefixed(Component.translatable("skymelloo.command.mob_highlighting.toggled",
+					enabled ? Component.translatable("skymelloo.command.common.state_on") : Component.translatable("skymelloo.command.common.state_off"))));
 		}
 	}
 }

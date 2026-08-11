@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.Component;
 
 import java.util.UUID;
 
@@ -53,7 +54,7 @@ public final class LobbySearchManager {
 			return;
 		}
 		if (!isLobby(client)) {
-			client.player.sendSystemMessage(ChatUtil.prefixed("§cThis only works in a Hypixel lobby, not in SkyBlock."));
+			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.lobby_search.wrong_location")));
 			return;
 		}
 		if (client.getConnection() == null) {
@@ -64,12 +65,12 @@ public final class LobbySearchManager {
 				.findFirst()
 				.orElse(null);
 		if (match == null) {
-			client.player.sendSystemMessage(ChatUtil.prefixed("§cNo player named \"" + name + "\" found in this lobby."));
+			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.lobby_search.not_found", name)));
 			return;
 		}
 		searchedUuid = match.getProfile().id();
 		searchedName = match.getProfile().name();
-		client.player.sendSystemMessage(ChatUtil.prefixed("§aNow highlighting §f" + searchedName + "§a - look for the green glow."));
+		client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.lobby_search.now_highlighting", searchedName)));
 	}
 
 	public static void clear() {
@@ -80,7 +81,7 @@ public final class LobbySearchManager {
 		searchedName = null;
 		Minecraft client = Minecraft.getInstance();
 		if (client.player != null) {
-			client.player.sendSystemMessage(ChatUtil.prefixed("§7Player search cleared."));
+			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.lobby_search.cleared")));
 		}
 	}
 

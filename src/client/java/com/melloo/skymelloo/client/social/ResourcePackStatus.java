@@ -3,6 +3,7 @@ package com.melloo.skymelloo.client.social;
 import com.melloo.skymelloo.client.util.ChatUtil;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 /**
  * Confirms in chat when {@link com.melloo.skymelloo.client.mixin.ResourcePackAutoDeclineMixin}
@@ -46,7 +47,7 @@ public final class ResourcePackStatus {
 		announceDelayTicks--;
 		if (announceDelayTicks == 0) {
 			if (declinedThisConnection && client.player != null) {
-				client.player.sendSystemMessage(ChatUtil.prefixed("§7Hypixel resource pack auto-declined for this connection."));
+				client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.resource_pack.declined")));
 			}
 			alreadyAnnouncedThisLaunch = true;
 		}

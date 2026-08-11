@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -119,7 +120,7 @@ public final class PartyGamesManager {
 
 	public static void rollNumber(Minecraft client, int max) {
 		int result = ThreadLocalRandom.current().nextInt(max) + 1;
-		send(client, "§dRolled §e" + result + "§d (1-" + max + ")!");
+		send(client, Component.translatable("skymelloo.chat.party_games.roll_result", result, max).getString());
 	}
 
 	public static void rollPartyMember(Minecraft client) {
@@ -135,14 +136,14 @@ public final class PartyGamesManager {
 			}
 		}
 		String chosen = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-		send(client, "§dRandomly picked: §e" + chosen + "§d!");
+		send(client, Component.translatable("skymelloo.chat.party_games.roll_member_result", chosen).getString());
 	}
 
 	/** Starts a timed "say {word} in party chat" raffle - entries collected by the listener registered in {@link #init}. */
 	public static void startWordRoll(Minecraft client, String word, int seconds) {
 		wordRollTarget = word;
 		wordRollEntrants.clear();
-		send(client, "§dType §e" + word + "§d in party chat within §e" + seconds + "s§d to enter!");
+		send(client, Component.translatable("skymelloo.chat.party_games.word_roll_start", word, seconds).getString());
 		String targetAtStart = word;
 		TickDelay.schedule(seconds * 20, () -> {
 			// A newer roll could have overwritten/cleared this one before the timer ran out - only
@@ -152,10 +153,10 @@ public final class PartyGamesManager {
 			}
 			Minecraft mc = Minecraft.getInstance();
 			if (wordRollEntrants.isEmpty()) {
-				send(mc, "§dNobody typed §e" + targetAtStart + "§d - no entrants.");
+				send(mc, Component.translatable("skymelloo.chat.party_games.word_roll_no_entrants", targetAtStart).getString());
 			} else {
 				String winner = wordRollEntrants.get(ThreadLocalRandom.current().nextInt(wordRollEntrants.size()));
-				send(mc, "§dWinner of §e" + targetAtStart + "§d (" + wordRollEntrants.size() + " entrants): §e" + winner + "§d!");
+				send(mc, Component.translatable("skymelloo.chat.party_games.word_roll_winner", targetAtStart, wordRollEntrants.size(), winner).getString());
 			}
 			wordRollTarget = null;
 			wordRollEntrants.clear();
@@ -178,7 +179,7 @@ public final class PartyGamesManager {
 			parts.remove(parts.size() - 1);
 		}
 		if (parts.size() < 3) {
-			send(client, "§cUsage: §f/sm poll start Question;Answer1;Answer2;...[;asword]");
+			send(client, Component.translatable("skymelloo.chat.party_games.poll_start_usage").getString());
 			return;
 		}
 		pollQuestion = parts.get(0);
@@ -194,12 +195,13 @@ public final class PartyGamesManager {
 			options.append("§e").append(i + 1).append("§7=§f").append(pollAnswers.get(i));
 		}
 		send(client, "§d" + pollQuestion + " §7(" + options + "§7)");
-		send(client, "§7Vote by typing the number in party chat" + (allowAsWord ? " (or the answer itself)" : "") + " - §f/sm poll close§7 to tally.");
+		String wordHint = allowAsWord ? Component.translatable("skymelloo.chat.party_games.poll_word_option_hint").getString() : "";
+		send(client, Component.translatable("skymelloo.chat.party_games.poll_vote_instructions", wordHint).getString());
 	}
 
 	public static void closePoll(Minecraft client) {
 		if (pollQuestion == null) {
-			send(client, "§cNo active poll.");
+			send(client, Component.translatable("skymelloo.chat.party_games.no_active_poll").getString());
 			return;
 		}
 		int[] counts = new int[pollAnswers.size()];
@@ -217,9 +219,9 @@ public final class PartyGamesManager {
 				winnerIndex = i;
 			}
 		}
-		send(client, "§dResults - " + pollQuestion + " §7(" + pollVotes.size() + " votes): " + results);
+		send(client, Component.translatable("skymelloo.chat.party_games.poll_results", pollQuestion, pollVotes.size(), results.toString()).getString());
 		if (!pollVotes.isEmpty()) {
-			send(client, "§dWinner: §e" + pollAnswers.get(winnerIndex) + "§d!");
+			send(client, Component.translatable("skymelloo.chat.party_games.poll_winner", pollAnswers.get(winnerIndex)).getString());
 		}
 		pollQuestion = null;
 		pollAnswers = new ArrayList<>();
@@ -243,7 +245,7 @@ public final class PartyGamesManager {
 	public static LiteralArgumentBuilder<FabricClientCommandSource> buildRollCommand() {
 		return ClientCommands.literal("roll")
 				.executes(ctx -> {
-					ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm roll <amount>§7, §f/sm roll party§7, or §f/sm roll <word> <seconds>"));
+					ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.chat.party_games.roll_root_usage")));
 					return 1;
 				})
 				.then(ClientCommands.literal("party").executes(ctx -> {
@@ -264,7 +266,7 @@ public final class PartyGamesManager {
 	public static LiteralArgumentBuilder<FabricClientCommandSource> buildPollCommand() {
 		return ClientCommands.literal("poll")
 				.executes(ctx -> {
-					ctx.getSource().sendFeedback(ChatUtil.prefixed("§cUsage: §f/sm poll start Question;Answer1;Answer2;...[;asword]§7 or §f/sm poll close"));
+					ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.chat.party_games.poll_root_usage")));
 					return 1;
 				})
 				.then(ClientCommands.literal("start")

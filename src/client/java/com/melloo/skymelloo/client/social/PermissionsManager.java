@@ -5,6 +5,7 @@ import com.melloo.skymelloo.client.api.SkyMellooApiClient;
 import com.melloo.skymelloo.client.util.ChatUtil;
 import com.melloo.skymelloo.client.util.DebugLog;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -85,7 +86,7 @@ public final class PermissionsManager {
 				if (announceChanges && !isAccountLinked() && !accountLinkedHintShown && client.player != null) {
 					accountLinkedHintShown = true;
 					client.player.sendSystemMessage(ChatUtil.prefixed(
-							"§dThe Spell (Magic Missile) needs a linked sky.melloo.me account - log in with Discord at §fsky.melloo.me/account §dand run §f/skymelloo verify <code>§d to use it. Cosmetics (via MellooEssentials) don't need this."));
+							Component.translatable("skymelloo.chat.permissions.spell_needs_link")));
 				}
 			} else {
 				DebugLog.log(DebugLog.Category.PERMISSIONS, "Account-link fetch failed" + (error != null ? " (" + error.getMessage() + ")" : "") + ".");

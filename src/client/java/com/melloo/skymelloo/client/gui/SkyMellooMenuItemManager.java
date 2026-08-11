@@ -26,23 +26,26 @@ import java.util.List;
  */
 public final class SkyMellooMenuItemManager {
 	public static final int MENU_SLOT = 7; // "slot 8" (1-indexed) - deliberately not 8 (Hypixel's own menu slot)
-	// Not bold (was "§b§l...") and pink rather than aqua, closer to Hypixel's own SkyBlock Menu item's
-	// tooltip look while matching this mod's pink-dye theming for the item itself.
-	private static final String MARKER_NAME = "§dSkyMelloo Menu §7(Click)";
 
 	private static boolean initialized = false;
 
 	private SkyMellooMenuItemManager() {
 	}
 
+	// Resolved lazily (not cached in a static final field) so it's read after Minecraft's language
+	// system is actually loaded, not at class-load time - also used to identity-check the item below.
+	private static String markerName() {
+		return Component.translatable("skymelloo.gui.menu.marker.name").getString();
+	}
+
 	private static ItemStack createMarkerStack() {
 		ItemStack stack = new ItemStack(Items.PINK_DYE);
-		stack.set(DataComponents.CUSTOM_NAME, Component.literal(MARKER_NAME));
+		stack.set(DataComponents.CUSTOM_NAME, Component.literal(markerName()));
 		stack.set(DataComponents.LORE, new ItemLore(List.of(
-				Component.literal("§7View all of your SkyMelloo settings,"),
-				Component.literal("§7spells, and cosmetics!"),
+				Component.translatable("skymelloo.gui.menu.marker.lore_1"),
+				Component.translatable("skymelloo.gui.menu.marker.lore_2"),
 				Component.literal(""),
-				Component.literal("§eClick to open!"))));
+				Component.translatable("skymelloo.gui.menu.marker.lore_3"))));
 		return stack;
 	}
 
@@ -51,7 +54,7 @@ public final class SkyMellooMenuItemManager {
 			return false;
 		}
 		Component name = stack.get(DataComponents.CUSTOM_NAME);
-		return name != null && MARKER_NAME.equals(name.getString());
+		return name != null && markerName().equals(name.getString());
 	}
 
 	/** Whether this stack is the SkyMelloo Menu marker item - public so other trigger paths (left-click, inventory-slot click) can recognize it too, not just the right-click handler below. */

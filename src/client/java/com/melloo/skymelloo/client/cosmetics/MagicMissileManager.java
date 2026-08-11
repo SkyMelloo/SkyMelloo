@@ -644,10 +644,8 @@ public final class MagicMissileManager {
 		killAnnounceCooldownUntil.put(uuid, currentTick + KILL_ANNOUNCE_COOLDOWN_TICKS);
 		config.totalPlayersKilled++;
 		SkyMellooConfig.HANDLER.save();
-		String template = pickKillMessageTemplate();
-		String text = template
-				.replace("{player}", hitPlayer.getName().getString())
-				.replace("{count}", String.valueOf(config.totalPlayersKilled));
+		String key = pickKillMessageTemplate();
+		Component text = Component.translatable(key, hitPlayer.getName().getString(), config.totalPlayersKilled);
 		// Always LOCAL-only, never sent to party.
 		client.player.sendSystemMessage(ChatUtil.prefixed(text));
 	}
@@ -657,40 +655,18 @@ public final class MagicMissileManager {
 	 * {@link #MESSAGE_HISTORY_SIZE} used so it doesn't feel too samey back-to-back.
 	 */
 	private static final List<String> KILL_MESSAGES = List.of(
-			"§c{player}§d got wiped out by your spell!",
-			"§c{player}§d got hit by your spell!",
-			"§c{player}§d never saw that spell coming!",
-			"§dYou blasted §c{player}§d with pure spell power!",
-			"§c{player}§d was struck down by your spell!",
-			"§dYour spell erased §c{player}§d!",
-			"§c{player}§d got obliterated by your spell!",
-			"§dA well-aimed spell just took out §c{player}§d!",
-			"§c{player}§d didn't dodge that one - spell hit confirmed!",
-			"§dYour spell found its mark on §c{player}§d!",
-			"§c{player}§d got zapped into oblivion!",
-			"§dSpell connects - §c{player}§d is history!",
-			"§c{player}§d got vaporized by your spell!",
-			"§dYour spell just nailed §c{player}§d!",
-			"§c{player}§d got smoked by your spell!",
-			"§dSpell landed - §c{player}§d didn't stand a chance!",
-			"§c{player}§d got cooked by your spell!",
-			"§dDirect hit! §c{player}§d felt the full force of your spell!",
-			"§c{player}§d just got spell-slapped!",
-			"§dYour spell turned §c{player}§d into confetti!",
-			"§c{player}§d got annihilated by pure spell power!",
-			"§dThat spell hit §c{player}§d right where it hurts!",
-			"§c{player}§d got demolished by your spell!",
-			"§dSpell #{count}: §c{player}§d didn't survive it!",
-			"§c{player}§d just got turned into a pretzel by your spell!",
-			"§dYour spell absolutely yeeted §c{player}§d into next week!",
-			"§c{player}§d got launched into orbit by your spell!",
-			"§dNo mercy - §c{player}§d just got spell-bonked!",
-			"§c{player}§d got sent to the shadow realm!",
-			"§dYour spell said \"nope\" to §c{player}§d!",
-			"§c{player}§d got clapped by your spell!",
-			"§dSpell #{count}: §c{player}§d got sent packing!",
-			"§c{player}§d just experienced true spell violence!",
-			"§dYour spell gave §c{player}§d a one-way ticket to the void!"
+			"skymelloo.chat.kill.message_01", "skymelloo.chat.kill.message_02", "skymelloo.chat.kill.message_03",
+			"skymelloo.chat.kill.message_04", "skymelloo.chat.kill.message_05", "skymelloo.chat.kill.message_06",
+			"skymelloo.chat.kill.message_07", "skymelloo.chat.kill.message_08", "skymelloo.chat.kill.message_09",
+			"skymelloo.chat.kill.message_10", "skymelloo.chat.kill.message_11", "skymelloo.chat.kill.message_12",
+			"skymelloo.chat.kill.message_13", "skymelloo.chat.kill.message_14", "skymelloo.chat.kill.message_15",
+			"skymelloo.chat.kill.message_16", "skymelloo.chat.kill.message_17", "skymelloo.chat.kill.message_18",
+			"skymelloo.chat.kill.message_19", "skymelloo.chat.kill.message_20", "skymelloo.chat.kill.message_21",
+			"skymelloo.chat.kill.message_22", "skymelloo.chat.kill.message_23", "skymelloo.chat.kill.message_24",
+			"skymelloo.chat.kill.message_25", "skymelloo.chat.kill.message_26", "skymelloo.chat.kill.message_27",
+			"skymelloo.chat.kill.message_28", "skymelloo.chat.kill.message_29", "skymelloo.chat.kill.message_30",
+			"skymelloo.chat.kill.message_31", "skymelloo.chat.kill.message_32", "skymelloo.chat.kill.message_33",
+			"skymelloo.chat.kill.message_34"
 	);
 
 	private static String pickKillMessageTemplate() {
@@ -713,7 +689,7 @@ public final class MagicMissileManager {
 		int count = 1 + random.nextInt(3); // 1-3
 		for (int i = 0; i < count; i++) {
 			ItemStack stack = new ItemStack(Items.AMETHYST_SHARD);
-			stack.set(DataComponents.CUSTOM_NAME, Component.literal("§dSpell Essence"));
+			stack.set(DataComponents.CUSTOM_NAME, Component.translatable("skymelloo.item.spell_essence"));
 			double vx = (random.nextDouble() - 0.5) * 0.2;
 			double vz = (random.nextDouble() - 0.5) * 0.2;
 			ItemEntity essence = new ItemEntity(level, pos.x, pos.y, pos.z, stack, vx, 0.15 + random.nextDouble() * 0.1, vz);

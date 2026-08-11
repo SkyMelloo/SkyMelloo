@@ -99,9 +99,10 @@ public final class DeathRecapManager {
 			recentDamage.clear();
 			return;
 		}
-		client.player.sendSystemMessage(ChatUtil.prefixed("§6=== Death Recap ==="));
+		client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.death_recap.header")));
 		for (RecapEntry entry : recentDamage) {
-			client.player.sendSystemMessage(ChatUtil.prefixed("§c-" + String.format("%.1f", entry.damage()) + " HP §7from §f" + entry.sourceLabel()));
+			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.death_recap.entry",
+					String.format("%.1f", entry.damage()), entry.sourceLabel())));
 		}
 		recentDamage.clear();
 	}

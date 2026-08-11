@@ -5,6 +5,7 @@ import com.melloo.skymelloo.client.api.SkyMellooApiClient;
 import com.melloo.skymelloo.client.util.ChatUtil;
 import com.melloo.skymelloo.client.util.DebugLog;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 /**
  * The admin-managed whitelist gate that used to make the ENTIRE mod inert for anyone not
@@ -76,7 +77,7 @@ public final class WhitelistManager {
 			admin = isAdmin;
 			DebugLog.log(DebugLog.Category.PERMISSIONS, "Admin-linked: " + admin);
 			if (announceChanges && admin && !wasAdmin && client.player != null) {
-				client.player.sendSystemMessage(ChatUtil.prefixed("§bYour account is now linked as admin."));
+				client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.whitelist.linked_as_admin")));
 			}
 		}));
 	}

@@ -80,8 +80,17 @@ public class SkyMellooMenuScreen extends Screen {
 	private int gridY;
 
 	public SkyMellooMenuScreen() {
-		super(Component.literal("SkyMelloo Menu"));
+		super(Component.translatable("skymelloo.gui.menu.title"));
 		pageStack.push(new MainPage());
+	}
+
+	/** Resolves a translation key to its display string, for lore/name text built via concatenation. */
+	private static String tr(String key) {
+		return Component.translatable(key).getString();
+	}
+
+	private static String tr(String key, Object... args) {
+		return Component.translatable(key, args).getString();
 	}
 
 	@Override
@@ -127,24 +136,24 @@ public class SkyMellooMenuScreen extends Screen {
 			entries.add(new MenuEntry(CONTENT_SLOTS - 1, corner.icon(), corner.onClick(), corner.onRightClick()));
 		}
 		if (currentSheet > 0) {
-			entries.add(new MenuEntry(PREV_SLOT, named(Items.ARROW, "§e< Previous Page", List.of()), () -> {
+			entries.add(new MenuEntry(PREV_SLOT, named(Items.ARROW, tr("skymelloo.gui.menu.nav.previous_page"), List.of()), () -> {
 				currentSheet--;
 				rebuild();
 			}));
 		}
 		if (pageStack.size() > 1) {
-			entries.add(new MenuEntry(BACK_SLOT, named(Items.ARROW, "§eBack", List.of()), this::goBack));
+			entries.add(new MenuEntry(BACK_SLOT, named(Items.ARROW, tr("skymelloo.gui.menu.nav.back"), List.of()), this::goBack));
 		}
 		// Always present, on every page - not per-page like navExtraAction below, since a bug can be
 		// found from anywhere in this menu.
-		entries.add(new MenuEntry(BACK_SLOT - 1, named(Items.WRITABLE_BOOK, "§eReport a Bug",
-				List.of("§7Opens the bug report page", "§7in your browser.")), SkyMellooMenuScreen::openReportBug));
+		entries.add(new MenuEntry(BACK_SLOT - 1, named(Items.WRITABLE_BOOK, tr("skymelloo.gui.menu.nav.report_bug.name"),
+				List.of(tr("skymelloo.gui.menu.nav.report_bug.lore_1"), tr("skymelloo.gui.menu.nav.report_bug.lore_2"))), SkyMellooMenuScreen::openReportBug));
 		MenuAction navExtra = pageStack.peek().navExtraAction(this);
 		if (navExtra != null) {
 			entries.add(new MenuEntry(BACK_SLOT + 1, navExtra.icon(), navExtra.onClick(), navExtra.onRightClick()));
 		}
 		if (currentSheet < totalSheets - 1) {
-			entries.add(new MenuEntry(NEXT_SLOT, named(Items.ARROW, "§eNext Page >", List.of()), () -> {
+			entries.add(new MenuEntry(NEXT_SLOT, named(Items.ARROW, tr("skymelloo.gui.menu.nav.next_page"), List.of()), () -> {
 				currentSheet++;
 				rebuild();
 			}));
@@ -238,14 +247,14 @@ public class SkyMellooMenuScreen extends Screen {
 	// "Click to open!") but in this mod's pink rather than Hypixel's green, matching the pink-dye
 	// theming used everywhere else in this menu.
 	private static MenuAction linkAction(Item item, String name, String description, Page target, SkyMellooMenuScreen screen) {
-		ItemStack icon = named(item, "§d" + name + " §7(Click)", List.of("§7" + description, "", "§eClick to open!"));
+		ItemStack icon = named(item, tr("skymelloo.gui.menu.format.link_title", name), List.of(tr("skymelloo.gui.menu.format.description_line", description), "", tr("skymelloo.gui.menu.link.click_to_open")));
 		return new MenuAction(icon, () -> screen.push(target));
 	}
 
 	/** Green/gray wool, "click to enable/disable" - the standard on/off representation used throughout every settings page below. */
 	private static ItemStack toggleIcon(boolean on, String name, String description) {
-		return named(on ? Items.LIME_WOOL : Items.GRAY_WOOL, (on ? "§a" : "§7") + name,
-				List.of("§7" + description, "", on ? "§aEnabled §7- click to disable" : "§cDisabled §7- click to enable"));
+		return named(on ? Items.LIME_WOOL : Items.GRAY_WOOL, tr(on ? "skymelloo.gui.menu.format.toggle_name_on" : "skymelloo.gui.menu.format.toggle_name_off", name),
+				List.of(tr("skymelloo.gui.menu.format.description_line", description), "", on ? tr("skymelloo.gui.menu.toggle.enabled") : tr("skymelloo.gui.menu.toggle.disabled")));
 	}
 
 	private static MenuAction toggleAction(String name, String description, BooleanSupplier getter, Consumer<Boolean> setter, SkyMellooMenuScreen screen) {
@@ -272,7 +281,7 @@ public class SkyMellooMenuScreen extends Screen {
 			}
 		}
 		int nextIndex = (index + 1) % options.length;
-		ItemStack icon = named(item, "§b" + name, List.of("§7" + description, "", "§eCurrent: §f" + current, "§7Click to cycle"));
+		ItemStack icon = named(item, tr("skymelloo.gui.menu.format.cycle_name", name), List.of(tr("skymelloo.gui.menu.format.description_line", description), "", tr("skymelloo.gui.menu.cycle.current", current), tr("skymelloo.gui.menu.cycle.click_to_cycle")));
 		return new MenuAction(icon, () -> {
 			setter.accept(options[nextIndex]);
 			SkyMellooConfig.HANDLER.save();
@@ -285,29 +294,29 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class MainPage implements Page {
 		@Override
 		public String title() {
-			return "SkyMelloo Menu";
+			return tr("skymelloo.gui.menu.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			List<MenuAction> list = new ArrayList<>();
-			list.add(linkAction(Items.WRITABLE_BOOK, "Settings", "All SkyMelloo settings", new SettingsPage(), screen));
-			list.add(linkAction(Items.BLAZE_ROD, "Spells", "Switch spell type, view recent kills", new SpellsPage(), screen));
+			list.add(linkAction(Items.WRITABLE_BOOK, tr("skymelloo.gui.menu.link.settings.name"), tr("skymelloo.gui.menu.link.settings.description"), new SettingsPage(), screen));
+			list.add(linkAction(Items.BLAZE_ROD, tr("skymelloo.gui.menu.link.spells.name"), tr("skymelloo.gui.menu.link.spells.description"), new SpellsPage(), screen));
 			if (com.melloo.mellooessentials.client.config.EssentialsConfig.get().cosmeticsEnabled) {
 				// Opens MellooEssentials' own settings screen directly (straight to its Cosmetics tab)
 				// instead of maintaining a second, duplicate cosmetics UI here - see that screen's own
 				// two-arg constructor.
-				list.add(new MenuAction(named(Items.FIREWORK_STAR, "Cosmetics", List.of("§7Toggle and color every cosmetic effect", "", "§eOpens the MellooEssentials menu")), () ->
+				list.add(new MenuAction(named(Items.FIREWORK_STAR, tr("skymelloo.gui.menu.link.cosmetics.name"), List.of(tr("skymelloo.gui.menu.link.cosmetics.lore_1"), "", tr("skymelloo.gui.menu.link.cosmetics.lore_2"))), () ->
 						Minecraft.getInstance().setScreen(new com.melloo.mellooessentials.client.gui.SettingsScreen(screen, true))));
 			}
-			list.add(new MenuAction(named(Items.BARRIER, "§7Games", List.of("§7Coming soon")), () -> {
+			list.add(new MenuAction(named(Items.BARRIER, tr("skymelloo.gui.menu.link.games.name"), List.of(tr("skymelloo.gui.menu.link.games.lore_1"))), () -> {
 			}));
 			return list;
 		}
 
 		@Override
 		public MenuAction cornerAction(SkyMellooMenuScreen screen) {
-			return linkAction(Items.PLAYER_HEAD, "Credits", "See who made SkyMelloo", new CreditsPage(), screen);
+			return linkAction(Items.PLAYER_HEAD, tr("skymelloo.gui.menu.link.credits.name"), tr("skymelloo.gui.menu.link.credits.description"), new CreditsPage(), screen);
 		}
 	}
 
@@ -325,7 +334,7 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class CreditsPage implements Page {
 		@Override
 		public String title() {
-			return "Credits";
+			return tr("skymelloo.gui.menu.page.credits.title");
 		}
 
 		@Override
@@ -335,10 +344,10 @@ public class SkyMellooMenuScreen extends Screen {
 			// than on every page, since Credits is the one place a player is already reading "who
 			// made this", the same context this belongs in. Not clickable, same treatment as the
 			// "Loading..."/"No credits yet" placeholder entries below.
-			list.add(new MenuAction(named(Items.PAPER, "§7About SkyMelloo", List.of(
-					"§7Not an official Minecraft product.",
-					"§7Not approved by or associated with",
-					"§7Mojang, Microsoft, or Hypixel Inc.")), () -> {
+			list.add(new MenuAction(named(Items.PAPER, tr("skymelloo.gui.menu.credits.about.name"), List.of(
+					tr("skymelloo.gui.menu.credits.about.lore_1"),
+					tr("skymelloo.gui.menu.credits.about.lore_2"),
+					tr("skymelloo.gui.menu.credits.about.lore_3"))), () -> {
 			}));
 			if (creditsCache == null) {
 				if (!creditsLoading) {
@@ -350,12 +359,12 @@ public class SkyMellooMenuScreen extends Screen {
 								return null;
 							});
 				}
-				list.add(new MenuAction(named(Items.CLOCK, "§7Loading...", List.of("§7Fetching credits from sky.melloo.me")), () -> {
+				list.add(new MenuAction(named(Items.CLOCK, tr("skymelloo.gui.menu.credits.loading.name"), List.of(tr("skymelloo.gui.menu.credits.loading.lore_1"))), () -> {
 				}));
 				return list;
 			}
 			if (creditsCache.isEmpty()) {
-				list.add(new MenuAction(named(Items.BARRIER, "§7No credits yet", List.of()), () -> {
+				list.add(new MenuAction(named(Items.BARRIER, tr("skymelloo.gui.menu.credits.none.name"), List.of()), () -> {
 				}));
 				return list;
 			}
@@ -363,12 +372,12 @@ public class SkyMellooMenuScreen extends Screen {
 			for (SkyMellooApiClient.CreditEntry credit : creditsCache) {
 				ItemStack head = new ItemStack(Items.PLAYER_HEAD);
 				head.set(DataComponents.PROFILE, ResolvableProfile.createUnresolved(credit.username()));
-				head.set(DataComponents.CUSTOM_NAME, Component.literal("§d" + credit.username()));
+				head.set(DataComponents.CUSTOM_NAME, Component.literal(tr("skymelloo.gui.menu.credits.entry_name", credit.username())));
 				List<Component> lore = new ArrayList<>();
 				if (credit.role() != null && !credit.role().isEmpty()) {
-					lore.add(Component.literal("§7" + credit.role()));
+					lore.add(Component.literal(tr("skymelloo.gui.menu.format.description_line", credit.role())));
 				}
-				lore.add(Component.literal(credit.online() ? "§a● Online now" : "§8○ Offline"));
+				lore.add(Component.translatable(credit.online() ? "skymelloo.gui.menu.credits.online" : "skymelloo.gui.menu.credits.offline"));
 				head.set(DataComponents.LORE, new ItemLore(lore));
 				list.add(new MenuAction(head, () -> {
 				}));
@@ -417,13 +426,13 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class SettingsPage implements Page {
 		@Override
 		public String title() {
-			return "Settings";
+			return tr("skymelloo.gui.menu.page.settings.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			List<MenuAction> list = new ArrayList<>();
-			list.add(linkAction(Items.SKELETON_SKULL, "Dungeons", "Dungeon run tracking, HUDs, announcements", new DungeonsHubPage(), screen));
+			list.add(linkAction(Items.SKELETON_SKULL, tr("skymelloo.gui.menu.link.dungeons.name"), tr("skymelloo.gui.menu.link.dungeons.description"), new DungeonsHubPage(), screen));
 			return list;
 		}
 	}
@@ -432,27 +441,27 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class DungeonsHubPage implements Page {
 		@Override
 		public String title() {
-			return "Dungeon Settings";
+			return tr("skymelloo.gui.menu.page.dungeons_hub.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			List<MenuAction> list = new ArrayList<>();
-			list.add(linkAction(Items.WRITTEN_BOOK, "Dungeon Info", "Stats lookup announced when someone joins your party", new DungeonInfoPage(), screen));
-			list.add(linkAction(Items.IRON_SWORD, "Auto-Kick", "Kick a joining member under a stat threshold", new AutoKickPage(), screen));
-			list.add(linkAction(Items.GOLDEN_SWORD, "Carry Auto-Kick", "Kick a joining member OVER a stat threshold", new CarryAutoKickPage(), screen));
-			list.add(linkAction(Items.CLOCK, "Run Tracker", "HUDs, score display, run/party summaries", new RunTrackerPage(), screen));
-			list.add(linkAction(Items.NETHER_STAR, "Boss Room", "Announce when the boss room is entered", new BossRoomPage(), screen));
-			list.add(linkAction(Items.SKELETON_SKULL, "Death Message", "Announce when a party member dies", new DeathMessagePage(), screen));
-			list.add(linkAction(Items.SHIELD, "Pre-Boss Warning", "Warn if score is under 300 before the boss room", new PreBossWarningPage(), screen));
-			list.add(linkAction(Items.MAP, "All Rooms Discovered", "Announce the true best-case score once fully explored", new RoomsDiscoveredPage(), screen));
-			list.add(linkAction(Items.COMPASS, "Secrets Pace", "Warn if secret-finding rate falls behind", new SecretsPacePage(), screen));
-			list.add(linkAction(Items.REDSTONE, "Puzzle Retry Fail", "Announce a puzzle failing again after a reset", new PuzzleRetryPage(), screen));
-			list.add(linkAction(Items.GOLD_INGOT, "S+ Warnings", "S+ impossible / back-in-reach announcements", new SPlusPage(), screen));
-			list.add(linkAction(Items.EXPERIENCE_BOTTLE, "Grade Milestone", "Announce live grade tier climbs", new GradeMilestonePage(), screen));
-			list.add(linkAction(Items.LIME_DYE, "Self-Ready Reminder", "Personal nudge when you're the last to ready", new SelfReadyPage(), screen));
-			list.add(linkAction(Items.CLOCK, "Time Limit", "Countdown checkpoints and exceeded announcement", new TimeLimitPage(), screen));
-			list.add(linkAction(Items.DIAMOND_BOOTS, "Floor Requirement", "Target floor, Floor Auto-Kick (min/max)", new FloorRequirementPage(), screen));
+			list.add(linkAction(Items.WRITTEN_BOOK, tr("skymelloo.gui.menu.link.dungeon_info.name"), tr("skymelloo.gui.menu.link.dungeon_info.description"), new DungeonInfoPage(), screen));
+			list.add(linkAction(Items.IRON_SWORD, tr("skymelloo.gui.menu.link.auto_kick.name"), tr("skymelloo.gui.menu.link.auto_kick.description"), new AutoKickPage(), screen));
+			list.add(linkAction(Items.GOLDEN_SWORD, tr("skymelloo.gui.menu.link.carry_auto_kick.name"), tr("skymelloo.gui.menu.link.carry_auto_kick.description"), new CarryAutoKickPage(), screen));
+			list.add(linkAction(Items.CLOCK, tr("skymelloo.gui.menu.link.run_tracker.name"), tr("skymelloo.gui.menu.link.run_tracker.description"), new RunTrackerPage(), screen));
+			list.add(linkAction(Items.NETHER_STAR, tr("skymelloo.gui.menu.link.boss_room.name"), tr("skymelloo.gui.menu.link.boss_room.description"), new BossRoomPage(), screen));
+			list.add(linkAction(Items.SKELETON_SKULL, tr("skymelloo.gui.menu.link.death_message.name"), tr("skymelloo.gui.menu.link.death_message.description"), new DeathMessagePage(), screen));
+			list.add(linkAction(Items.SHIELD, tr("skymelloo.gui.menu.link.pre_boss_warning.name"), tr("skymelloo.gui.menu.link.pre_boss_warning.description"), new PreBossWarningPage(), screen));
+			list.add(linkAction(Items.MAP, tr("skymelloo.gui.menu.link.rooms_discovered.name"), tr("skymelloo.gui.menu.link.rooms_discovered.description"), new RoomsDiscoveredPage(), screen));
+			list.add(linkAction(Items.COMPASS, tr("skymelloo.gui.menu.link.secrets_pace.name"), tr("skymelloo.gui.menu.link.secrets_pace.description"), new SecretsPacePage(), screen));
+			list.add(linkAction(Items.REDSTONE, tr("skymelloo.gui.menu.link.puzzle_retry.name"), tr("skymelloo.gui.menu.link.puzzle_retry.description"), new PuzzleRetryPage(), screen));
+			list.add(linkAction(Items.GOLD_INGOT, tr("skymelloo.gui.menu.link.s_plus_warnings.name"), tr("skymelloo.gui.menu.link.s_plus_warnings.description"), new SPlusPage(), screen));
+			list.add(linkAction(Items.EXPERIENCE_BOTTLE, tr("skymelloo.gui.menu.link.grade_milestone.name"), tr("skymelloo.gui.menu.link.grade_milestone.description"), new GradeMilestonePage(), screen));
+			list.add(linkAction(Items.LIME_DYE, tr("skymelloo.gui.menu.link.self_ready.name"), tr("skymelloo.gui.menu.link.self_ready.description"), new SelfReadyPage(), screen));
+			list.add(linkAction(Items.CLOCK, tr("skymelloo.gui.menu.link.time_limit.name"), tr("skymelloo.gui.menu.link.time_limit.description"), new TimeLimitPage(), screen));
+			list.add(linkAction(Items.DIAMOND_BOOTS, tr("skymelloo.gui.menu.link.floor_requirement.name"), tr("skymelloo.gui.menu.link.floor_requirement.description"), new FloorRequirementPage(), screen));
 			return list;
 		}
 	}
@@ -460,16 +469,16 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class DungeonInfoPage implements Page {
 		@Override
 		public String title() {
-			return "Dungeon Info";
+			return tr("skymelloo.gui.menu.page.dungeon_info.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Dungeon Info", "Look up + post stats when someone joins your party.", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, screen));
-			list.add(toggleAction("Show MP", "Include Magical Power in the message.", () -> c.dungeonInfoShowMp, v -> c.dungeonInfoShowMp = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonInfoMessageDelivery, v -> c.dungeonInfoMessageDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.dungeon_info.enabled.name"), tr("skymelloo.gui.menu.row.dungeon_info.enabled.description"), () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.dungeon_info.show_mp.name"), tr("skymelloo.gui.menu.row.dungeon_info.show_mp.description"), () -> c.dungeonInfoShowMp, v -> c.dungeonInfoShowMp = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.dungeon_info.delivery.name"), tr("skymelloo.gui.menu.row.dungeon_info.delivery.description"), () -> c.dungeonInfoMessageDelivery, v -> c.dungeonInfoMessageDelivery = v, screen));
 			return list;
 		}
 	}
@@ -477,16 +486,16 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class AutoKickPage implements Page {
 		@Override
 		public String title() {
-			return "Auto-Kick";
+			return tr("skymelloo.gui.menu.page.auto_kick.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Auto-Kick", "Kick a joining member if their stat is under the threshold.", () -> c.dungeonAutoKickEnabled, v -> c.dungeonAutoKickEnabled = v, screen));
-			list.add(cycleAction(Items.NETHER_STAR, "Check Stat", "Which stat Auto-Kick checks.", () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "MP", "LEVEL" }, screen));
-			list.add(deliveryAction("Delivery", "Where the kick message goes.", () -> c.dungeonAutoKickDelivery, v -> c.dungeonAutoKickDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.auto_kick.enabled.name"), tr("skymelloo.gui.menu.row.auto_kick.enabled.description"), () -> c.dungeonAutoKickEnabled, v -> c.dungeonAutoKickEnabled = v, screen));
+			list.add(cycleAction(Items.NETHER_STAR, tr("skymelloo.gui.menu.row.auto_kick.check_stat.name"), tr("skymelloo.gui.menu.row.auto_kick.check_stat.description"), () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "MP", "LEVEL" }, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.auto_kick.delivery.name"), tr("skymelloo.gui.menu.row.auto_kick.delivery.description"), () -> c.dungeonAutoKickDelivery, v -> c.dungeonAutoKickDelivery = v, screen));
 			return list;
 		}
 	}
@@ -494,16 +503,16 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class CarryAutoKickPage implements Page {
 		@Override
 		public String title() {
-			return "Carry Auto-Kick (Max)";
+			return tr("skymelloo.gui.menu.page.carry_auto_kick.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Max Auto-Kick", "Kick a joining member if their stat is OVER the threshold.", () -> c.dungeonAutoKickMaxEnabled, v -> c.dungeonAutoKickMaxEnabled = v, screen));
-			list.add(cycleAction(Items.NETHER_STAR, "Check Stat", "Which stat Max Auto-Kick checks.", () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "MP", "LEVEL" }, screen));
-			list.add(deliveryAction("Delivery", "Where the kick message goes.", () -> c.dungeonAutoKickMaxDelivery, v -> c.dungeonAutoKickMaxDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.carry_auto_kick.enabled.name"), tr("skymelloo.gui.menu.row.carry_auto_kick.enabled.description"), () -> c.dungeonAutoKickMaxEnabled, v -> c.dungeonAutoKickMaxEnabled = v, screen));
+			list.add(cycleAction(Items.NETHER_STAR, tr("skymelloo.gui.menu.row.carry_auto_kick.check_stat.name"), tr("skymelloo.gui.menu.row.carry_auto_kick.check_stat.description"), () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "MP", "LEVEL" }, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.carry_auto_kick.delivery.name"), tr("skymelloo.gui.menu.row.carry_auto_kick.delivery.description"), () -> c.dungeonAutoKickMaxDelivery, v -> c.dungeonAutoKickMaxDelivery = v, screen));
 			return list;
 		}
 	}
@@ -511,31 +520,31 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class RunTrackerPage implements Page {
 		@Override
 		public String title() {
-			return "Run Tracker";
+			return tr("skymelloo.gui.menu.page.run_tracker.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(cycleAction(Items.PLAYER_HEAD, "Party HUD", "Compact/Full/Off party member display.", () -> c.partyHudMode, v -> c.partyHudMode = v, new String[] { "OFF", "COMPACT", "FULL" }, screen));
-			list.add(toggleAction("Party HUD Puzzle History", "Show each member's puzzle result in FULL mode.", () -> c.partyHudShowPuzzleHistory, v -> c.partyHudShowPuzzleHistory = v, screen));
-			list.add(toggleAction("Party MP Bar", "Horizontal MP spread bar for the party.", () -> c.partyMpBarEnabled, v -> c.partyMpBarEnabled = v, screen));
-			list.add(toggleAction("Run Report", "Detailed local chat summary when a run ends.", () -> c.dungeonRunReportEnabled, v -> c.dungeonRunReportEnabled = v, screen));
-			list.add(toggleAction("Party Run Summary", "Short one-line result sent to the party.", () -> c.dungeonRunPartySummaryEnabled, v -> c.dungeonRunPartySummaryEnabled = v, screen));
-			list.add(deliveryAction("Party Summary Delivery", "Where the summary above goes.", () -> c.dungeonRunPartySummaryDelivery, v -> c.dungeonRunPartySummaryDelivery = v, screen));
-			list.add(toggleAction("Death Auto-Kick", "Kick a member once their death count exceeds the threshold.", () -> c.dungeonDeathKickEnabled, v -> c.dungeonDeathKickEnabled = v, screen));
-			list.add(toggleAction("AFK Auto-Kick", "Kick a member who hasn't moved during the run.", () -> c.dungeonAfkKickEnabled, v -> c.dungeonAfkKickEnabled = v, screen));
-			list.add(cycleAction(Items.CLOCK, "AFK Threshold", "How long counts as AFK.", () -> c.dungeonAfkKickThreshold, v -> c.dungeonAfkKickThreshold = v, new String[] { "30", "60", "120" }, screen));
-			list.add(toggleAction("Score HUD", "Live dungeon score estimate during the run.", () -> c.dungeonScoreHudEnabled, v -> c.dungeonScoreHudEnabled = v, screen));
-			list.add(toggleAction("Show Breakdown", "Skill/Explore/Speed/Bonus line on the Score HUD.", () -> c.dungeonScoreShowBreakdown, v -> c.dungeonScoreShowBreakdown = v, screen));
-			list.add(toggleAction("Show Room Secrets", "Current room's secrets found/total.", () -> c.dungeonScoreShowRoomSecrets, v -> c.dungeonScoreShowRoomSecrets = v, screen));
-			list.add(toggleAction("Dungeon Sync", "Share room/floor/secrets/score with party members also on SkyMelloo, and with the website's Dungeon lookup.", () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, screen));
-			list.add(toggleAction("Show Puzzles", "Puzzle outcome lines on the Score HUD.", () -> c.dungeonScoreShowPuzzles, v -> c.dungeonScoreShowPuzzles = v, screen));
-			list.add(toggleAction("Show Possible/Penalties", "Best-case ceiling + penalty breakdown.", () -> c.dungeonScoreShowPossible, v -> c.dungeonScoreShowPossible = v, screen));
-			list.add(toggleAction("Show Pace/Countdown", "Score trend arrow + time-left countdown.", () -> c.dungeonScoreShowPaceAndCountdown, v -> c.dungeonScoreShowPaceAndCountdown = v, screen));
-			list.add(toggleAction("Show Final Result", "Keep the Score HUD up briefly after a run ends.", () -> c.dungeonScoreFinalResultEnabled, v -> c.dungeonScoreFinalResultEnabled = v, screen));
-			list.add(toggleAction("Debug HUD", "Internal run-tracker state flags, for troubleshooting.", () -> c.dungeonDebugHudEnabled, v -> c.dungeonDebugHudEnabled = v, screen));
+			list.add(cycleAction(Items.PLAYER_HEAD, tr("skymelloo.gui.menu.row.run_tracker.party_hud.name"), tr("skymelloo.gui.menu.row.run_tracker.party_hud.description"), () -> c.partyHudMode, v -> c.partyHudMode = v, new String[] { "OFF", "COMPACT", "FULL" }, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.party_hud_puzzle_history.name"), tr("skymelloo.gui.menu.row.run_tracker.party_hud_puzzle_history.description"), () -> c.partyHudShowPuzzleHistory, v -> c.partyHudShowPuzzleHistory = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.party_mp_bar.name"), tr("skymelloo.gui.menu.row.run_tracker.party_mp_bar.description"), () -> c.partyMpBarEnabled, v -> c.partyMpBarEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.run_report.name"), tr("skymelloo.gui.menu.row.run_tracker.run_report.description"), () -> c.dungeonRunReportEnabled, v -> c.dungeonRunReportEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.party_run_summary.name"), tr("skymelloo.gui.menu.row.run_tracker.party_run_summary.description"), () -> c.dungeonRunPartySummaryEnabled, v -> c.dungeonRunPartySummaryEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.run_tracker.party_summary_delivery.name"), tr("skymelloo.gui.menu.row.run_tracker.party_summary_delivery.description"), () -> c.dungeonRunPartySummaryDelivery, v -> c.dungeonRunPartySummaryDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.death_auto_kick.name"), tr("skymelloo.gui.menu.row.run_tracker.death_auto_kick.description"), () -> c.dungeonDeathKickEnabled, v -> c.dungeonDeathKickEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.afk_auto_kick.name"), tr("skymelloo.gui.menu.row.run_tracker.afk_auto_kick.description"), () -> c.dungeonAfkKickEnabled, v -> c.dungeonAfkKickEnabled = v, screen));
+			list.add(cycleAction(Items.CLOCK, tr("skymelloo.gui.menu.row.run_tracker.afk_threshold.name"), tr("skymelloo.gui.menu.row.run_tracker.afk_threshold.description"), () -> c.dungeonAfkKickThreshold, v -> c.dungeonAfkKickThreshold = v, new String[] { "30", "60", "120" }, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.score_hud.name"), tr("skymelloo.gui.menu.row.run_tracker.score_hud.description"), () -> c.dungeonScoreHudEnabled, v -> c.dungeonScoreHudEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.show_breakdown.name"), tr("skymelloo.gui.menu.row.run_tracker.show_breakdown.description"), () -> c.dungeonScoreShowBreakdown, v -> c.dungeonScoreShowBreakdown = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.show_room_secrets.name"), tr("skymelloo.gui.menu.row.run_tracker.show_room_secrets.description"), () -> c.dungeonScoreShowRoomSecrets, v -> c.dungeonScoreShowRoomSecrets = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.dungeon_sync.name"), tr("skymelloo.gui.menu.row.run_tracker.dungeon_sync.description"), () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.show_puzzles.name"), tr("skymelloo.gui.menu.row.run_tracker.show_puzzles.description"), () -> c.dungeonScoreShowPuzzles, v -> c.dungeonScoreShowPuzzles = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.show_possible.name"), tr("skymelloo.gui.menu.row.run_tracker.show_possible.description"), () -> c.dungeonScoreShowPossible, v -> c.dungeonScoreShowPossible = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.show_pace.name"), tr("skymelloo.gui.menu.row.run_tracker.show_pace.description"), () -> c.dungeonScoreShowPaceAndCountdown, v -> c.dungeonScoreShowPaceAndCountdown = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.show_final_result.name"), tr("skymelloo.gui.menu.row.run_tracker.show_final_result.description"), () -> c.dungeonScoreFinalResultEnabled, v -> c.dungeonScoreFinalResultEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.run_tracker.debug_hud.name"), tr("skymelloo.gui.menu.row.run_tracker.debug_hud.description"), () -> c.dungeonDebugHudEnabled, v -> c.dungeonDebugHudEnabled = v, screen));
 			return list;
 		}
 	}
@@ -543,15 +552,15 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class BossRoomPage implements Page {
 		@Override
 		public String title() {
-			return "Boss Room Announcement";
+			return tr("skymelloo.gui.menu.page.boss_room.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Announce Boss Room", "Announce when the boss room is entered.", () -> c.dungeonBossRoomAnnounceEnabled, v -> c.dungeonBossRoomAnnounceEnabled = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonBossRoomMessageDelivery, v -> c.dungeonBossRoomMessageDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.boss_room.enabled.name"), tr("skymelloo.gui.menu.row.boss_room.enabled.description"), () -> c.dungeonBossRoomAnnounceEnabled, v -> c.dungeonBossRoomAnnounceEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.boss_room.delivery.name"), tr("skymelloo.gui.menu.row.boss_room.delivery.description"), () -> c.dungeonBossRoomMessageDelivery, v -> c.dungeonBossRoomMessageDelivery = v, screen));
 			return list;
 		}
 	}
@@ -559,15 +568,15 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class DeathMessagePage implements Page {
 		@Override
 		public String title() {
-			return "Death Message";
+			return tr("skymelloo.gui.menu.page.death_message.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Death Message", "Announce when a party member dies.", () -> c.dungeonDeathMessageEnabled, v -> c.dungeonDeathMessageEnabled = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonDeathMessageDelivery, v -> c.dungeonDeathMessageDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.death_message.enabled.name"), tr("skymelloo.gui.menu.row.death_message.enabled.description"), () -> c.dungeonDeathMessageEnabled, v -> c.dungeonDeathMessageEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.death_message.delivery.name"), tr("skymelloo.gui.menu.row.death_message.delivery.description"), () -> c.dungeonDeathMessageDelivery, v -> c.dungeonDeathMessageDelivery = v, screen));
 			return list;
 		}
 	}
@@ -575,15 +584,15 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class PreBossWarningPage implements Page {
 		@Override
 		public String title() {
-			return "Pre-Boss Score Warning";
+			return tr("skymelloo.gui.menu.page.pre_boss_warning.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Pre-Boss Score Warning", "Warn if score is still under 300 when the Blood Room ends.", () -> c.dungeonPreBossScoreWarningEnabled, v -> c.dungeonPreBossScoreWarningEnabled = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonPreBossScoreWarningDelivery, v -> c.dungeonPreBossScoreWarningDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.pre_boss_warning.enabled.name"), tr("skymelloo.gui.menu.row.pre_boss_warning.enabled.description"), () -> c.dungeonPreBossScoreWarningEnabled, v -> c.dungeonPreBossScoreWarningEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.pre_boss_warning.delivery.name"), tr("skymelloo.gui.menu.row.pre_boss_warning.delivery.description"), () -> c.dungeonPreBossScoreWarningDelivery, v -> c.dungeonPreBossScoreWarningDelivery = v, screen));
 			return list;
 		}
 	}
@@ -591,15 +600,15 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class RoomsDiscoveredPage implements Page {
 		@Override
 		public String title() {
-			return "All Rooms Discovered";
+			return tr("skymelloo.gui.menu.page.rooms_discovered.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Announce Possible Score", "Announce the true best-case score once 100% explored.", () -> c.dungeonRoomsDiscoveredAnnounceEnabled, v -> c.dungeonRoomsDiscoveredAnnounceEnabled = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonRoomsDiscoveredDelivery, v -> c.dungeonRoomsDiscoveredDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.rooms_discovered.enabled.name"), tr("skymelloo.gui.menu.row.rooms_discovered.enabled.description"), () -> c.dungeonRoomsDiscoveredAnnounceEnabled, v -> c.dungeonRoomsDiscoveredAnnounceEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.rooms_discovered.delivery.name"), tr("skymelloo.gui.menu.row.rooms_discovered.delivery.description"), () -> c.dungeonRoomsDiscoveredDelivery, v -> c.dungeonRoomsDiscoveredDelivery = v, screen));
 			return list;
 		}
 	}
@@ -607,15 +616,15 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class SecretsPacePage implements Page {
 		@Override
 		public String title() {
-			return "Secrets Pace Warning";
+			return tr("skymelloo.gui.menu.page.secrets_pace.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Secrets Pace Warning", "Warn once your secret-finding rate falls behind.", () -> c.dungeonSecretsPaceWarningEnabled, v -> c.dungeonSecretsPaceWarningEnabled = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonSecretsPaceWarningDelivery, v -> c.dungeonSecretsPaceWarningDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.secrets_pace.enabled.name"), tr("skymelloo.gui.menu.row.secrets_pace.enabled.description"), () -> c.dungeonSecretsPaceWarningEnabled, v -> c.dungeonSecretsPaceWarningEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.secrets_pace.delivery.name"), tr("skymelloo.gui.menu.row.secrets_pace.delivery.description"), () -> c.dungeonSecretsPaceWarningDelivery, v -> c.dungeonSecretsPaceWarningDelivery = v, screen));
 			return list;
 		}
 	}
@@ -623,15 +632,15 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class PuzzleRetryPage implements Page {
 		@Override
 		public String title() {
-			return "Puzzle Retry Fail";
+			return tr("skymelloo.gui.menu.page.puzzle_retry.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Puzzle Retry Fail", "Announce the SAME puzzle failing again after a reset.", () -> c.dungeonPuzzleRetryFailEnabled, v -> c.dungeonPuzzleRetryFailEnabled = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonPuzzleRetryFailDelivery, v -> c.dungeonPuzzleRetryFailDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.puzzle_retry.enabled.name"), tr("skymelloo.gui.menu.row.puzzle_retry.enabled.description"), () -> c.dungeonPuzzleRetryFailEnabled, v -> c.dungeonPuzzleRetryFailEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.puzzle_retry.delivery.name"), tr("skymelloo.gui.menu.row.puzzle_retry.delivery.description"), () -> c.dungeonPuzzleRetryFailDelivery, v -> c.dungeonPuzzleRetryFailDelivery = v, screen));
 			return list;
 		}
 	}
@@ -639,17 +648,17 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class SPlusPage implements Page {
 		@Override
 		public String title() {
-			return "S+ Warnings";
+			return tr("skymelloo.gui.menu.page.s_plus_warnings.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("S+ Impossible Warning", "Warn once S+ becomes mathematically impossible.", () -> c.dungeonSPlusImpossibleEnabled, v -> c.dungeonSPlusImpossibleEnabled = v, screen));
-			list.add(deliveryAction("Impossible Delivery", "Where the message above goes.", () -> c.dungeonSPlusImpossibleDelivery, v -> c.dungeonSPlusImpossibleDelivery = v, screen));
-			list.add(toggleAction("S+ Back In Reach", "Say so once if the ceiling recovers back over 300.", () -> c.dungeonSPlusBackEnabled, v -> c.dungeonSPlusBackEnabled = v, screen));
-			list.add(deliveryAction("Back Delivery", "Where the message above goes.", () -> c.dungeonSPlusBackDelivery, v -> c.dungeonSPlusBackDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.s_plus.impossible_enabled.name"), tr("skymelloo.gui.menu.row.s_plus.impossible_enabled.description"), () -> c.dungeonSPlusImpossibleEnabled, v -> c.dungeonSPlusImpossibleEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.s_plus.impossible_delivery.name"), tr("skymelloo.gui.menu.row.s_plus.impossible_delivery.description"), () -> c.dungeonSPlusImpossibleDelivery, v -> c.dungeonSPlusImpossibleDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.s_plus.back_enabled.name"), tr("skymelloo.gui.menu.row.s_plus.back_enabled.description"), () -> c.dungeonSPlusBackEnabled, v -> c.dungeonSPlusBackEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.s_plus.back_delivery.name"), tr("skymelloo.gui.menu.row.s_plus.back_delivery.description"), () -> c.dungeonSPlusBackDelivery, v -> c.dungeonSPlusBackDelivery = v, screen));
 			return list;
 		}
 	}
@@ -657,15 +666,15 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class GradeMilestonePage implements Page {
 		@Override
 		public String title() {
-			return "Live Grade Milestone";
+			return tr("skymelloo.gui.menu.page.grade_milestone.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Grade Milestone", "Announce live the moment the grade reaches a new tier.", () -> c.dungeonGradeMilestoneEnabled, v -> c.dungeonGradeMilestoneEnabled = v, screen));
-			list.add(deliveryAction("Delivery", "Where the message above goes.", () -> c.dungeonGradeMilestoneDelivery, v -> c.dungeonGradeMilestoneDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.grade_milestone.enabled.name"), tr("skymelloo.gui.menu.row.grade_milestone.enabled.description"), () -> c.dungeonGradeMilestoneEnabled, v -> c.dungeonGradeMilestoneEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.grade_milestone.delivery.name"), tr("skymelloo.gui.menu.row.grade_milestone.delivery.description"), () -> c.dungeonGradeMilestoneDelivery, v -> c.dungeonGradeMilestoneDelivery = v, screen));
 			return list;
 		}
 	}
@@ -673,14 +682,14 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class SelfReadyPage implements Page {
 		@Override
 		public String title() {
-			return "Self-Ready Reminder";
+			return tr("skymelloo.gui.menu.page.self_ready.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Self-Ready Reminder", "Personal action-bar nudge when you're last to ready.", () -> c.dungeonSelfReadyReminderEnabled, v -> c.dungeonSelfReadyReminderEnabled = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.self_ready.enabled.name"), tr("skymelloo.gui.menu.row.self_ready.enabled.description"), () -> c.dungeonSelfReadyReminderEnabled, v -> c.dungeonSelfReadyReminderEnabled = v, screen));
 			return list;
 		}
 	}
@@ -688,18 +697,18 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class TimeLimitPage implements Page {
 		@Override
 		public String title() {
-			return "Time Limit";
+			return tr("skymelloo.gui.menu.page.time_limit.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Time Limit Warning", "Countdown checkpoints as the time limit approaches.", () -> c.dungeonTimeLimitWarningEnabled, v -> c.dungeonTimeLimitWarningEnabled = v, screen));
-			list.add(cycleAction(Items.CLOCK, "Start At", "Which checkpoint to start warning at.", () -> c.dungeonTimeLimitWarningStart, v -> c.dungeonTimeLimitWarningStart = v, new String[] { "60", "30", "15", "10" }, screen));
-			list.add(deliveryAction("Warning Delivery", "Where the checkpoint messages go.", () -> c.dungeonTimeLimitWarningDelivery, v -> c.dungeonTimeLimitWarningDelivery = v, screen));
-			list.add(toggleAction("Time Limit Exceeded", "Announce once the time limit is actually exceeded.", () -> c.dungeonTimeLimitExceededEnabled, v -> c.dungeonTimeLimitExceededEnabled = v, screen));
-			list.add(deliveryAction("Exceeded Delivery", "Where the message above goes.", () -> c.dungeonTimeLimitExceededDelivery, v -> c.dungeonTimeLimitExceededDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.time_limit.warning_enabled.name"), tr("skymelloo.gui.menu.row.time_limit.warning_enabled.description"), () -> c.dungeonTimeLimitWarningEnabled, v -> c.dungeonTimeLimitWarningEnabled = v, screen));
+			list.add(cycleAction(Items.CLOCK, tr("skymelloo.gui.menu.row.time_limit.start_at.name"), tr("skymelloo.gui.menu.row.time_limit.start_at.description"), () -> c.dungeonTimeLimitWarningStart, v -> c.dungeonTimeLimitWarningStart = v, new String[] { "60", "30", "15", "10" }, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.time_limit.warning_delivery.name"), tr("skymelloo.gui.menu.row.time_limit.warning_delivery.description"), () -> c.dungeonTimeLimitWarningDelivery, v -> c.dungeonTimeLimitWarningDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.time_limit.exceeded_enabled.name"), tr("skymelloo.gui.menu.row.time_limit.exceeded_enabled.description"), () -> c.dungeonTimeLimitExceededEnabled, v -> c.dungeonTimeLimitExceededEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.time_limit.exceeded_delivery.name"), tr("skymelloo.gui.menu.row.time_limit.exceeded_delivery.description"), () -> c.dungeonTimeLimitExceededDelivery, v -> c.dungeonTimeLimitExceededDelivery = v, screen));
 			return list;
 		}
 	}
@@ -707,17 +716,17 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class FloorRequirementPage implements Page {
 		@Override
 		public String title() {
-			return "Floor Requirement";
+			return tr("skymelloo.gui.menu.page.floor_requirement.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(toggleAction("Floor Auto-Kick", "Kick a member who doesn't meet the Target Floor requirement.", () -> c.dungeonFloorKickEnabled, v -> c.dungeonFloorKickEnabled = v, screen));
-			list.add(deliveryAction("Floor Kick Delivery", "Where the kick message goes.", () -> c.dungeonFloorKickDelivery, v -> c.dungeonFloorKickDelivery = v, screen));
-			list.add(toggleAction("Max Floor Auto-Kick", "Kick a member already eligible for MORE than the Allowed Floor.", () -> c.dungeonFloorKickMaxEnabled, v -> c.dungeonFloorKickMaxEnabled = v, screen));
-			list.add(deliveryAction("Max Floor Kick Delivery", "Where the kick message goes.", () -> c.dungeonFloorKickMaxDelivery, v -> c.dungeonFloorKickMaxDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.floor_requirement.enabled.name"), tr("skymelloo.gui.menu.row.floor_requirement.enabled.description"), () -> c.dungeonFloorKickEnabled, v -> c.dungeonFloorKickEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.floor_requirement.delivery.name"), tr("skymelloo.gui.menu.row.floor_requirement.delivery.description"), () -> c.dungeonFloorKickDelivery, v -> c.dungeonFloorKickDelivery = v, screen));
+			list.add(toggleAction(tr("skymelloo.gui.menu.row.floor_requirement.max_enabled.name"), tr("skymelloo.gui.menu.row.floor_requirement.max_enabled.description"), () -> c.dungeonFloorKickMaxEnabled, v -> c.dungeonFloorKickMaxEnabled = v, screen));
+			list.add(deliveryAction(tr("skymelloo.gui.menu.row.floor_requirement.max_delivery.name"), tr("skymelloo.gui.menu.row.floor_requirement.max_delivery.description"), () -> c.dungeonFloorKickMaxDelivery, v -> c.dungeonFloorKickMaxDelivery = v, screen));
 			return list;
 		}
 	}
@@ -726,16 +735,16 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class SpellsPage implements Page {
 		@Override
 		public String title() {
-			return "Spells";
+			return tr("skymelloo.gui.menu.page.spells.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(linkAction(Items.BLAZE_ROD, "Switch Spell", "Choose which spell your missile casts", new SwitchSpellPage(), screen));
-			list.add(linkAction(Items.EXPERIENCE_BOTTLE, "Stats", "Spells cast and players killed", new SpellStatsPage(), screen));
-			list.add(linkAction(Items.PAPER, "Recent Kills", "Your most recent spell kills", new LastKillsPage(), screen));
+			list.add(linkAction(Items.BLAZE_ROD, tr("skymelloo.gui.menu.link.switch_spell.name"), tr("skymelloo.gui.menu.link.switch_spell.description"), new SwitchSpellPage(), screen));
+			list.add(linkAction(Items.EXPERIENCE_BOTTLE, tr("skymelloo.gui.menu.link.spell_stats.name"), tr("skymelloo.gui.menu.link.spell_stats.description"), new SpellStatsPage(), screen));
+			list.add(linkAction(Items.PAPER, tr("skymelloo.gui.menu.link.recent_kills.name"), tr("skymelloo.gui.menu.link.recent_kills.description"), new LastKillsPage(), screen));
 			return list;
 		}
 	}
@@ -743,7 +752,7 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class SwitchSpellPage implements Page {
 		@Override
 		public String title() {
-			return "Switch Spell";
+			return tr("skymelloo.gui.menu.page.switch_spell.title");
 		}
 
 		@Override
@@ -754,18 +763,18 @@ public class SkyMellooMenuScreen extends Screen {
 			// "Spell" toggle, not reachable from this quick menu at all.
 			// Off is just another selectable entry here, same as any spell type.
 			list.add(offAction(c, screen));
-			list.add(spellTypeAction(Items.SNOWBALL, "Icy", "MISSILE", "Traditional travelling particle projectile.", c, screen));
-			list.add(spellTypeAction(Items.TRIDENT, "Lightning", "LIGHTNING", "Instant - only fires if a player is right under your crosshair. Strikes them with a lightning bolt.", c, screen));
-			list.add(spellTypeAction(Items.ENDER_EYE, "Plasma", "PLASMA", "Particles swirl in and bundle around the target into a growing, unstable ball - then it detonates.", c, screen));
-			list.add(spellTypeAction(Items.SPECTRAL_ARROW, "Homing Arrow", "ARROW", "Travels like Icy, but curves to track the nearest player in front of you as it flies, steering around walls.", c, screen));
-			list.add(spellTypeAction(Items.PHANTOM_MEMBRANE, "Levitate", "LEVITATE", "Instant, like Lightning - the target lifts off the ground, then a shockwave, then they're gone.", c, screen));
+			list.add(spellTypeAction(Items.SNOWBALL, tr("skymelloo.gui.menu.spell_type.icy.name"), "MISSILE", tr("skymelloo.gui.menu.spell_type.icy.description"), c, screen));
+			list.add(spellTypeAction(Items.TRIDENT, tr("skymelloo.gui.menu.spell_type.lightning.name"), "LIGHTNING", tr("skymelloo.gui.menu.spell_type.lightning.description"), c, screen));
+			list.add(spellTypeAction(Items.ENDER_EYE, tr("skymelloo.gui.menu.spell_type.plasma.name"), "PLASMA", tr("skymelloo.gui.menu.spell_type.plasma.description"), c, screen));
+			list.add(spellTypeAction(Items.SPECTRAL_ARROW, tr("skymelloo.gui.menu.spell_type.homing_arrow.name"), "ARROW", tr("skymelloo.gui.menu.spell_type.homing_arrow.description"), c, screen));
+			list.add(spellTypeAction(Items.PHANTOM_MEMBRANE, tr("skymelloo.gui.menu.spell_type.levitate.name"), "LEVITATE", tr("skymelloo.gui.menu.spell_type.levitate.description"), c, screen));
 			return list;
 		}
 
 		private static MenuAction offAction(SkyMellooConfig c, SkyMellooMenuScreen screen) {
 			boolean selected = !c.magicMissileEnabled;
-			ItemStack icon = named(Items.BARRIER, (selected ? "§a✓ " : "§7") + "Off",
-					List.of("§7Cast Spell does nothing.", "", selected ? "§aCurrently selected" : "§7Click to disable spells"));
+			ItemStack icon = named(Items.BARRIER, tr(selected ? "skymelloo.gui.menu.format.selected_name" : "skymelloo.gui.menu.format.toggle_name_off", tr("skymelloo.gui.menu.spell_type.off.name")),
+					List.of(tr("skymelloo.gui.menu.spell_type.off.description"), "", selected ? tr("skymelloo.gui.menu.spell_type.currently_selected") : tr("skymelloo.gui.menu.spell_type.click_to_disable")));
 			return new MenuAction(icon, () -> {
 				c.magicMissileEnabled = false;
 				SkyMellooConfig.HANDLER.save();
@@ -775,8 +784,8 @@ public class SkyMellooMenuScreen extends Screen {
 
 		private static MenuAction spellTypeAction(Item item, String name, String typeValue, String description, SkyMellooConfig c, SkyMellooMenuScreen screen) {
 			boolean selected = c.magicMissileEnabled && typeValue.equalsIgnoreCase(c.magicMissileSpellType);
-			ItemStack icon = named(item, (selected ? "§a✓ " : "§7") + name,
-					List.of("§7" + description, "", selected ? "§aCurrently selected" : "§7Click to select"));
+			ItemStack icon = named(item, tr(selected ? "skymelloo.gui.menu.format.selected_name" : "skymelloo.gui.menu.format.toggle_name_off", name),
+					List.of(tr("skymelloo.gui.menu.format.description_line", description), "", selected ? tr("skymelloo.gui.menu.spell_type.currently_selected") : tr("skymelloo.gui.menu.spell_type.click_to_select")));
 			return new MenuAction(icon, () -> {
 				c.magicMissileSpellType = typeValue;
 				c.magicMissileEnabled = true;
@@ -789,21 +798,21 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class SpellStatsPage implements Page {
 		@Override
 		public String title() {
-			return "Spell Stats";
+			return tr("skymelloo.gui.menu.page.spell_stats.title");
 		}
 
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			list.add(new MenuAction(named(Items.BLAZE_ROD, "§eSpells Cast",
-					List.of("§7Total spells you've cast", "", "§f" + c.totalSpellsCast)), () -> {
+			list.add(new MenuAction(named(Items.BLAZE_ROD, tr("skymelloo.gui.menu.spell_stats.cast.name"),
+					List.of(tr("skymelloo.gui.menu.spell_stats.cast.lore_1"), "", "§f" + c.totalSpellsCast)), () -> {
 			}));
-			list.add(new MenuAction(named(Items.PLAYER_HEAD, "§ePlayers Killed",
-					List.of("§7Total spell kills landed", "", "§f" + c.totalPlayersKilled)), () -> {
+			list.add(new MenuAction(named(Items.PLAYER_HEAD, tr("skymelloo.gui.menu.spell_stats.kills.name"),
+					List.of(tr("skymelloo.gui.menu.spell_stats.kills.lore_1"), "", "§f" + c.totalPlayersKilled)), () -> {
 			}));
-			list.add(new MenuAction(named(Items.AMETHYST_SHARD, "§dSpell Essence Collected",
-					List.of("§7Total essence picked up", "", "§f" + c.totalSpellEssenceCollected)), () -> {
+			list.add(new MenuAction(named(Items.AMETHYST_SHARD, tr("skymelloo.gui.menu.spell_stats.essence.name"),
+					List.of(tr("skymelloo.gui.menu.spell_stats.essence.lore_1"), "", "§f" + c.totalSpellEssenceCollected)), () -> {
 			}));
 			return list;
 		}
@@ -812,7 +821,7 @@ public class SkyMellooMenuScreen extends Screen {
 	private static final class LastKillsPage implements Page {
 		@Override
 		public String title() {
-			return "Last Kills";
+			return tr("skymelloo.gui.menu.page.last_kills.title");
 		}
 
 		@Override
@@ -820,7 +829,7 @@ public class SkyMellooMenuScreen extends Screen {
 			List<MagicMissileManager.RecentKill> kills = MagicMissileManager.getRecentKills();
 			List<MenuAction> list = new ArrayList<>();
 			if (kills.isEmpty()) {
-				list.add(new MenuAction(named(Items.BARRIER, "§7No kills yet", List.of("§7Land a spell kill and it'll show up here")), () -> {
+				list.add(new MenuAction(named(Items.BARRIER, tr("skymelloo.gui.menu.last_kills.none.name"), List.of(tr("skymelloo.gui.menu.last_kills.none.lore_1"))), () -> {
 				}));
 				return list;
 			}
@@ -830,8 +839,8 @@ public class SkyMellooMenuScreen extends Screen {
 				head.set(DataComponents.PROFILE, ResolvableProfile.createResolved(kill.profile()));
 				// #N is the real total kill count against THIS player, not this entry's position in
 				// the recent-kills list.
-				head.set(DataComponents.CUSTOM_NAME, Component.literal("§e#" + kill.victimKillNumber() + " §f" + kill.profile().name()));
-				head.set(DataComponents.LORE, new ItemLore(List.<Component>of(Component.literal("§7" + secondsAgo + "s ago"))));
+				head.set(DataComponents.CUSTOM_NAME, Component.literal(tr("skymelloo.gui.menu.last_kills.entry_name", kill.victimKillNumber(), kill.profile().name())));
+				head.set(DataComponents.LORE, new ItemLore(List.<Component>of(Component.translatable("skymelloo.gui.menu.last_kills.seconds_ago", secondsAgo))));
 				list.add(new MenuAction(head, () -> {
 				}));
 			}

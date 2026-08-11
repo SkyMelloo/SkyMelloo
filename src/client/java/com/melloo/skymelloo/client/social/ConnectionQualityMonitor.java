@@ -6,6 +6,7 @@ import com.melloo.mellooessentials.client.util.HypixelDetector;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,13 +114,13 @@ public final class ConnectionQualityMonitor {
 		if (client.player == null) {
 			return;
 		}
-		String pingText = avgPing >= 0 ? avgPing + "ms" : "unknown";
-		String packetText = "sent: " + String.format("%.1f", sent) + "/t, received: " + String.format("%.1f", received) + "/t";
+		String pingText = avgPing >= 0 ? Component.translatable("skymelloo.chat.connection.ping_value", avgPing).getString() : Component.translatable("skymelloo.chat.connection.ping_unknown").getString();
+		String packetText = Component.translatable("skymelloo.chat.connection.packet_rate", String.format("%.1f", sent), String.format("%.1f", received)).getString();
 		if (stable) {
-			client.player.sendSystemMessage(ChatUtil.prefixed("§aConnected! §7Ping: " + pingText + ", " + packetText));
+			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.connection.stable", pingText, packetText)));
 		} else {
 			client.player.sendSystemMessage(ChatUtil.prefixed(
-					"§aConnected§7, but your internet connection seems unstable. §7Ping: " + pingText + " (±" + spread + "ms), " + packetText
+					Component.translatable("skymelloo.chat.connection.unstable", pingText, spread, packetText)
 			));
 		}
 	}

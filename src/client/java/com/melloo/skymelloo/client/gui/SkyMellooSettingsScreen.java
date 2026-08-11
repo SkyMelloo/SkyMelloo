@@ -58,12 +58,14 @@ public class SkyMellooSettingsScreen extends Screen {
 		// Item/Chest/Mob highlighting all relocated into DUNGEONS (see rowsFor), Player highlighting
 		// (now "Party Highlighting", including the admin/dev/owner gold color) moved here instead.
 		// HP Armor Stand highlighting is gone entirely, not relocated.
-		PARTY("Party"), FUN("Fun"), HP("HP & Distance"), FISHING("Fishing"), DUNGEONS("Dungeons"), GENERAL("General"), CLOUD("Cloud"), DEBUG("Debug");
+		PARTY("skymelloo.gui.settings.tab.party"), FUN("skymelloo.gui.settings.tab.fun"), HP("skymelloo.gui.settings.tab.hp"), FISHING("skymelloo.gui.settings.tab.fishing"), DUNGEONS("skymelloo.gui.settings.tab.dungeons"), GENERAL("skymelloo.gui.settings.tab.general"), CLOUD("skymelloo.gui.settings.tab.cloud"), DEBUG("skymelloo.gui.settings.tab.debug");
 
-		final String label;
+		// Stores a translation key, not display text - resolved at render time (Tab constants are
+		// created at class-load, before Minecraft's language system is guaranteed to be ready).
+		final String labelKey;
 
-		Tab(String label) {
-			this.label = label;
+		Tab(String labelKey) {
+			this.labelKey = labelKey;
 		}
 	}
 
@@ -128,7 +130,7 @@ public class SkyMellooSettingsScreen extends Screen {
 
 	/** Used by ModMenuIntegration - {@code parent} is Mod Menu's own mod-list screen, returned to on close instead of the game world. */
 	public SkyMellooSettingsScreen(Screen parent) {
-		super(Component.literal("SkyMelloo Settings"));
+		super(Component.translatable("skymelloo.gui.settings.title"));
 		this.parent = parent;
 	}
 
@@ -190,7 +192,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		// pink-glow look.
 		int reportBugWidth = 90;
 		addRenderableWidget(new SkyMellooButtonWidget(this.width - MARGIN - reportBugWidth, MARGIN, reportBugWidth, 18,
-				"Report a Bug", SkyMellooButtonWidget.RED, SkyMellooMenuScreen::openReportBug));
+				Component.translatable("skymelloo.gui.settings.button.report_bug"), SkyMellooButtonWidget.RED, SkyMellooMenuScreen::openReportBug));
 	}
 
 	/**
@@ -269,260 +271,260 @@ public class SkyMellooSettingsScreen extends Screen {
 				// since SkyMelloo is the only one of the two mods that knows how to compute it, hooked
 				// into essentials' own color decision via setPartyBlinkColorOverride. Party Join Stats
 				// stays here too - that's a stats lookup, not highlighting.
-				rows.add(headerRow("Party"));
-				rows.add(tip(boolRow("Low HP Blink", () -> c.lowHpBlinkEnabled, v -> c.lowHpBlinkEnabled = v, 0xFFFF5555), "A party member's highlight (glow outline and nametag marker) blinks bright red once their HP drops under 25% - an urgent \"someone needs help\" signal readable at a glance."));
-				rows.add(tip(boolRow("Party Join Stats", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFFFFAA00), "When someone joins your party, look up their SkyBlock stats (sky.melloo.me/api) and post a summary in chat."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.party")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.party.low_hp_blink"), () -> c.lowHpBlinkEnabled, v -> c.lowHpBlinkEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.party.low_hp_blink")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.party.party_join_stats"), () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.party.party_join_stats")));
 
-				rows.add(headerRow("Lobby Player Search"));
-				rows.add(tip(colorRow("Search Highlight Color", () -> c.lobbySearchColor, v -> c.lobbySearchColor = v), "Glow color for the player targeted with /sm search <name> - only works in a Hypixel lobby, not SkyBlock (which has its own party/staff/friend highlighting in MellooEssentials). /sm search clear removes it."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.lobby_player_search")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.lobby_player_search.search_highlight_color"), () -> c.lobbySearchColor, v -> c.lobbySearchColor = v), Component.translatable("skymelloo.gui.settings.tip.lobby_player_search.search_highlight_color")));
 
-				rows.add(headerRow("Misc"));
-				rows.add(tip(boolRow("Show Invisible Players", () -> c.showInvisiblePlayersEnabled, v -> c.showInvisiblePlayersEnabled = v, 0xFF888888), "Makes other invisible players (e.g. from an Invisibility Potion) render normally instead of staying hidden. Not a highlight effect - they're still blocked by walls/line-of-sight like anyone else, just no longer artificially hidden."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.misc")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.misc.show_invisible_players"), () -> c.showInvisiblePlayersEnabled, v -> c.showInvisiblePlayersEnabled = v, 0xFF888888), Component.translatable("skymelloo.gui.settings.tip.misc.show_invisible_players")));
 			}
 			case HP -> {
-				rows.add(headerRow("Distance"));
-				rows.add(tip(boolRow("Show Distance", () -> c.showDistanceEnabled, v -> c.showDistanceEnabled = v, 0xFF55FFFF), "Show distance in blocks next to highlighted mobs/players/items."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.distance")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.distance.show_distance"), () -> c.showDistanceEnabled, v -> c.showDistanceEnabled = v, 0xFF55FFFF), Component.translatable("skymelloo.gui.settings.tip.distance.show_distance")));
 			}
 			case FISHING -> {
-				rows.add(headerRow("Fishing"));
-				rows.add(tip(boolRow("Fishing Helper", () -> c.fishingHelperEnabled, v -> c.fishingHelperEnabled = v, 0xFF5599FF), "Alert when your fishing bobber gets a bite."));
-				rows.add(tip(boolRow("Fishing Helper Sound", () -> c.fishingHelperSound, v -> c.fishingHelperSound = v, 0xFFFFAA00), "Play a sound in addition to the actionbar alert."));
-				rows.add(tip(colorRow("Waiting Color", () -> c.fishingWaitingColor, v -> c.fishingWaitingColor = v), "Glow color of your bobber while waiting for a bite."));
-				rows.add(tip(colorRow("Biting Color", () -> c.fishingBitingColor, v -> c.fishingBitingColor = v), "Glow color of your bobber the moment it's biting."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.fishing")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.fishing.fishing_helper"), () -> c.fishingHelperEnabled, v -> c.fishingHelperEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.fishing.fishing_helper")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.fishing.fishing_helper_sound"), () -> c.fishingHelperSound, v -> c.fishingHelperSound = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.fishing.fishing_helper_sound")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.fishing.waiting_color"), () -> c.fishingWaitingColor, v -> c.fishingWaitingColor = v), Component.translatable("skymelloo.gui.settings.tip.fishing.waiting_color")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.fishing.biting_color"), () -> c.fishingBitingColor, v -> c.fishingBitingColor = v), Component.translatable("skymelloo.gui.settings.tip.fishing.biting_color")));
 
-				rows.add(headerRow("Minigame"));
-				rows.add(tip(boolRow("Fishing Minigame", () -> c.fishingMinigameEnabled, v -> c.fishingMinigameEnabled = v, 0xFFFF6600), "Pufferfish targets pop up in front of you while your rod is cast - click them before they fully puff up for points."));
-				rows.add(tip(colorRow("Minigame Glow Color", () -> c.fishingMinigameColor, v -> c.fishingMinigameColor = v), "Extra glow tint on the fishing minigame targets."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.minigame")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.minigame.fishing_minigame"), () -> c.fishingMinigameEnabled, v -> c.fishingMinigameEnabled = v, 0xFFFF6600), Component.translatable("skymelloo.gui.settings.tip.minigame.fishing_minigame")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.minigame.minigame_glow_color"), () -> c.fishingMinigameColor, v -> c.fishingMinigameColor = v), Component.translatable("skymelloo.gui.settings.tip.minigame.minigame_glow_color")));
 			}
 			case DUNGEONS -> {
 				// Chest/Item/Mob highlighting all relocated here from their previous tabs - purely a
 				// settings-screen reorg, the underlying scan/render logic (HighlightManager,
 				// BlockHighlightRenderer) is unchanged and still works everywhere in-game, not just dungeons.
-				rows.add(headerRow("Chest Highlight"));
-				rows.add(tip(boolRow("Chest Highlight", () -> c.chestHighlightEnabled, v -> c.chestHighlightEnabled = v, 0xFFFFD700), "Highlight chests with a glowing box outline (only when actually in view, not through walls)."));
-				rows.add(tip(colorRow("Chest Highlight Color", () -> c.chestHighlightColor, v -> c.chestHighlightColor = v), "Box color for chests."));
-				rows.add(tip(intStepRow("Block Scan Range", () -> c.blockHighlightRange, v -> c.blockHighlightRange = v, 8, 48, 8), "Scan radius (in blocks) around you for Chest Highlight."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.chest_highlight")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.chest_highlight.enabled"), () -> c.chestHighlightEnabled, v -> c.chestHighlightEnabled = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.chest_highlight.enabled")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.chest_highlight.color"), () -> c.chestHighlightColor, v -> c.chestHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.chest_highlight.color")));
+				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.chest_highlight.scan_range"), () -> c.blockHighlightRange, v -> c.blockHighlightRange = v, 8, 48, 8), Component.translatable("skymelloo.gui.settings.tip.chest_highlight.scan_range")));
 
-				rows.add(headerRow("Item Highlighting"));
-				rows.add(tip(boolRow("Item Highlighting", () -> c.itemHighlightEnabled, v -> c.itemHighlightEnabled = v, 0xFF55FF55), "Highlight dropped items with a glowing outline and show their name (only when actually in view, not through walls)."));
-				rows.add(tip(stringRow("Item Name Filters", () -> c.itemHighlightNameFilters, v -> c.itemHighlightNameFilters = v), "Comma-separated, case-insensitive item name filters. Leave empty to highlight all dropped items."));
-				rows.add(tip(colorRow("Item Highlighting Color", () -> c.itemHighlightColor, v -> c.itemHighlightColor = v), "Glow color for dropped items."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.item_highlighting")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.item_highlighting.enabled"), () -> c.itemHighlightEnabled, v -> c.itemHighlightEnabled = v, 0xFF55FF55), Component.translatable("skymelloo.gui.settings.tip.item_highlighting.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.item_highlighting.name_filters"), () -> c.itemHighlightNameFilters, v -> c.itemHighlightNameFilters = v), Component.translatable("skymelloo.gui.settings.tip.item_highlighting.name_filters")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.item_highlighting.color"), () -> c.itemHighlightColor, v -> c.itemHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.item_highlighting.color")));
 
 				// Drastically simplified - the old general "highlight every hostile mob everywhere"
 				// system (name filters, friendly mobs, default/named colors) is gone entirely. Only
 				// the current-room highlight remains, and it's dungeon-only by nature
 				// (isInCurrentDungeonRoom requires an active run).
-				rows.add(headerRow("Mob Highlighting"));
-				rows.add(tip(boolRow("Mob Highlighting", () -> c.dungeonRoomMobHighlightEnabled, v -> c.dungeonRoomMobHighlightEnabled = v, 0xFFFF0000), "During a dungeon run, highlight hostile mobs inside your CURRENT room, so the ones you still need to clear stand out from mobs elsewhere on the floor."));
-				rows.add(tip(colorRow("Mob Highlight Color", () -> c.dungeonRoomMobHighlightColor, v -> c.dungeonRoomMobHighlightColor = v), "Glow color for hostile mobs inside your current dungeon room."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.mob_highlighting")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.mob_highlighting.enabled"), () -> c.dungeonRoomMobHighlightEnabled, v -> c.dungeonRoomMobHighlightEnabled = v, 0xFFFF0000), Component.translatable("skymelloo.gui.settings.tip.mob_highlighting.enabled")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.mob_highlighting.color"), () -> c.dungeonRoomMobHighlightColor, v -> c.dungeonRoomMobHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.mob_highlighting.color")));
 
 				// Moved here from Fun, just relocated in the menu.
-				rows.add(headerRow("Death Recap"));
-				rows.add(tip(boolRow("Death Recap", () -> c.deathRecapEnabled, v -> c.deathRecapEnabled = v, 0xFFFF5555), "When you die, post a short chat recap of the last few hits you took and what/who dealt them - real damage-source data, not a proximity guess."));
-				rows.add(tip(boolRow("Death Recap Party Announce", () -> c.deathRecapPartyAnnounceEnabled, v -> c.deathRecapPartyAnnounceEnabled = v, 0xFFFF5555), "Also share a short one-line version with the party (who/what killed you) - independent of the local Death Recap above."));
-				rows.add(tip(stringRow("Message Text", () -> c.deathRecapPartyAnnounceTemplate, v -> c.deathRecapPartyAnnounceTemplate = v), "Placeholders: {player} {cause}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.deathRecapPartyAnnounceDelivery, v -> c.deathRecapPartyAnnounceDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.death_recap")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.death_recap.enabled"), () -> c.deathRecapEnabled, v -> c.deathRecapEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.death_recap.enabled")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.death_recap.party_announce"), () -> c.deathRecapPartyAnnounceEnabled, v -> c.deathRecapPartyAnnounceEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.death_recap.party_announce")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.death_recap.message_text"), () -> c.deathRecapPartyAnnounceTemplate, v -> c.deathRecapPartyAnnounceTemplate = v), Component.translatable("skymelloo.gui.settings.tip.death_recap.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.death_recap.delivery"), () -> c.deathRecapPartyAnnounceDelivery, v -> c.deathRecapPartyAnnounceDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.death_recap.delivery")));
 
-				rows.add(headerRow("Dungeon Info"));
-				rows.add(tip(boolRow("Dungeon Info", () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFF5599FF), "When someone joins your dungeon party finder group, look up their stats and post a summary in chat."));
-				rows.add(tip(boolRow("Show MP", () -> c.dungeonInfoShowMp, v -> c.dungeonInfoShowMp = v, 0xFFAA33FF), "Include Magical Power in the Dungeon Info message."));
-				rows.add(tip(stringRow("Message Template", () -> c.dungeonInfoMessageTemplate, v -> c.dungeonInfoMessageTemplate = v),
-						"Placeholders: {username} {mp} {level} {cata} {class} {skillavg} {networth} {rank} {guild} {time} {date}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonInfoMessageDelivery, v -> c.dungeonInfoMessageDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(stringRow("Timezone", () -> c.dungeonInfoTimezone, v -> c.dungeonInfoTimezone = v),
-						"IANA timezone ID used for {time}/{date} above, e.g. Europe/Berlin or America/New_York."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.dungeon_info")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.dungeon_info.enabled"), () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.dungeon_info.enabled")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.dungeon_info.show_mp"), () -> c.dungeonInfoShowMp, v -> c.dungeonInfoShowMp = v, 0xFFAA33FF), Component.translatable("skymelloo.gui.settings.tip.dungeon_info.show_mp")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.dungeon_info.message_template"), () -> c.dungeonInfoMessageTemplate, v -> c.dungeonInfoMessageTemplate = v),
+						Component.translatable("skymelloo.gui.settings.tip.dungeon_info.message_template")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.dungeon_info.delivery"), () -> c.dungeonInfoMessageDelivery, v -> c.dungeonInfoMessageDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.dungeon_info.delivery")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.dungeon_info.timezone"), () -> c.dungeonInfoTimezone, v -> c.dungeonInfoTimezone = v),
+						Component.translatable("skymelloo.gui.settings.tip.dungeon_info.timezone")));
 
-				rows.add(headerRow("Auto-Kick"));
-				rows.add(tip(boolRow("Auto-Kick", () -> c.dungeonAutoKickEnabled, v -> c.dungeonAutoKickEnabled = v, 0xFFFF5555), "Automatically /party kick a joining member if their chosen stat below is under the threshold."));
-				rows.add(tip(cycleRow("Check Stat", () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "MP", "LEVEL" }), "Which stat Auto-Kick checks - Magical Power or SkyBlock Level."));
-				rows.add(tip(intTextRow("Threshold", () -> c.dungeonAutoKickThreshold, v -> c.dungeonAutoKickThreshold = v, 0, 100000), "A joining player whose stat is below this gets kicked from the party. Click to type a value directly."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonAutoKickMessageTemplate, v -> c.dungeonAutoKickMessageTemplate = v), "Placeholders: {player} {stat} {value} {threshold}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonAutoKickDelivery, v -> c.dungeonAutoKickDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.auto_kick")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.auto_kick.enabled"), () -> c.dungeonAutoKickEnabled, v -> c.dungeonAutoKickEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.auto_kick.enabled")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick.check_stat"), () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "MP", "LEVEL" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick.check_stat")));
+				rows.add(tip(intTextRow(tr("skymelloo.gui.settings.row.auto_kick.threshold"), () -> c.dungeonAutoKickThreshold, v -> c.dungeonAutoKickThreshold = v, 0, 100000), Component.translatable("skymelloo.gui.settings.tip.auto_kick.threshold")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.auto_kick.message_text"), () -> c.dungeonAutoKickMessageTemplate, v -> c.dungeonAutoKickMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.auto_kick.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick.delivery"), () -> c.dungeonAutoKickDelivery, v -> c.dungeonAutoKickDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick.delivery")));
 
-				rows.add(headerRow("Carry Auto-Kick (Max)"));
-				rows.add(tip(boolRow("Max Auto-Kick", () -> c.dungeonAutoKickMaxEnabled, v -> c.dungeonAutoKickMaxEnabled = v, 0xFFFF9955), "For carry parties: automatically /party kick a joining member if their chosen stat below is OVER the threshold - they don't need carrying, and may be taking a slot from someone who does."));
-				rows.add(tip(cycleRow("Check Stat", () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "MP", "LEVEL" }), "Which stat Max Auto-Kick checks - independent of the min check above, can be a different stat."));
-				rows.add(tip(intTextRow("Threshold", () -> c.dungeonAutoKickMaxThreshold, v -> c.dungeonAutoKickMaxThreshold = v, 0, 100000), "A joining player whose stat is OVER this gets kicked from the party. Click to type a value directly."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonAutoKickMaxMessageTemplate, v -> c.dungeonAutoKickMaxMessageTemplate = v), "Placeholders: {player} {stat} {value} {threshold}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonAutoKickMaxDelivery, v -> c.dungeonAutoKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.auto_kick_max")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.auto_kick_max.enabled"), () -> c.dungeonAutoKickMaxEnabled, v -> c.dungeonAutoKickMaxEnabled = v, 0xFFFF9955), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.enabled")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick_max.check_stat"), () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "MP", "LEVEL" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.check_stat")));
+				rows.add(tip(intTextRow(tr("skymelloo.gui.settings.row.auto_kick_max.threshold"), () -> c.dungeonAutoKickMaxThreshold, v -> c.dungeonAutoKickMaxThreshold = v, 0, 100000), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.threshold")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.auto_kick_max.message_text"), () -> c.dungeonAutoKickMaxMessageTemplate, v -> c.dungeonAutoKickMaxMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick_max.delivery"), () -> c.dungeonAutoKickMaxDelivery, v -> c.dungeonAutoKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.delivery")));
 
-				rows.add(headerRow("Run Tracker"));
-				rows.add(tip(cycleRow("Party HUD", () -> c.partyHudMode, v -> c.partyHudMode = v, new String[] { "OFF", "COMPACT", "FULL" }), "Compact shows name+MP; Full also shows each member's death count for the current run. Position set via the HUD layout editor (default J)."));
-				rows.add(tip(boolRow("Party HUD Puzzle History", () -> c.partyHudShowPuzzleHistory, v -> c.partyHudShowPuzzleHistory = v, 0xFFFFAA00), "In FULL mode during a run, show each puzzle that member specifically solved/failed as extra lines under their row - only appears for members actually involved in a puzzle."));
-				rows.add(tip(boolRow("Party MP Bar", () -> c.partyMpBarEnabled, v -> c.partyMpBarEnabled = v, 0xFFFF6EC7), "A horizontal MP \"spread\" bar for the party - each member's face is placed along it from lowest to highest MP, range labeled above. Shows the shape of the party's gear gap at a glance. Position set via the HUD layout editor (default J)."));
-				rows.add(tip(boolRow("Run Report", () -> c.dungeonRunReportEnabled, v -> c.dungeonRunReportEnabled = v, 0xFF5599FF), "Track deaths and puzzles solved during the run and post a detailed summary in chat when the dungeon completes - with clickable [Kick] buttons if you're the party leader. LOCAL only, always (see Party Run Summary below to also notify the party)."));
-				rows.add(tip(boolRow("Party Run Summary", () -> c.dungeonRunPartySummaryEnabled, v -> c.dungeonRunPartySummaryEnabled = v, 0xFF5599FF), "A short, separate one-line result sent to party chat when a run ends (score/grade/floor/time only) - independent of Run Report above, which is deliberately never sent to party anymore since a long combined line with many player names in it could crash the game."));
-				rows.add(tip(stringRow("Party Summary Text", () -> c.dungeonRunPartySummaryTemplate, v -> c.dungeonRunPartySummaryTemplate = v), "Placeholders: {floor} {score} {grade} {time}"));
-				rows.add(tip(cycleRow("Party Summary Delivery", () -> c.dungeonRunPartySummaryDelivery, v -> c.dungeonRunPartySummaryDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Death Auto-Kick", () -> c.dungeonDeathKickEnabled, v -> c.dungeonDeathKickEnabled = v, 0xFFFF5555), "Automatically /party kick a member once their death count for the current run exceeds the threshold below."));
-				rows.add(tip(intTextRow("Death Threshold", () -> c.dungeonDeathKickThreshold, v -> c.dungeonDeathKickThreshold = v, 1, 10), "Death count a member has to exceed (during one run) to trigger Death Auto-Kick."));
-				rows.add(tip(boolRow("AFK Auto-Kick", () -> c.dungeonAfkKickEnabled, v -> c.dungeonAfkKickEnabled = v, 0xFFFF5555), "Automatically /party kick a member who hasn't moved at all for the threshold below during a run."));
-				rows.add(tip(cycleRow("AFK Threshold", () -> c.dungeonAfkKickThreshold, v -> c.dungeonAfkKickThreshold = v, new String[] { "30", "60", "120" }), "How long a member has to stand completely still (seconds) before AFK Auto-Kick fires."));
-				rows.add(tip(boolRow("Score HUD", () -> c.dungeonScoreHudEnabled, v -> c.dungeonScoreHudEnabled = v, 0xFFFFD700), "Live dungeon score estimate during the run, calculated the same way SkyblockerMod/Skyblocker does - real completed-rooms/secrets%/puzzle-state/crypts from the dungeon tab list, not an optimistic ceiling."));
-				rows.add(tip(boolRow("Show Breakdown", () -> c.dungeonScoreShowBreakdown, v -> c.dungeonScoreShowBreakdown = v, 0xFFAAAAAA), "Show the Skill/Explore/Speed/Bonus line on the Score HUD."));
-				rows.add(tip(boolRow("Show Room Secrets", () -> c.dungeonScoreShowRoomSecrets, v -> c.dungeonScoreShowRoomSecrets = v, 0xFF66DDFF), "Show the current room's secrets found/total and per-secret dots - only ever populated if Skyblocker is also installed."));
-				rows.add(tip(boolRow("Show Puzzles", () -> c.dungeonScoreShowPuzzles, v -> c.dungeonScoreShowPuzzles = v, 0xFFFFAA00), "Show the puzzle outcome blocks and solved/failed detail lines on the Score HUD."));
-				rows.add(tip(boolRow("Show Possible/Penalties", () -> c.dungeonScoreShowPossible, v -> c.dungeonScoreShowPossible = v, 0xFF55FF55), "Show the best-case ceiling score (\"Possible: X\") next to the current total, plus a breakdown of permanent penalties (puzzle fails, deaths) applied so far."));
-				rows.add(tip(boolRow("Show Next Grade", () -> c.dungeonScoreShowNextGrade, v -> c.dungeonScoreShowNextGrade = v, 0xFFFFD700), "Show how many more points are needed to reach the next grade above your current one (e.g. \"Next grade (A): +14\")."));
-				rows.add(tip(boolRow("Show Pace/Countdown", () -> c.dungeonScoreShowPaceAndCountdown, v -> c.dungeonScoreShowPaceAndCountdown = v, 0xFFAAAAAA), "Show an up/down arrow next to the score showing whether it climbed or fell over the last ~10s, plus a persistent \"Time left\" countdown against the floor's time limit (turns red once past it)."));
-				rows.add(tip(boolRow("Show Final Result", () -> c.dungeonScoreFinalResultEnabled, v -> c.dungeonScoreFinalResultEnabled = v, 0xFFFFD700), "When a run ends, keep the Score HUD up for a while showing a distinct \"Final Result\" panel (frozen final score/breakdown/puzzles) instead of just disappearing the instant the run ends."));
-				rows.add(tip(intStepRow("Final Result Duration", () -> c.dungeonScoreFinalResultDurationSeconds, v -> c.dungeonScoreFinalResultDurationSeconds = v, 5, 60, 5), "How many seconds the Final Result panel above stays up before the Score HUD disappears."));
-				rows.add(tip(boolRow("Debug HUD", () -> c.dungeonDebugHudEnabled, v -> c.dungeonDebugHudEnabled = v, 0xFF66DDFF), "Shows the run tracker's own internal state flags (run active, wither door opened, blood room entered/cleared, boss room entered) so you can see at a glance whether detection is actually keeping up. Position set via the HUD layout editor (default J)."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.run_tracker")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.run_tracker.party_hud"), () -> c.partyHudMode, v -> c.partyHudMode = v, new String[] { "OFF", "COMPACT", "FULL" }), Component.translatable("skymelloo.gui.settings.tip.run_tracker.party_hud")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.party_hud_puzzle_history"), () -> c.partyHudShowPuzzleHistory, v -> c.partyHudShowPuzzleHistory = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.run_tracker.party_hud_puzzle_history")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.party_mp_bar"), () -> c.partyMpBarEnabled, v -> c.partyMpBarEnabled = v, 0xFFFF6EC7), Component.translatable("skymelloo.gui.settings.tip.run_tracker.party_mp_bar")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.run_report"), () -> c.dungeonRunReportEnabled, v -> c.dungeonRunReportEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.run_tracker.run_report")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.party_run_summary"), () -> c.dungeonRunPartySummaryEnabled, v -> c.dungeonRunPartySummaryEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.run_tracker.party_run_summary")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.run_tracker.party_summary_text"), () -> c.dungeonRunPartySummaryTemplate, v -> c.dungeonRunPartySummaryTemplate = v), Component.translatable("skymelloo.gui.settings.tip.run_tracker.party_summary_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.run_tracker.party_summary_delivery"), () -> c.dungeonRunPartySummaryDelivery, v -> c.dungeonRunPartySummaryDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.run_tracker.party_summary_delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.death_auto_kick"), () -> c.dungeonDeathKickEnabled, v -> c.dungeonDeathKickEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.run_tracker.death_auto_kick")));
+				rows.add(tip(intTextRow(tr("skymelloo.gui.settings.row.run_tracker.death_threshold"), () -> c.dungeonDeathKickThreshold, v -> c.dungeonDeathKickThreshold = v, 1, 10), Component.translatable("skymelloo.gui.settings.tip.run_tracker.death_threshold")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.afk_auto_kick"), () -> c.dungeonAfkKickEnabled, v -> c.dungeonAfkKickEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.run_tracker.afk_auto_kick")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.run_tracker.afk_threshold"), () -> c.dungeonAfkKickThreshold, v -> c.dungeonAfkKickThreshold = v, new String[] { "30", "60", "120" }), Component.translatable("skymelloo.gui.settings.tip.run_tracker.afk_threshold")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.score_hud"), () -> c.dungeonScoreHudEnabled, v -> c.dungeonScoreHudEnabled = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.run_tracker.score_hud")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.show_breakdown"), () -> c.dungeonScoreShowBreakdown, v -> c.dungeonScoreShowBreakdown = v, 0xFFAAAAAA), Component.translatable("skymelloo.gui.settings.tip.run_tracker.show_breakdown")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.show_room_secrets"), () -> c.dungeonScoreShowRoomSecrets, v -> c.dungeonScoreShowRoomSecrets = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.run_tracker.show_room_secrets")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.show_puzzles"), () -> c.dungeonScoreShowPuzzles, v -> c.dungeonScoreShowPuzzles = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.run_tracker.show_puzzles")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.show_possible"), () -> c.dungeonScoreShowPossible, v -> c.dungeonScoreShowPossible = v, 0xFF55FF55), Component.translatable("skymelloo.gui.settings.tip.run_tracker.show_possible")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.show_next_grade"), () -> c.dungeonScoreShowNextGrade, v -> c.dungeonScoreShowNextGrade = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.run_tracker.show_next_grade")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.show_pace"), () -> c.dungeonScoreShowPaceAndCountdown, v -> c.dungeonScoreShowPaceAndCountdown = v, 0xFFAAAAAA), Component.translatable("skymelloo.gui.settings.tip.run_tracker.show_pace")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.show_final_result"), () -> c.dungeonScoreFinalResultEnabled, v -> c.dungeonScoreFinalResultEnabled = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.run_tracker.show_final_result")));
+				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.run_tracker.final_result_duration"), () -> c.dungeonScoreFinalResultDurationSeconds, v -> c.dungeonScoreFinalResultDurationSeconds = v, 5, 60, 5), Component.translatable("skymelloo.gui.settings.tip.run_tracker.final_result_duration")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.debug_hud"), () -> c.dungeonDebugHudEnabled, v -> c.dungeonDebugHudEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.run_tracker.debug_hud")));
 
 				// Each message below is fully self-contained (toggle, text, delivery) rather than
 				// scattered across sections with one shared delivery setting at the bottom - lets e.g.
 				// death spam stay local while a boss-room announcement goes to the whole party.
-				rows.add(headerRow("Boss Room Announcement"));
-				rows.add(tip(boolRow("Announce Boss Room", () -> c.dungeonBossRoomAnnounceEnabled, v -> c.dungeonBossRoomAnnounceEnabled = v, 0xFFAA33FF), "Announce when the boss room is entered."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonBossRoomMessageTemplate, v -> c.dungeonBossRoomMessageTemplate = v), "Used when the run's score is still 300+ at entry. Placeholder: {player} (\"The party\" for the party-wide trigger, or a specific name for the per-player trigger)."));
-				rows.add(tip(stringRow("Low-Score Message Text", () -> c.dungeonBossRoomLowScoreMessageTemplate, v -> c.dungeonBossRoomLowScoreMessageTemplate = v), "Used INSTEAD of the message above when the run's score is under 300 at entry. Placeholders: {player} {score}."));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonBossRoomMessageDelivery, v -> c.dungeonBossRoomMessageDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where either message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.boss_room")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.boss_room.enabled"), () -> c.dungeonBossRoomAnnounceEnabled, v -> c.dungeonBossRoomAnnounceEnabled = v, 0xFFAA33FF), Component.translatable("skymelloo.gui.settings.tip.boss_room.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.boss_room.message_text"), () -> c.dungeonBossRoomMessageTemplate, v -> c.dungeonBossRoomMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.boss_room.message_text")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.boss_room.low_score_message_text"), () -> c.dungeonBossRoomLowScoreMessageTemplate, v -> c.dungeonBossRoomLowScoreMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.boss_room.low_score_message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.boss_room.delivery"), () -> c.dungeonBossRoomMessageDelivery, v -> c.dungeonBossRoomMessageDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.boss_room.delivery")));
 
-				rows.add(headerRow("Death Message"));
-				rows.add(tip(boolRow("Death Message", () -> c.dungeonDeathMessageEnabled, v -> c.dungeonDeathMessageEnabled = v, 0xFFFF5555), "Announce in chat when a party member dies during the run."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonDeathMessageTemplate, v -> c.dungeonDeathMessageTemplate = v), "Placeholders: {player} {count}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonDeathMessageDelivery, v -> c.dungeonDeathMessageDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.death_message")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.death_message.enabled"), () -> c.dungeonDeathMessageEnabled, v -> c.dungeonDeathMessageEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.death_message.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.death_message.message_text"), () -> c.dungeonDeathMessageTemplate, v -> c.dungeonDeathMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.death_message.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.death_message.delivery"), () -> c.dungeonDeathMessageDelivery, v -> c.dungeonDeathMessageDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.death_message.delivery")));
 
-				rows.add(headerRow("Pre-Boss Score Warning"));
-				rows.add(tip(boolRow("Pre-Boss Score Warning", () -> c.dungeonPreBossScoreWarningEnabled, v -> c.dungeonPreBossScoreWarningEnabled = v, 0xFFFFAA00), "Warn the moment the Blood Room fight ends if the run's score is still under 300 (S+) - fires while the boss portal doesn't exist yet, so the party can still decide not to go in."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonPreBossScoreWarningTemplate, v -> c.dungeonPreBossScoreWarningTemplate = v), "Placeholder: {score}"));
-				rows.add(tip(stringRow("Already-Impossible Text", () -> c.dungeonPreBossScoreWarningAlreadyImpossibleTemplate, v -> c.dungeonPreBossScoreWarningAlreadyImpossibleTemplate = v), "Used instead of the text above when S+ was already confirmed impossible earlier this run for a different reason (puzzle fail/death/time limit) - avoids implying entering now is what costs the points. Placeholder: {score}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonPreBossScoreWarningDelivery, v -> c.dungeonPreBossScoreWarningDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.pre_boss_score_warning")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.pre_boss_score_warning.enabled"), () -> c.dungeonPreBossScoreWarningEnabled, v -> c.dungeonPreBossScoreWarningEnabled = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.pre_boss_score_warning.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.pre_boss_score_warning.message_text"), () -> c.dungeonPreBossScoreWarningTemplate, v -> c.dungeonPreBossScoreWarningTemplate = v), Component.translatable("skymelloo.gui.settings.tip.pre_boss_score_warning.message_text")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.pre_boss_score_warning.already_impossible_text"), () -> c.dungeonPreBossScoreWarningAlreadyImpossibleTemplate, v -> c.dungeonPreBossScoreWarningAlreadyImpossibleTemplate = v), Component.translatable("skymelloo.gui.settings.tip.pre_boss_score_warning.already_impossible_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.pre_boss_score_warning.delivery"), () -> c.dungeonPreBossScoreWarningDelivery, v -> c.dungeonPreBossScoreWarningDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.pre_boss_score_warning.delivery")));
 
-				rows.add(headerRow("All Rooms Discovered"));
-				rows.add(tip(boolRow("Announce Possible Score", () -> c.dungeonRoomsDiscoveredAnnounceEnabled, v -> c.dungeonRoomsDiscoveredAnnounceEnabled = v, 0xFF66DDFF), "Announce once per run, the moment cleared% hits 100 (every room discovered), exactly what score is still possible from here - only then is the best-case ceiling not a guess anymore."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonRoomsDiscoveredTemplate, v -> c.dungeonRoomsDiscoveredTemplate = v), "Placeholders: {possible} {grade}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonRoomsDiscoveredDelivery, v -> c.dungeonRoomsDiscoveredDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.rooms_discovered")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.rooms_discovered.enabled"), () -> c.dungeonRoomsDiscoveredAnnounceEnabled, v -> c.dungeonRoomsDiscoveredAnnounceEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.rooms_discovered.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.rooms_discovered.message_text"), () -> c.dungeonRoomsDiscoveredTemplate, v -> c.dungeonRoomsDiscoveredTemplate = v), Component.translatable("skymelloo.gui.settings.tip.rooms_discovered.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.rooms_discovered.delivery"), () -> c.dungeonRoomsDiscoveredDelivery, v -> c.dungeonRoomsDiscoveredDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.rooms_discovered.delivery")));
 
-				rows.add(headerRow("Secrets Pace Warning"));
-				rows.add(tip(boolRow("Secrets Pace Warning", () -> c.dungeonSecretsPaceWarningEnabled, v -> c.dungeonSecretsPaceWarningEnabled = v, 0xFF66DDFF), "Warn once per run the moment your secret-finding rate first falls behind what's needed to hit the floor's required secrets% before its time limit. Independent of the Time Limit Warning below - this is pace-based, not a fixed countdown checkpoint, so they won't overlap."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonSecretsPaceWarningTemplate, v -> c.dungeonSecretsPaceWarningTemplate = v), "Placeholders: {secrets} {required} {timeleft}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonSecretsPaceWarningDelivery, v -> c.dungeonSecretsPaceWarningDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.secrets_pace_warning")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.secrets_pace_warning.enabled"), () -> c.dungeonSecretsPaceWarningEnabled, v -> c.dungeonSecretsPaceWarningEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.secrets_pace_warning.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.secrets_pace_warning.message_text"), () -> c.dungeonSecretsPaceWarningTemplate, v -> c.dungeonSecretsPaceWarningTemplate = v), Component.translatable("skymelloo.gui.settings.tip.secrets_pace_warning.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.secrets_pace_warning.delivery"), () -> c.dungeonSecretsPaceWarningDelivery, v -> c.dungeonSecretsPaceWarningDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.secrets_pace_warning.delivery")));
 
-				rows.add(headerRow("Puzzle Retry Fail"));
-				rows.add(tip(boolRow("Puzzle Retry Fail", () -> c.dungeonPuzzleRetryFailEnabled, v -> c.dungeonPuzzleRetryFailEnabled = v, 0xFFFFAA00), "Announce when the SAME puzzle fails again after already having failed once (a reset-and-retried room). Doesn't double-penalize Skill score or duplicate the Score HUD line either way - this is purely an optional heads-up."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonPuzzleRetryFailTemplate, v -> c.dungeonPuzzleRetryFailTemplate = v), "Placeholders: {player} {detail}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonPuzzleRetryFailDelivery, v -> c.dungeonPuzzleRetryFailDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.puzzle_retry_fail")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.puzzle_retry_fail.enabled"), () -> c.dungeonPuzzleRetryFailEnabled, v -> c.dungeonPuzzleRetryFailEnabled = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.puzzle_retry_fail.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.puzzle_retry_fail.message_text"), () -> c.dungeonPuzzleRetryFailTemplate, v -> c.dungeonPuzzleRetryFailTemplate = v), Component.translatable("skymelloo.gui.settings.tip.puzzle_retry_fail.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.puzzle_retry_fail.delivery"), () -> c.dungeonPuzzleRetryFailDelivery, v -> c.dungeonPuzzleRetryFailDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.puzzle_retry_fail.delivery")));
 
-				rows.add(headerRow("S+ Impossible Warning"));
-				rows.add(tip(boolRow("S+ Impossible Warning", () -> c.dungeonSPlusImpossibleEnabled, v -> c.dungeonSPlusImpossibleEnabled = v, 0xFFFF5555), "Warn once per run (after a puzzle fail, a death, or the time limit passing) if S+ has become mathematically impossible even in the best case for everything still open. Fires at most once."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonSPlusImpossibleTemplate, v -> c.dungeonSPlusImpossibleTemplate = v), "Placeholder: {reason} (\"a puzzle failed\", \"a death occurred\", or \"the time limit passed\")"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonSPlusImpossibleDelivery, v -> c.dungeonSPlusImpossibleDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("S+ Back In Reach", () -> c.dungeonSPlusBackEnabled, v -> c.dungeonSPlusBackEnabled = v, 0xFF55FF55), "The counterpart to S+ Impossible above: if the score ceiling recovers back over 300 afterward, say so once. Fires at most once per run either way, so it can never come twice."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonSPlusBackTemplate, v -> c.dungeonSPlusBackTemplate = v), "No placeholders."));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonSPlusBackDelivery, v -> c.dungeonSPlusBackDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.s_plus_impossible_warning")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.s_plus_impossible.enabled"), () -> c.dungeonSPlusImpossibleEnabled, v -> c.dungeonSPlusImpossibleEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.s_plus_impossible.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.s_plus_impossible.message_text"), () -> c.dungeonSPlusImpossibleTemplate, v -> c.dungeonSPlusImpossibleTemplate = v), Component.translatable("skymelloo.gui.settings.tip.s_plus_impossible.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.s_plus_impossible.delivery"), () -> c.dungeonSPlusImpossibleDelivery, v -> c.dungeonSPlusImpossibleDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.s_plus_impossible.delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.s_plus_back.enabled"), () -> c.dungeonSPlusBackEnabled, v -> c.dungeonSPlusBackEnabled = v, 0xFF55FF55), Component.translatable("skymelloo.gui.settings.tip.s_plus_back.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.s_plus_back.message_text"), () -> c.dungeonSPlusBackTemplate, v -> c.dungeonSPlusBackTemplate = v), Component.translatable("skymelloo.gui.settings.tip.s_plus_back.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.s_plus_back.delivery"), () -> c.dungeonSPlusBackDelivery, v -> c.dungeonSPlusBackDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.s_plus_back.delivery")));
 
-				rows.add(headerRow("Live Grade Milestone"));
-				rows.add(tip(boolRow("Grade Milestone", () -> c.dungeonGradeMilestoneEnabled, v -> c.dungeonGradeMilestoneEnabled = v, 0xFF66DDFF), "Announce live the moment the run's grade first reaches a new tier (C/B/A/S/S+) - each tier only ever announced once per run, even if the grade fluctuates back down and up again."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonGradeMilestoneTemplate, v -> c.dungeonGradeMilestoneTemplate = v), "Placeholder: {grade}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonGradeMilestoneDelivery, v -> c.dungeonGradeMilestoneDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.grade_milestone")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.grade_milestone.enabled"), () -> c.dungeonGradeMilestoneEnabled, v -> c.dungeonGradeMilestoneEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.grade_milestone.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.grade_milestone.message_text"), () -> c.dungeonGradeMilestoneTemplate, v -> c.dungeonGradeMilestoneTemplate = v), Component.translatable("skymelloo.gui.settings.tip.grade_milestone.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.grade_milestone.delivery"), () -> c.dungeonGradeMilestoneDelivery, v -> c.dungeonGradeMilestoneDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.grade_milestone.delivery")));
 
-				rows.add(headerRow("Self-Ready Reminder"));
-				rows.add(tip(boolRow("Self-Ready Reminder", () -> c.dungeonSelfReadyReminderEnabled, v -> c.dungeonSelfReadyReminderEnabled = v, 0xFF55FF55), "Nudge yourself via the action bar the moment you're the only one left who hasn't readied up - personal, on-screen only, not sent to chat."));
-				rows.add(tip(stringRow("Reminder Text", () -> c.dungeonSelfReadyReminderText, v -> c.dungeonSelfReadyReminderText = v), "No placeholders."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.self_ready_reminder")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.self_ready_reminder.enabled"), () -> c.dungeonSelfReadyReminderEnabled, v -> c.dungeonSelfReadyReminderEnabled = v, 0xFF55FF55), Component.translatable("skymelloo.gui.settings.tip.self_ready_reminder.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.self_ready_reminder.reminder_text"), () -> c.dungeonSelfReadyReminderText, v -> c.dungeonSelfReadyReminderText = v), Component.translatable("skymelloo.gui.settings.tip.self_ready_reminder.reminder_text")));
 
-				rows.add(headerRow("Time Limit Warning"));
-				rows.add(tip(boolRow("Time Limit Warning", () -> c.dungeonTimeLimitWarningEnabled, v -> c.dungeonTimeLimitWarningEnabled = v, 0xFFFFAA00), "Warn in chat as the floor's time limit approaches, plus a personal on-screen countdown for the last 10 seconds."));
-				rows.add(tip(cycleRow("Start At", () -> c.dungeonTimeLimitWarningStart, v -> c.dungeonTimeLimitWarningStart = v, new String[] { "60", "30", "15", "10" }), "Which checkpoint to start warning at (seconds remaining) - everything from here down to 10s fires. E.g. \"30\" fires at 30s and 10s but not 60s."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonTimeLimitWarningTemplate, v -> c.dungeonTimeLimitWarningTemplate = v), "Placeholder: {time} (e.g. \"30 seconds\")"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonTimeLimitWarningDelivery, v -> c.dungeonTimeLimitWarningDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the checkpoint messages above go. The last-10-seconds countdown is always personal/on-screen regardless."));
-				rows.add(tip(boolRow("Time Limit Exceeded", () -> c.dungeonTimeLimitExceededEnabled, v -> c.dungeonTimeLimitExceededEnabled = v, 0xFFFF5555), "Announce once the floor's time limit is actually exceeded - separate from the S+-impossible warning, which only fires once per run for whichever reason hits first."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonTimeLimitExceededTemplate, v -> c.dungeonTimeLimitExceededTemplate = v), "Placeholder: {floor}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonTimeLimitExceededDelivery, v -> c.dungeonTimeLimitExceededDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.time_limit_warning")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.time_limit_warning.enabled"), () -> c.dungeonTimeLimitWarningEnabled, v -> c.dungeonTimeLimitWarningEnabled = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.time_limit_warning.enabled")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.time_limit_warning.start_at"), () -> c.dungeonTimeLimitWarningStart, v -> c.dungeonTimeLimitWarningStart = v, new String[] { "60", "30", "15", "10" }), Component.translatable("skymelloo.gui.settings.tip.time_limit_warning.start_at")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.time_limit_warning.message_text"), () -> c.dungeonTimeLimitWarningTemplate, v -> c.dungeonTimeLimitWarningTemplate = v), Component.translatable("skymelloo.gui.settings.tip.time_limit_warning.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.time_limit_warning.delivery"), () -> c.dungeonTimeLimitWarningDelivery, v -> c.dungeonTimeLimitWarningDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.time_limit_warning.delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.time_limit_exceeded.enabled"), () -> c.dungeonTimeLimitExceededEnabled, v -> c.dungeonTimeLimitExceededEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.time_limit_exceeded.enabled")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.time_limit_exceeded.message_text"), () -> c.dungeonTimeLimitExceededTemplate, v -> c.dungeonTimeLimitExceededTemplate = v), Component.translatable("skymelloo.gui.settings.tip.time_limit_exceeded.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.time_limit_exceeded.delivery"), () -> c.dungeonTimeLimitExceededDelivery, v -> c.dungeonTimeLimitExceededDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.time_limit_exceeded.delivery")));
 
-				rows.add(headerRow("Floor Requirement"));
-				rows.add(tip(intStepRow("Target Floor", () -> c.dungeonTargetFloor, v -> c.dungeonTargetFloor = v, 0, 7, 1), "Which floor to benchmark the readiness/stats score and Floor Auto-Kick against (0 = Entrance, 7 = Floor VII) - Magical Power expectations are very different for Entrance vs. Floor VII, so this has to be set manually."));
-				rows.add(tip(boolRow("Floor Auto-Kick", () -> c.dungeonFloorKickEnabled, v -> c.dungeonFloorKickEnabled = v, 0xFFFF5555), "Automatically /party kick a member who doesn't currently meet the REQUIREMENTS (Catacombs/Combat Skill, verified in-game) for the Target Floor above - not whether they've ever completed it before."));
-				rows.add(tip(intStepRow("Required Floor", () -> c.dungeonFloorKickThreshold, v -> c.dungeonFloorKickThreshold = v, 0, 7, 1), "Minimum floor a member needs to be level-ELIGIBLE for right now (0 = just needs Combat Skill 15 for Entrance, 7 = needs Catacombs Skill 24 for Floor VII)."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonFloorKickMessageTemplate, v -> c.dungeonFloorKickMessageTemplate = v), "Placeholders: {player} {value} {threshold}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonFloorKickDelivery, v -> c.dungeonFloorKickDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Max Floor Auto-Kick", () -> c.dungeonFloorKickMaxEnabled, v -> c.dungeonFloorKickMaxEnabled = v, 0xFFFF9955), "For carry parties: automatically /party kick a member who's ALREADY level-eligible for a floor higher than the Allowed Floor below - they don't need to be carried through it."));
-				rows.add(tip(intStepRow("Allowed Floor", () -> c.dungeonFloorKickMaxThreshold, v -> c.dungeonFloorKickMaxThreshold = v, 0, 7, 1), "Maximum floor a member is allowed to already be level-eligible for - anyone eligible for something higher gets kicked by Max Floor Auto-Kick above."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonFloorKickMaxMessageTemplate, v -> c.dungeonFloorKickMaxMessageTemplate = v), "Placeholders: {player} {value} {threshold}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonFloorKickMaxDelivery, v -> c.dungeonFloorKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.floor_requirement")));
+				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.floor_kick.target_floor"), () -> c.dungeonTargetFloor, v -> c.dungeonTargetFloor = v, 0, 7, 1), Component.translatable("skymelloo.gui.settings.tip.floor_kick.target_floor")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.floor_kick.enabled"), () -> c.dungeonFloorKickEnabled, v -> c.dungeonFloorKickEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.floor_kick.enabled")));
+				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.floor_kick.required_floor"), () -> c.dungeonFloorKickThreshold, v -> c.dungeonFloorKickThreshold = v, 0, 7, 1), Component.translatable("skymelloo.gui.settings.tip.floor_kick.required_floor")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.floor_kick.message_text"), () -> c.dungeonFloorKickMessageTemplate, v -> c.dungeonFloorKickMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.floor_kick.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_kick.delivery"), () -> c.dungeonFloorKickDelivery, v -> c.dungeonFloorKickDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_kick.delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.floor_kick_max.enabled"), () -> c.dungeonFloorKickMaxEnabled, v -> c.dungeonFloorKickMaxEnabled = v, 0xFFFF9955), Component.translatable("skymelloo.gui.settings.tip.floor_kick_max.enabled")));
+				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.floor_kick_max.allowed_floor"), () -> c.dungeonFloorKickMaxThreshold, v -> c.dungeonFloorKickMaxThreshold = v, 0, 7, 1), Component.translatable("skymelloo.gui.settings.tip.floor_kick_max.allowed_floor")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.floor_kick_max.message_text"), () -> c.dungeonFloorKickMaxMessageTemplate, v -> c.dungeonFloorKickMaxMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.floor_kick_max.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_kick_max.delivery"), () -> c.dungeonFloorKickMaxDelivery, v -> c.dungeonFloorKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_kick_max.delivery")));
 
 				// Floor Requirement above only checks whether a member currently MEETS the level
 				// requirements; this checks whether they've actually COMPLETED that floor before
 				// (Hypixel's own record), an independent signal.
-				rows.add(headerRow("Floor Completion"));
-				rows.add(tip(boolRow("Floor Completion Auto-Kick", () -> c.dungeonFloorCompletionKickEnabled, v -> c.dungeonFloorCompletionKickEnabled = v, 0xFFFF5555), "Automatically /party kick a member who hasn't ACTUALLY COMPLETED the Required Floor below yet - unlike Floor Auto-Kick above, this checks real completion, not just current level-eligibility."));
-				rows.add(tip(intStepRow("Required Floor", () -> c.dungeonFloorCompletionKickThreshold, v -> c.dungeonFloorCompletionKickThreshold = v, 0, 7, 1), "Minimum floor a member needs to have ACTUALLY COMPLETED before (0 = Entrance, 7 = Floor VII)."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonFloorCompletionKickMessageTemplate, v -> c.dungeonFloorCompletionKickMessageTemplate = v), "Placeholders: {player} {value} {threshold}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonFloorCompletionKickDelivery, v -> c.dungeonFloorCompletionKickDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Max Floor Completion Auto-Kick", () -> c.dungeonFloorCompletionKickMaxEnabled, v -> c.dungeonFloorCompletionKickMaxEnabled = v, 0xFFFF9955), "For carry parties: automatically /party kick a member who's ALREADY completed a floor higher than the Allowed Floor below - they have real experience past it and don't need a carry slot."));
-				rows.add(tip(intStepRow("Allowed Floor", () -> c.dungeonFloorCompletionKickMaxThreshold, v -> c.dungeonFloorCompletionKickMaxThreshold = v, 0, 7, 1), "Maximum floor a member is allowed to have already completed - anyone who's completed something higher gets kicked by Max Floor Completion Auto-Kick above."));
-				rows.add(tip(stringRow("Message Text", () -> c.dungeonFloorCompletionKickMaxMessageTemplate, v -> c.dungeonFloorCompletionKickMaxMessageTemplate = v), "Placeholders: {player} {value} {threshold}"));
-				rows.add(tip(cycleRow("Delivery", () -> c.dungeonFloorCompletionKickMaxDelivery, v -> c.dungeonFloorCompletionKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the message above goes. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.floor_completion")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.floor_completion_kick.enabled"), () -> c.dungeonFloorCompletionKickEnabled, v -> c.dungeonFloorCompletionKickEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick.enabled")));
+				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.floor_completion_kick.required_floor"), () -> c.dungeonFloorCompletionKickThreshold, v -> c.dungeonFloorCompletionKickThreshold = v, 0, 7, 1), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick.required_floor")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.floor_completion_kick.message_text"), () -> c.dungeonFloorCompletionKickMessageTemplate, v -> c.dungeonFloorCompletionKickMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_completion_kick.delivery"), () -> c.dungeonFloorCompletionKickDelivery, v -> c.dungeonFloorCompletionKickDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick.delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.enabled"), () -> c.dungeonFloorCompletionKickMaxEnabled, v -> c.dungeonFloorCompletionKickMaxEnabled = v, 0xFFFF9955), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.enabled")));
+				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.allowed_floor"), () -> c.dungeonFloorCompletionKickMaxThreshold, v -> c.dungeonFloorCompletionKickMaxThreshold = v, 0, 7, 1), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.allowed_floor")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.message_text"), () -> c.dungeonFloorCompletionKickMaxMessageTemplate, v -> c.dungeonFloorCompletionKickMaxMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.message_text")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.delivery"), () -> c.dungeonFloorCompletionKickMaxDelivery, v -> c.dungeonFloorCompletionKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.delivery")));
 			}
 			case FUN -> {
 				if (PermissionsManager.has("spell")) {
-					rows.add(headerRow("Spell"));
-					rows.add(tip(cosmeticColorRow("Spell", () -> c.magicMissileEnabled, v -> c.magicMissileEnabled = v, () -> c.magicMissileColor, v -> c.magicMissileColor = v), "Cast by punching empty air with an empty hand - shoots a small particle projectile that bursts on impact. Drops a collectible \"Spell Essence\" item on a kill too - always on, no separate toggle."));
+					rows.add(headerRow(tr("skymelloo.gui.settings.header.spell")));
+					rows.add(tip(cosmeticColorRow(tr("skymelloo.gui.settings.row.spell.spell"), () -> c.magicMissileEnabled, v -> c.magicMissileEnabled = v, () -> c.magicMissileColor, v -> c.magicMissileColor = v), Component.translatable("skymelloo.gui.settings.tip.spell.spell")));
 				}
 			}
 			case GENERAL -> {
-				rows.add(headerRow("Hotkeys"));
-				rows.add(tip(keybindRow("Open This Menu", SkyMellooClient.getOpenConfigKey()), "Click, then press any key to rebind - same as vanilla's Controls > Key Binds, just without leaving this screen. Escape cancels without changing it."));
-				rows.add(headerRow("Menu"));
-				rows.add(tip(boolRow("SkyMelloo Menu Item", () -> c.skyMellooMenuItemEnabled, v -> c.skyMellooMenuItemEnabled = v, 0xFF66DDFF), "A fake \"SkyMelloo Menu\" item in hotbar slot 8 whenever that slot is empty - right-click to open a chest-style menu for SkyMelloo's own settings, the same way Hypixel's own SkyBlock Menu item (slot 9) works. Client-side only, never overwrites a real item actually in that slot."));
-				rows.add(headerRow("HUD"));
-				rows.add(tip(boolRow("Health/Mana Bars", () -> c.healthManaBarsEnabled, v -> c.healthManaBarsEnabled = v, 0xFF55DD55), "Master switch - a sleek custom health (green, gold where absorption extends past normal max) and mana (light blue, %) bar pair. Flashes white briefly where health was just lost. Position set via the HUD layout editor (default J)."));
-				rows.add(tip(boolRow("Health Bar", () -> c.healthBarEnabled, v -> c.healthBarEnabled = v, 0xFF55DD55), "Show the health bar specifically."));
-				rows.add(tip(boolRow("Mana Bar", () -> c.manaBarEnabled, v -> c.manaBarEnabled = v, 0xFF55CCFF), "Show the mana bar specifically."));
-				rows.add(tip(boolRow("Side By Side", () -> c.healthManaBarsSideBySide, v -> c.healthManaBarsSideBySide = v, 0xFFAAAAAA), "Mana bar next to the health bar instead of stacked below it."));
-				rows.add(tip(boolRow("Hide Hypixel's Native Bar", () -> c.hideNativeStatusActionBarEnabled, v -> c.hideNativeStatusActionBarEnabled = v, 0xFFAAAAAA), "Hides Hypixel's own plain Health/Defense/Mana actionbar text above the hotbar, since the custom bars above already show the same info. Turn off to see both at once."));
-				rows.add(headerRow("Chat"));
-				rows.add(tip(boolRow("Mention Highlight", () -> c.chatMentionHighlightEnabled, v -> c.chatMentionHighlightEnabled = v, 0xFFFFD700), "Highlight (bold + colored marker) any chat message that mentions your own username, and play a short sound - so a mention doesn't slip by unnoticed."));
-				rows.add(tip(colorRow("Mention Highlight Color", () -> c.chatMentionHighlightColor, v -> c.chatMentionHighlightColor = v), "Marker color for a chat mention of your own username."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.hotkeys")));
+				rows.add(tip(keybindRow(tr("skymelloo.gui.settings.row.hotkeys.open_this_menu"), SkyMellooClient.getOpenConfigKey()), Component.translatable("skymelloo.gui.settings.tip.hotkeys.open_this_menu")));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.menu")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.menu.skymelloo_menu_item"), () -> c.skyMellooMenuItemEnabled, v -> c.skyMellooMenuItemEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.menu.skymelloo_menu_item")));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.hud")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.hud.health_mana_bars"), () -> c.healthManaBarsEnabled, v -> c.healthManaBarsEnabled = v, 0xFF55DD55), Component.translatable("skymelloo.gui.settings.tip.hud.health_mana_bars")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.hud.health_bar"), () -> c.healthBarEnabled, v -> c.healthBarEnabled = v, 0xFF55DD55), Component.translatable("skymelloo.gui.settings.tip.hud.health_bar")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.hud.mana_bar"), () -> c.manaBarEnabled, v -> c.manaBarEnabled = v, 0xFF55CCFF), Component.translatable("skymelloo.gui.settings.tip.hud.mana_bar")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.hud.side_by_side"), () -> c.healthManaBarsSideBySide, v -> c.healthManaBarsSideBySide = v, 0xFFAAAAAA), Component.translatable("skymelloo.gui.settings.tip.hud.side_by_side")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.hud.hide_native_bar"), () -> c.hideNativeStatusActionBarEnabled, v -> c.hideNativeStatusActionBarEnabled = v, 0xFFAAAAAA), Component.translatable("skymelloo.gui.settings.tip.hud.hide_native_bar")));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.chat")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.chat.mention_highlight"), () -> c.chatMentionHighlightEnabled, v -> c.chatMentionHighlightEnabled = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.chat.mention_highlight")));
+				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.chat.mention_highlight_color"), () -> c.chatMentionHighlightColor, v -> c.chatMentionHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.chat.mention_highlight_color")));
 			}
 			case DEBUG -> {
-				rows.add(headerRow("Debug Messages"));
-				rows.add(tip(boolRow("Debug Messages", () -> c.debugMessagesEnabled, v -> c.debugMessagesEnabled = v, 0xFFAAAAAA), "Master switch - turns every category below on/off at once. Command replies and safety warnings always show regardless. Every row below only controls whether that system prints extra diagnostic chat messages for troubleshooting - none of them turn the actual feature on or off (e.g. \"Party Debug Log\" does NOT toggle the Party HUD, it just logs what the Party HUD is doing behind the scenes)."));
-				rows.add(tip(boolRow("Sync Debug Log", () -> c.debugSync, v -> c.debugSync = v, 0xFF66DDFF), "Prints friend list / party sync results to chat. Doesn't affect the sync itself."));
-				rows.add(tip(cycleRow("Sync Log Delivery", () -> c.debugSyncDelivery, v -> c.debugSyncDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Sync debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.debug_messages")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.enabled"), () -> c.debugMessagesEnabled, v -> c.debugMessagesEnabled = v, 0xFFAAAAAA), Component.translatable("skymelloo.gui.settings.tip.debug_messages.enabled")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.sync_log"), () -> c.debugSync, v -> c.debugSync = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.debug_messages.sync_log")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.debug_messages.sync_log_delivery"), () -> c.debugSyncDelivery, v -> c.debugSyncDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.debug_messages.sync_log_delivery")));
 				if (WhitelistManager.isAdmin()) {
-					rows.add(tip(boolRow("Permissions Debug Log", () -> c.debugPermissions, v -> c.debugPermissions = v, 0xFF55FF55), "Prints whitelist checks and per-feature permission fetches to chat. Admin-only - these messages never show to normal users regardless of this setting."));
-					rows.add(tip(cycleRow("Permissions Log Delivery", () -> c.debugPermissionsDelivery, v -> c.debugPermissionsDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Permissions debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
+					rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.permissions_log"), () -> c.debugPermissions, v -> c.debugPermissions = v, 0xFF55FF55), Component.translatable("skymelloo.gui.settings.tip.debug_messages.permissions_log")));
+					rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.debug_messages.permissions_log_delivery"), () -> c.debugPermissionsDelivery, v -> c.debugPermissionsDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.debug_messages.permissions_log_delivery")));
 				}
-				rows.add(tip(boolRow("Cloud Sync Debug Log", () -> c.debugCloudSync, v -> c.debugCloudSync = v, 0xFF5599FF), "Prints cloud settings push/pull results to chat. Doesn't affect the sync itself."));
-				rows.add(tip(cycleRow("Cloud Sync Log Delivery", () -> c.debugCloudSyncDelivery, v -> c.debugCloudSyncDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Cloud Sync debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Presence Debug Log", () -> c.debugPresence, v -> c.debugPresence = v, 0xFFAA33FF), "Prints mod-presence reporting activity (detecting other SkyMelloo users nearby) to chat."));
-				rows.add(tip(cycleRow("Presence Log Delivery", () -> c.debugPresenceDelivery, v -> c.debugPresenceDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Presence debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Party Debug Log", () -> c.debugParty, v -> c.debugParty = v, 0xFF55FFFF), "Prints the Party HUD's username/Magical Power resolution steps to chat. Does NOT toggle the Party HUD itself - that's the \"Party HUD\" option under Dungeons."));
-				rows.add(tip(cycleRow("Party Log Delivery", () -> c.debugPartyDelivery, v -> c.debugPartyDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Party debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Dungeon Debug Log", () -> c.debugDungeon, v -> c.debugDungeon = v, 0xFFAA33FF), "Prints the dungeon run tracker's floor/cleared%/time detection and run start/end to chat. Does NOT toggle the Score HUD/Run Report/etc. themselves - those are their own options under Dungeons."));
-				rows.add(tip(cycleRow("Dungeon Log Delivery", () -> c.debugDungeonDelivery, v -> c.debugDungeonDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Dungeon debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Staff Debug Log", () -> c.debugStaff, v -> c.debugStaff = v, 0xFFFFD700), "Prints staff-encounter scanning activity (/sm hitstaff) to chat."));
-				rows.add(tip(cycleRow("Staff Log Delivery", () -> c.debugStaffDelivery, v -> c.debugStaffDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), "Where the Staff debug messages above go. Falls back to LOCAL automatically if you're not actually in a party."));
-				rows.add(tip(boolRow("Mana Debug", () -> c.manaDebugEnabled, v -> c.manaDebugEnabled = v, 0xFF55CCFF), "Shows every (color, text) run actually seen in Hypixel's actionbar below the mana bar - for tracking down why mana detection isn't matching."));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.cloud_sync_log"), () -> c.debugCloudSync, v -> c.debugCloudSync = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.debug_messages.cloud_sync_log")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.debug_messages.cloud_sync_log_delivery"), () -> c.debugCloudSyncDelivery, v -> c.debugCloudSyncDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.debug_messages.cloud_sync_log_delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.presence_log"), () -> c.debugPresence, v -> c.debugPresence = v, 0xFFAA33FF), Component.translatable("skymelloo.gui.settings.tip.debug_messages.presence_log")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.debug_messages.presence_log_delivery"), () -> c.debugPresenceDelivery, v -> c.debugPresenceDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.debug_messages.presence_log_delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.party_log"), () -> c.debugParty, v -> c.debugParty = v, 0xFF55FFFF), Component.translatable("skymelloo.gui.settings.tip.debug_messages.party_log")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.debug_messages.party_log_delivery"), () -> c.debugPartyDelivery, v -> c.debugPartyDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.debug_messages.party_log_delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.dungeon_log"), () -> c.debugDungeon, v -> c.debugDungeon = v, 0xFFAA33FF), Component.translatable("skymelloo.gui.settings.tip.debug_messages.dungeon_log")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.debug_messages.dungeon_log_delivery"), () -> c.debugDungeonDelivery, v -> c.debugDungeonDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.debug_messages.dungeon_log_delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.staff_log"), () -> c.debugStaff, v -> c.debugStaff = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.debug_messages.staff_log")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.debug_messages.staff_log_delivery"), () -> c.debugStaffDelivery, v -> c.debugStaffDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.debug_messages.staff_log_delivery")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.debug_messages.mana_debug"), () -> c.manaDebugEnabled, v -> c.manaDebugEnabled = v, 0xFF55CCFF), Component.translatable("skymelloo.gui.settings.tip.debug_messages.mana_debug")));
 
-				rows.add(headerRow("Connection"));
-				rows.add(tip(boolRow("Connection Quality Check", () -> c.connectionQualityCheckEnabled, v -> c.connectionQualityCheckEnabled = v, 0xFFFFCC00), "On connecting to a server, show a \"Connecting...\" title and check ping stability for the first 5 seconds."));
-				rows.add(tip(boolRow("Auto-Reconnect", () -> c.autoReconnectEnabled, v -> c.autoReconnectEnabled = v, 0xFFFFCC00), "Automatically rejoin Hypixel a few seconds after an unexpected disconnect - Hypixel only, capped at 3 attempts in a row so a real kick/ban doesn't turn into hammering reconnects forever."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.connection")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.connection.quality_check"), () -> c.connectionQualityCheckEnabled, v -> c.connectionQualityCheckEnabled = v, 0xFFFFCC00), Component.translatable("skymelloo.gui.settings.tip.connection.quality_check")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.connection.auto_reconnect"), () -> c.autoReconnectEnabled, v -> c.autoReconnectEnabled = v, 0xFFFFCC00), Component.translatable("skymelloo.gui.settings.tip.connection.auto_reconnect")));
 			}
 			case CLOUD -> {
-				rows.add(headerRow("Account"));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.account")));
 				rows.add(infoRow("sky.melloo.me", this::connectionStatusLabel, this::connectionStatusColor));
 
-				rows.add(headerRow("Cloud Sync"));
-				rows.add(tip(boolRow("Cloud Sync", () -> c.cloudSyncEnabled, v -> c.cloudSyncEnabled = v, 0xFF5599FF), "Sync your settings to sky.melloo.me while your account is linked - a new device/reinstall under the same account starts from your existing settings instead of all defaults. Requires a linked account in addition to this toggle."));
-				rows.add(tip(actionRow("Push Now", "Upload", () -> CloudSyncManager.push(Minecraft.getInstance())), "Upload your current settings right now, without waiting for this menu to close. Requires a linked account."));
-				rows.add(tip(actionRow("Pull Now", "Download", () -> CloudSyncManager.forcePull(Minecraft.getInstance(), this::buildRows)), "Download your cloud settings right now and overwrite everything here - use this if you want to discard local changes."));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.cloud_sync")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.cloud_sync.enabled"), () -> c.cloudSyncEnabled, v -> c.cloudSyncEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.enabled")));
+				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.cloud_sync.push_now"), tr("skymelloo.gui.settings.button.cloud_sync.upload"), () -> CloudSyncManager.push(Minecraft.getInstance())), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.push_now")));
+				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.cloud_sync.pull_now"), tr("skymelloo.gui.settings.button.cloud_sync.download"), () -> CloudSyncManager.forcePull(Minecraft.getInstance(), this::buildRows)), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.pull_now")));
 
 				// Everything below is stuff other people (or the public sky.melloo.me website) can see
 				// about you - grouped here together rather than scattered under Dungeons/General, so
 				// it's obvious at a glance everything this account shares and there's one place to shut
 				// it all off for privacy.
-				rows.add(headerRow("Sharing & Privacy"));
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.sharing_privacy")));
 				// Renamed from "Presence Sharing" - this and Dungeon Sync below are now presented as
 				// the two peer halves of sharing: this one is the lightweight "general sync" (online
 				// status + which world/island/dungeon floor you're in), Dungeon Sync is the heavy
 				// per-tick dungeon-run detail. The underlying field is still presenceSharingEnabled -
 				// only the label/description changed, not the config key.
-				rows.add(tip(boolRow("Sync", () -> c.presenceSharingEnabled, v -> c.presenceSharingEnabled = v, 0xFFAA33FF), "Master switch for showing up as \"online\" to anyone else, and sharing which world/island/dungeon floor you're currently in - other SkyMelloo users' mod-user detection, the Credits online dot, the website's public online-user count, and your friends list entry on sky.melloo.me all depend on this. Off hides you from all of these, but you can still see OTHERS who have this on. Doesn't affect Cloud Sync above (that's just your own settings, never shown to anyone else)."));
-				rows.add(tip(stringRow("Status", () -> c.customStatusText, v -> c.customStatusText = v),
-						"Shown next to your name to other SkyMelloo users nearby, via sky.melloo.me. Leave empty to show nothing. Requires Sync above."));
-				rows.add(tip(boolRow("Dungeon Sync", () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, 0xFF66DDFF), "Share your current room/floor/secrets/score with party members also running SkyMelloo, and with the sky.melloo.me Dungeon lookup page - relayed over sky.melloo.me, invisible to anyone not running the mod. Room/secrets detail needs Skyblocker installed too (see Show Room Secrets under Dungeons). Requires Sync above. Reports once a second, fixed - not adjustable (see SkyMellooConfig's own comment on why)."));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.sharing_privacy.sync"), () -> c.presenceSharingEnabled, v -> c.presenceSharingEnabled = v, 0xFFAA33FF), Component.translatable("skymelloo.gui.settings.tip.sharing_privacy.sync")));
+				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.sharing_privacy.status"), () -> c.customStatusText, v -> c.customStatusText = v),
+						Component.translatable("skymelloo.gui.settings.tip.sharing_privacy.status")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.sharing_privacy.dungeon_sync"), () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.sharing_privacy.dungeon_sync")));
 			}
 		}
 		return rows;
@@ -581,23 +583,28 @@ public class SkyMellooSettingsScreen extends Screen {
 
 	private String connectionStatusLabel() {
 		if (WhitelistManager.isAdmin()) {
-			return "Connected (Admin)";
+			return tr("skymelloo.gui.settings.status.connected_admin");
 		}
 		if (WhitelistManager.isAllowed()) {
-			return "Connected";
+			return tr("skymelloo.gui.settings.status.connected");
 		}
-		return "Not connected";
+		return tr("skymelloo.gui.settings.status.not_connected");
 	}
 
 	private int connectionStatusColor() {
 		return WhitelistManager.isAllowed() ? 0xFF55FF55 : 0xFFFF5555;
 	}
 
+	/** Resolves a translation key to its display string, for row labels rendered as raw text. */
+	private static String tr(String key) {
+		return Component.translatable(key).getString();
+	}
+
 	/** Wraps any row factory with a hover tooltip explaining what the setting does. */
-	private RowFactory tip(RowFactory factory, String description) {
+	private RowFactory tip(RowFactory factory, Component tooltip) {
 		return (x, y, w, h) -> {
 			AbstractWidget widget = factory.create(x, y, w, h);
-			widget.setTooltip(Tooltip.create(Component.literal(description)));
+			widget.setTooltip(Tooltip.create(tooltip));
 			return widget;
 		};
 	}
@@ -707,7 +714,7 @@ public class SkyMellooSettingsScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
 		gg.fill(0, 0, this.width, this.height, PANEL_BG);
-		gg.centeredText(this.font, "SkyMelloo Settings", this.width / 2, MARGIN + 6, TEXT_ON);
+		gg.centeredText(this.font, tr("skymelloo.gui.settings.title"), this.width / 2, MARGIN + 6, TEXT_ON);
 
 		gg.fill(previewX1, previewY1, previewX2, previewY2, PREVIEW_BG);
 		gg.outline(previewX1, previewY1, previewX2 - previewX1, previewY2 - previewY1, 0x55FF6EC7);
@@ -727,7 +734,7 @@ public class SkyMellooSettingsScreen extends Screen {
 					client.player
 			);
 			gg.disableScissor();
-			gg.centeredText(this.font, "Ziehen zum Drehen, Scrollen zum Zoomen", centerX, previewY2 - 12, TEXT_OFF);
+			gg.centeredText(this.font, tr("skymelloo.gui.settings.hint.preview"), centerX, previewY2 - 12, TEXT_OFF);
 		}
 
 		if (maxScroll > 0) {
@@ -760,7 +767,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		private final Tab tab;
 
 		TabButtonWidget(int x, int y, int width, int height, Tab tab) {
-			super(x, y, width, height, Component.literal(tab.label));
+			super(x, y, width, height, Component.translatable(tab.labelKey));
 			this.tab = tab;
 		}
 
@@ -785,7 +792,7 @@ public class SkyMellooSettingsScreen extends Screen {
 			if (active) {
 				gg.fill(x1, y2 - 2, x2, y2, 0xFFFF6EC7);
 			}
-			gg.centeredText(Minecraft.getInstance().font, tab.label, (x1 + x2) / 2, y1 + (getHeight() - 8) / 2, active ? TEXT_ON : TEXT_OFF);
+			gg.centeredText(Minecraft.getInstance().font, tr(tab.labelKey), (x1 + x2) / 2, y1 + (getHeight() - 8) / 2, active ? TEXT_ON : TEXT_OFF);
 
 			gg.disableScissor();
 		}
@@ -1009,7 +1016,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		private final Runnable onPick;
 
 		SwatchWidget(int x, int y, int width, int height, int color, Runnable onPick) {
-			super(x, y, width, height, Component.literal("color swatch"));
+			super(x, y, width, height, Component.translatable("skymelloo.gui.settings.color_swatch"));
 			this.color = color;
 			this.onPick = onPick;
 		}
@@ -1066,7 +1073,7 @@ public class SkyMellooSettingsScreen extends Screen {
 
 			var font = Minecraft.getInstance().font;
 			String value = getter.get();
-			String shown = value.isEmpty() ? "(leer)" : (value.length() > 14 ? value.substring(0, 12) + "…" : value);
+			String shown = value.isEmpty() ? tr("skymelloo.gui.settings.value.empty") : (value.length() > 14 ? value.substring(0, 12) + "…" : value);
 			int valueWidth = font.width(shown);
 
 			gg.text(font, label, x1 + 2 + dotSize + 6, y1 + (getHeight() - 8) / 2, TEXT_ON);
@@ -1322,7 +1329,7 @@ public class SkyMellooSettingsScreen extends Screen {
 			}
 
 			var font = Minecraft.getInstance().font;
-			String shownButton = capturing ? "[ > Press a key < ]" : "[ " + mapping.getTranslatedKeyMessage().getString() + " ]";
+			String shownButton = capturing ? "[ " + tr("skymelloo.gui.settings.keybind.press_a_key") + " ]" : "[ " + mapping.getTranslatedKeyMessage().getString() + " ]";
 			int buttonWidth = font.width(shownButton);
 
 			gg.text(font, label, x1 + 2, y1 + (getHeight() - 8) / 2, TEXT_ON);

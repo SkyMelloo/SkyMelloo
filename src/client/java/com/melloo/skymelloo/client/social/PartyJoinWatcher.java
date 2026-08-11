@@ -104,7 +104,7 @@ public final class PartyJoinWatcher {
 								return;
 							}
 							if (summaryError != null) {
-								client.player.sendSystemMessage(ChatUtil.prefixed("§7Couldn't load stats for §f" + username + "§7 (" + summaryError.getMessage() + ")."));
+								client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.party_join.stats_load_failed", username, summaryError.getMessage())));
 								return;
 							}
 							SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
@@ -112,7 +112,7 @@ public final class PartyJoinWatcher {
 
 							if (config.partyJoinStatsEnabled) {
 								String rendered = renderTemplate(config.dungeonInfoMessageTemplate, username, summary, mpAvailable ? mp.magicalPower() : -1);
-								String finderSuffix = dungeonClass != null ? " §7(Finder: §b" + dungeonClass + " " + dungeonLevel + "§r)" : "";
+								String finderSuffix = dungeonClass != null ? Component.translatable("skymelloo.chat.party_join.finder_suffix", dungeonClass, dungeonLevel).getString() : "";
 								DungeonRunTracker.sendDungeonMessage(client, rendered + finderSuffix, config.dungeonInfoMessageDelivery);
 							}
 
@@ -128,7 +128,7 @@ public final class PartyJoinWatcher {
 			Minecraft.getInstance().execute(() -> {
 				Minecraft client = Minecraft.getInstance();
 				if (client.player != null) {
-					client.player.sendSystemMessage(ChatUtil.prefixed("§7Couldn't load stats for §f" + username + "§7 (" + ChatUtil.friendlyError(error) + ")."));
+					client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.party_join.stats_load_failed", username, ChatUtil.friendlyError(error))));
 				}
 			});
 			return null;
@@ -166,14 +166,14 @@ public final class PartyJoinWatcher {
 			DungeonRunTracker.sendDungeonMessage(client, text, config.dungeonAutoKickDelivery);
 			return;
 		}
-		MutableComponent warning = Component.literal("§cUser with too low " + statLabel + ": §f" + username
-				+ "§c (" + value + " < " + config.dungeonAutoKickThreshold + ") ");
+		MutableComponent warning = Component.translatable("skymelloo.chat.party_join.low_stat_warning",
+				statLabel, username, value, config.dungeonAutoKickThreshold);
 		if (isLeader) {
-			MutableComponent kickButton = Component.literal("[Kick]").withStyle(style -> style
+			MutableComponent kickButton = Component.translatable("skymelloo.chat.party_join.kick_button").withStyle(style -> style
 					.withColor(ChatFormatting.RED)
 					.withBold(true)
 					.withClickEvent(new ClickEvent.RunCommand("/party kick " + username))
-					.withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to kick " + username))));
+					.withHoverEvent(new HoverEvent.ShowText(Component.translatable("skymelloo.chat.party_join.kick_button_hover", username))));
 			warning = warning.append(kickButton);
 		}
 		client.player.sendSystemMessage(ChatUtil.prefixed(warning));

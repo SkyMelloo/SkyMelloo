@@ -22,8 +22,8 @@ public final class SkyMellooButtonWidget extends AbstractWidget {
 	private final int accent;
 	private final Runnable onClick;
 
-	public SkyMellooButtonWidget(int x, int y, int width, int height, String label, int accent, Runnable onClick) {
-		super(x, y, width, height, Component.literal(label));
+	public SkyMellooButtonWidget(int x, int y, int width, int height, Component label, int accent, Runnable onClick) {
+		super(x, y, width, height, label);
 		this.accent = accent;
 		this.onClick = onClick;
 	}

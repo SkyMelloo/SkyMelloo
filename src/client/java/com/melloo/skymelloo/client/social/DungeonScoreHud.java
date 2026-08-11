@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,16 +86,16 @@ public final class DungeonScoreHud implements HudElement {
 		// No "[Skyblocker]" tag anymore -
 		// now that it's always the source when available (not a toggle), calling it out every time
 		// was just clutter, not useful information.
-		lines.add("Dungeon Score: " + displayedTotal + " (" + displayedGrade + ")" + paceArrow);
+		lines.add(Component.translatable("skymelloo.chat.dungeon_score.header", displayedTotal, displayedGrade, paceArrow).getString());
 		colors.add(new int[]{gradeColor(displayedGrade)});
 
 		if (config.dungeonScoreShowNextGrade) {
 			DungeonRunTracker.NextGrade next = DungeonRunTracker.nextGrade(displayedTotal);
 			if (next != null) {
-				lines.add("Next grade (" + next.label() + "): +" + next.pointsNeeded());
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.next_grade", next.label(), next.pointsNeeded()).getString());
 				colors.add(new int[]{gradeColor(next.label())});
 			} else {
-				lines.add("Max grade reached!");
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.max_grade_reached").getString());
 				colors.add(new int[]{gradeColor("S+")});
 			}
 		}
@@ -102,10 +103,10 @@ public final class DungeonScoreHud implements HudElement {
 		if (config.dungeonScoreShowPaceAndCountdown && DungeonRunTracker.hasTimeLimit()) {
 			int remaining = DungeonRunTracker.getTimeRemainingSeconds();
 			if (remaining >= 0) {
-				lines.add("Time left: " + formatMinSec(remaining));
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.time_left", formatMinSec(remaining)).getString());
 				colors.add(new int[]{0xFFAAAAAA});
 			} else {
-				lines.add("Time's up! +" + formatMinSec(-remaining));
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.time_up", formatMinSec(-remaining)).getString());
 				colors.add(new int[]{0xFFFF5555});
 			}
 			// How much MORE time can still pass (from right now) while S+ stays mathematically
@@ -114,7 +115,7 @@ public final class DungeonScoreHud implements HudElement {
 			// binding constraint right now (everything else alone already covers it).
 			Integer splusMargin = DungeonRunTracker.getExtraSecondsForSPlus();
 			if (splusMargin != null && splusMargin.intValue() != Integer.MAX_VALUE) {
-				lines.add("S+ margin: +" + formatMinSec(splusMargin));
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.splus_margin", formatMinSec(splusMargin)).getString());
 				colors.add(new int[]{splusMargin <= 30 ? 0xFFFF5555 : 0xFFFFD700});
 			}
 		}
@@ -124,30 +125,30 @@ public final class DungeonScoreHud implements HudElement {
 			// DungeonRunTracker#bestPossibleTotal) - lets you see at a glance how much room is left
 			// versus how much has already been permanently lost to fails/deaths.
 			int possible = DungeonRunTracker.getBestPossibleScore();
-			lines.add("Possible: " + possible + " (" + DungeonRunTracker.gradeForTotal(possible) + ")");
+			lines.add(Component.translatable("skymelloo.chat.dungeon_score.possible", possible, DungeonRunTracker.gradeForTotal(possible)).getString());
 			colors.add(new int[]{gradeColor(DungeonRunTracker.gradeForTotal(possible))});
 
 			// Itemized rather than combined onto one line - each deduction type gets its own line so
 			// it reads as a real breakdown, not a crammed single summary.
 			DungeonRunTracker.ScorePenalties penalties = DungeonRunTracker.currentPenalties();
 			if (penalties.puzzleFailPenalty() > 0) {
-				lines.add("-" + penalties.puzzleFailPenalty() + " Puzzles failed");
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.puzzles_failed_penalty", penalties.puzzleFailPenalty()).getString());
 				colors.add(new int[]{0xFFFF5555});
 			}
 			if (penalties.deathPenalty() > 0) {
-				lines.add("-" + penalties.deathPenalty() + " Deaths");
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.deaths_penalty", penalties.deathPenalty()).getString());
 				colors.add(new int[]{0xFFFF5555});
 			}
 		}
 
 		if (config.dungeonScoreShowBreakdown) {
-			lines.add("Skill " + score.skill() + "  Explore " + score.explore() + "  Speed " + score.speed() + "  Bonus " + score.bonus());
+			lines.add(Component.translatable("skymelloo.chat.dungeon_score.breakdown", score.skill(), score.explore(), score.speed(), score.bonus()).getString());
 			colors.add(new int[]{0xFFAAAAAA});
 		}
 
 		// Explore is 60%-rooms + 40%-secrets combined into one number - shown separately here since
 		// it's not obvious from the breakdown alone that clearing rooms is part of it at all.
-		lines.add("Rooms cleared: " + (int) DungeonRunTracker.getClearedPercent() + "%");
+		lines.add(Component.translatable("skymelloo.chat.dungeon_score.rooms_cleared", (int) DungeonRunTracker.getClearedPercent()).getString());
 		colors.add(new int[]{0xFFAAAAAA});
 
 		if (config.dungeonScoreShowRoomSecrets) {
@@ -159,13 +160,14 @@ public final class DungeonScoreHud implements HudElement {
 			// "not applicable/not yet counted" for that room type, not a real 0-secret room. Showing the
 			// raw negative numbers read as broken, so this just hides the line entirely in that case.
 			if (roomSecrets != null && roomSecrets.max() >= 0) {
-				lines.add("Room secrets: " + roomSecrets.found() + "/" + roomSecrets.max() + (roomSecrets.roomName() != null ? " (" + roomSecrets.roomName() + ")" : ""));
+				lines.add(Component.translatable("skymelloo.chat.dungeon_score.room_secrets", roomSecrets.found(), roomSecrets.max()).getString()
+						+ (roomSecrets.roomName() != null ? " (" + roomSecrets.roomName() + ")" : ""));
 				colors.add(new int[]{0xFF66DDFF});
 			}
 			List<SkyblockerBridge.SecretRow> secretRows = SkyblockerBridge.getCurrentRoomSecretDetails();
 			if (secretRows != null) {
 				for (SkyblockerBridge.SecretRow secret : secretRows) {
-					lines.add((secret.found() ? "✓ Secret " : "✖ Secret ") + (secret.secretIndex() + 1));
+					lines.add((secret.found() ? "✓ " : "✖ ") + Component.translatable("skymelloo.chat.dungeon_score.secret_row", secret.secretIndex() + 1).getString());
 					colors.add(new int[]{secret.found() ? 0xFF55FF55 : 0xFFFF5555});
 				}
 			}
@@ -183,7 +185,7 @@ public final class DungeonScoreHud implements HudElement {
 			for (DungeonRunTracker.PuzzleResult puzzle : DungeonRunTracker.getPuzzleOutcomes()) {
 				switch (puzzle.outcome()) {
 					case PENDING -> {
-						lines.add("… Puzzle pending");
+						lines.add("… " + Component.translatable("skymelloo.chat.dungeon_score.puzzle_pending").getString());
 						colors.add(new int[]{0xFFFFAA00});
 					}
 					// Which puzzle solved/failed, who, and why - straight from Hypixel's own chat
@@ -232,32 +234,33 @@ public final class DungeonScoreHud implements HudElement {
 		List<int[]> colors = new ArrayList<>();
 		List<String> lines = new ArrayList<>();
 
-		lines.add("=== Final Result ===");
+		lines.add(Component.translatable("skymelloo.chat.dungeon_score.final_result_header").getString());
 		colors.add(new int[]{0xFFFFD700});
 
-		lines.add("Score: " + result.displayedScore() + " (" + result.displayedGrade() + ")");
+		lines.add(Component.translatable("skymelloo.chat.dungeon_score.final_score", result.displayedScore(), result.displayedGrade()).getString());
 		colors.add(new int[]{gradeColor(result.displayedGrade())});
 
-		lines.add("Floor: " + (result.floor() != null ? result.floor() : "?") + "  Rooms: " + (int) result.clearedPercent() + "%  Secrets: " + (int) result.secretsPercentage() + "%");
+		lines.add(Component.translatable("skymelloo.chat.dungeon_score.final_floor_summary",
+				result.floor() != null ? result.floor() : "?", (int) result.clearedPercent(), (int) result.secretsPercentage()).getString());
 		colors.add(new int[]{0xFFAAAAAA});
 
 		if (config.dungeonScoreShowBreakdown) {
 			DungeonRunTracker.ScoreEstimate estimate = result.estimate();
-			lines.add("Skill " + estimate.skill() + "  Explore " + estimate.explore() + "  Speed " + estimate.speed() + "  Bonus " + estimate.bonus());
+			lines.add(Component.translatable("skymelloo.chat.dungeon_score.breakdown", estimate.skill(), estimate.explore(), estimate.speed(), estimate.bonus()).getString());
 			colors.add(new int[]{0xFFAAAAAA});
 		}
 
-		lines.add("Crypts opened: " + result.crypts());
+		lines.add(Component.translatable("skymelloo.chat.dungeon_score.crypts_opened", result.crypts()).getString());
 		colors.add(new int[]{0xFFAAAAAA});
 
-		lines.add("Puzzles: " + result.puzzlesSolved() + " solved, " + result.puzzlesFailed() + " failed");
+		lines.add(Component.translatable("skymelloo.chat.dungeon_score.puzzles_summary", result.puzzlesSolved(), result.puzzlesFailed()).getString());
 		colors.add(new int[]{result.puzzlesFailed() > 0 ? 0xFFFFAA00 : 0xFF55FF55});
 
 		if (result.deathsTotal() == 0) {
-			lines.add("No deaths this run.");
+			lines.add(Component.translatable("skymelloo.chat.dungeon_score.no_deaths").getString());
 			colors.add(new int[]{0xFF55FF55});
 		} else {
-			lines.add("Deaths: " + result.deathsTotal());
+			lines.add(Component.translatable("skymelloo.chat.dungeon_score.deaths_total", result.deathsTotal()).getString());
 			colors.add(new int[]{0xFFFF5555});
 		}
 

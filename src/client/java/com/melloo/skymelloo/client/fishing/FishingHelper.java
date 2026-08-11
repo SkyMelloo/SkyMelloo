@@ -88,8 +88,8 @@ public final class FishingHelper {
 			return;
 		}
 		client.gui.setTimes(2, 20, 8);
-		client.gui.setTitle(Component.literal("Bite!").withStyle(s -> s.withColor(0x55CCFF)));
-		client.gui.setSubtitle(Component.literal("Reel it in!").withStyle(s -> s.withColor(0xAAAAAA)));
+		client.gui.setTitle(Component.translatable("skymelloo.chat.fishing.bite_title").withStyle(s -> s.withColor(0x55CCFF)));
+		client.gui.setSubtitle(Component.translatable("skymelloo.chat.fishing.bite_subtitle").withStyle(s -> s.withColor(0xAAAAAA)));
 	}
 
 	private static void spawnBiteBurst(Minecraft client, FishingHook hook, boolean big) {

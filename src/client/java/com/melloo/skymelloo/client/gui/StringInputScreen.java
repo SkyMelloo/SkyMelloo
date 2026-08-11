@@ -90,12 +90,12 @@ public class StringInputScreen extends Screen {
 		int cancelX = panelX + panelWidth - 16 - BUTTON_WIDTH;
 		int saveX = cancelX - 8 - BUTTON_WIDTH;
 
-		addRenderableWidget(new StyledButton(saveX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, "Speichern", SAVE_ACCENT, () -> {
+		addRenderableWidget(new StyledButton(saveX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, Component.translatable("skymelloo.gui.string_input.save"), SAVE_ACCENT, () -> {
 			onSave.accept(editBox.getValue());
 			Minecraft.getInstance().setScreen(parent);
 		}));
 
-		addRenderableWidget(new StyledButton(cancelX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, "Abbrechen", CANCEL_ACCENT,
+		addRenderableWidget(new StyledButton(cancelX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT, Component.translatable("skymelloo.gui.string_input.cancel"), CANCEL_ACCENT,
 				() -> Minecraft.getInstance().setScreen(parent)));
 	}
 
@@ -108,8 +108,8 @@ public class StringInputScreen extends Screen {
 		private final int accentColor;
 		private final Runnable onClick;
 
-		StyledButton(int x, int y, int width, int height, String label, int accentColor, Runnable onClick) {
-			super(x, y, width, height, Component.literal(label));
+		StyledButton(int x, int y, int width, int height, Component label, int accentColor, Runnable onClick) {
+			super(x, y, width, height, label);
 			this.accentColor = accentColor;
 			this.onClick = onClick;
 		}

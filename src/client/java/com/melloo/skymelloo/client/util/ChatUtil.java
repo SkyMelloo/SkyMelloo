@@ -59,7 +59,7 @@ public final class ChatUtil {
 	 * by the time this shows at all, the automatic 1-retry in SkyMellooApiClient already failed too.
 	 */
 	public static String errorMessage(String name, Throwable error) {
-		return "§c✖ §7Error in §e" + name + "§7: §c" + friendlyError(error);
+		return Component.translatable("skymelloo.chat.error.error_in", name, friendlyError(error)).getString();
 	}
 
 	/**
@@ -74,7 +74,7 @@ public final class ChatUtil {
 			cause = cause.getCause();
 		}
 		if (cause instanceof java.net.http.HttpTimeoutException) {
-			return "Timed out - server isn't responding";
+			return Component.translatable("skymelloo.chat.error.timed_out").getString();
 		}
 		String msg = cause.getMessage();
 		return msg != null && !msg.isBlank() ? msg : cause.getClass().getSimpleName();
