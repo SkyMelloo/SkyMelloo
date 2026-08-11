@@ -30,7 +30,10 @@ import java.util.concurrent.TimeUnit;
  * touching any game state.
  */
 public final class SkyMellooApiClient {
-	private static final String BASE_URL = "https://sky.melloo.me/api";
+	private static final String BASE_URL = "https://sky.melloo.me/api/public/mod/v1";
+	// /credits has no v1 equivalent (shared with the website's own credits page, not mod-specific) -
+	// the one remaining call still against the old base URL, see getJsonLegacy/fetchCredits.
+	private static final String LEGACY_BASE_URL = "https://sky.melloo.me/api";
 	private static final HttpClient HTTP = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();
@@ -307,6 +310,26 @@ public final class SkyMellooApiClient {
 		return getJson(path, null);
 	}
 
+	/** Only fetchCredits uses this - see LEGACY_BASE_URL. Never signed, same as the v1 unauthenticated calls. */
+	private static CompletableFuture<JsonObject> getJsonLegacy(String path) {
+		HttpRequest.Builder builder = HttpRequest.newBuilder()
+				.uri(URI.create(LEGACY_BASE_URL + path))
+				.timeout(Duration.ofSeconds(8))
+				.header("X-SkyMelloo-Client", "mod")
+				.GET();
+		return sendWithRetry(builder.build())
+				.thenApply(response -> {
+					if (response.statusCode() != 200) {
+						throw new RuntimeException(extractErrorMessage(response.body(), response.statusCode()));
+					}
+					com.google.gson.JsonElement parsed = JsonParser.parseString(response.body());
+					if (!parsed.isJsonObject()) {
+						throw new RuntimeException("No data found");
+					}
+					return parsed.getAsJsonObject();
+				});
+	}
+
 	/** @param identity a live identity from {@link ModAuthManager#getIdentity}, required by every /mod/* route except the auth handshake itself and /mod/check. Signs this specific request rather than attaching a single reusable token - see attachSignature. */
 	private static CompletableFuture<JsonObject> getJson(String path, ModAuthManager.ModIdentity identity) {
 		HttpRequest.Builder builder = HttpRequest.newBuilder()
@@ -421,14 +444,13 @@ public final class SkyMellooApiClient {
 	/**
 	 * Only the path is signed, never the query string - none of the query params on these routes
 	 * (e.g. checkVersion's ?version=/&hash=) are sensitive or mutate any state, so this is a
-	 * deliberate simplification, not an oversight. Also prepends "/api" - the path strings the call
-	 * sites above pass in (e.g. "/mod/friends") don't include it, but Express's req.path on the
-	 * server DOES (see lib/modAuth.js#verifySignedRequest), so the signed message has to match that.
+	 * deliberate simplification, not an oversight. Prepends "/api/public/mod/v1" to match the full
+	 * signed path the server expects (see DEVELOPER_API.md section 3.1).
 	 */
 	private static String requestPath(String pathWithQuery) {
 		int queryStart = pathWithQuery.indexOf('?');
 		String pathOnly = queryStart < 0 ? pathWithQuery : pathWithQuery.substring(0, queryStart);
-		return "/api" + pathOnly;
+		return "/api/public/mod/v1" + pathOnly;
 	}
 
 	/** One other player currently reporting presence - their SkyMelloo cosmetic tokens (e.g. "halo:AA33FF" or "cherryBlossom"), custom status text, live dungeon-sync data (room/secrets/etc, see DungeonSyncManager), whether they have a linked sky.melloo.me account (nametag marker), and their server-resolved role ("owner"/"admin"/"developer", or null), if any. */
@@ -508,7 +530,7 @@ public final class SkyMellooApiClient {
 
 	/** {@code jarHash} (lowercase hex SHA-256 of this build's own jar, see ModVersionManager) is optional - null when running from a dev/exploded classpath rather than a real packaged jar. */
 	public static CompletableFuture<VersionCheckResult> checkVersion(String version, String jarHash) {
-		String url = "/mod/version-check?version=" + encode(version) + (jarHash != null ? "&hash=" + encode(jarHash) : "");
+		String url = "/version-check?version=" + encode(version) + (jarHash != null ? "&hash=" + encode(jarHash) : "");
 		return getJson(url).thenApply(root -> new VersionCheckResult(
 				root.has("compatible") && root.get("compatible").getAsBoolean(),
 				root.has("minVersion") && !root.get("minVersion").isJsonNull() ? root.get("minVersion").getAsString() : null,
@@ -535,7 +557,7 @@ public final class SkyMellooApiClient {
 	 * (see server.js's 403) for an unverified build - the caller shows a "not available" message.
 	 */
 	public static CompletableFuture<LegalInfo> fetchLegalInfo(String jarHash) {
-		String url = "/mod/legal" + (jarHash != null ? "?hash=" + encode(jarHash) : "");
+		String url = "/legal" + (jarHash != null ? "?hash=" + encode(jarHash) : "");
 		return getJson(url).thenApply(root -> new LegalInfo(
 				root.get("imprint").getAsString(),
 				root.get("privacy").getAsString(),
@@ -548,7 +570,7 @@ public final class SkyMellooApiClient {
 	}
 
 	public static CompletableFuture<ChallengeResult> requestAuthChallenge() {
-		return getJson("/mod/auth/challenge").thenApply(root ->
+		return getJson("/auth/challenge").thenApply(root ->
 				new ChallengeResult(root.get("serverId").getAsString(), root.get("serverTime").getAsLong()));
 	}
 
@@ -562,13 +584,13 @@ public final class SkyMellooApiClient {
 		body.addProperty("username", username);
 		body.addProperty("uuid", uuid);
 		body.addProperty("publicKey", publicKeyBase64);
-		return postJson("/mod/auth/verify", body)
+		return postJson("/auth/verify", body)
 				.thenApply(root -> new SessionResult(root.get("expiresAt").getAsLong()));
 	}
 
 	/** Resolved per-feature permissions (cosmetics, etc.) - admin-configurable defaults + per-user overrides, resolved server-side from the verified signed request. */
 	public static CompletableFuture<Map<String, Boolean>> fetchPermissions(ModAuthManager.ModIdentity identity) {
-		return getJson("/mod/permissions", identity).thenApply(root -> {
+		return getJson("/permissions", identity).thenApply(root -> {
 			Map<String, Boolean> result = new HashMap<>();
 			for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
 				if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isBoolean()) {
@@ -581,7 +603,7 @@ public final class SkyMellooApiClient {
 
 	/** Whether the account behind this identity is verified-linked to the admin website account (via /skymelloo verify). */
 	public static CompletableFuture<Boolean> checkIsAdmin(ModAuthManager.ModIdentity identity) {
-		return getJson("/mod/is-admin", identity).thenApply(root ->
+		return getJson("/is-admin", identity).thenApply(root ->
 				root.has("isAdmin") && !root.get("isAdmin").isJsonNull() && root.get("isAdmin").getAsBoolean()
 		);
 	}
@@ -596,7 +618,7 @@ public final class SkyMellooApiClient {
 
 	/** Starts the mirror-image of "/skymelloo verify <code>" - instead of typing a website-generated code in-game, this generates a token in-game (via the signed request, so it's tied to a proven identity) that the website consumes once opened, using whatever Discord session is already there. */
 	public static CompletableFuture<LinkStartResult> startAccountLink(ModAuthManager.ModIdentity identity) {
-		return postJson("/mod/link/start", new JsonObject(), identity)
+		return postJson("/link/start", new JsonObject(), identity)
 				.thenApply(root -> new LinkStartResult(true, root.get("token").getAsString(), null))
 				.exceptionally(error -> new LinkStartResult(false, null, ChatUtil.friendlyError(error)));
 	}
@@ -606,7 +628,7 @@ public final class SkyMellooApiClient {
 
 	/** The cloud-synced settings blob for the account behind this identity, or null if nothing's been saved yet (or the request failed). */
 	public static CompletableFuture<CloudSettingsResult> fetchCloudSettings(ModAuthManager.ModIdentity identity) {
-		return getJson("/mod/settings", identity)
+		return getJson("/settings", identity)
 				.thenApply(root -> root.has("settings") && root.get("settings").isJsonObject()
 						? new CloudSettingsResult(root.getAsJsonObject("settings"))
 						: null)
@@ -617,14 +639,14 @@ public final class SkyMellooApiClient {
 	public static CompletableFuture<Boolean> pushCloudSettings(ModAuthManager.ModIdentity identity, JsonObject settings) {
 		JsonObject body = new JsonObject();
 		body.add("settings", settings);
-		return postJson("/mod/settings", body, identity)
+		return postJson("/settings", body, identity)
 				.thenApply(root -> true)
 				.exceptionally(error -> false);
 	}
 
 	/** Undoes "/skymelloo verify" - only ever affects whichever account the signed request proves you are. */
 	public static CompletableFuture<VerifyResult> unlinkAccount(ModAuthManager.ModIdentity identity) {
-		return postJson("/mod/unlink", new JsonObject(), identity)
+		return postJson("/unlink", new JsonObject(), identity)
 				.thenApply(root -> new VerifyResult(true, null))
 				.exceptionally(error -> new VerifyResult(false, ChatUtil.friendlyError(error)));
 	}
@@ -635,7 +657,7 @@ public final class SkyMellooApiClient {
 
 	/** Who's credited for the mod/website - pulled live from sky.melloo.me rather than hardcoded in the mod, so it stays current without a mod update. See the website's own home page for the same data. */
 	public static CompletableFuture<List<CreditEntry>> fetchCredits() {
-		return getJson("/credits").thenApply(root -> {
+		return getJsonLegacy("/credits").thenApply(root -> {
 			List<CreditEntry> result = new ArrayList<>();
 			if (root.has("credits") && root.get("credits").isJsonArray()) {
 				for (JsonElement el : root.getAsJsonArray("credits")) {
