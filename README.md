@@ -53,6 +53,8 @@ form](https://sky.melloo.me/report-bug) or GitHub Issues here. See
 ## License
 
 [GNU Affero General Public License v3.0](LICENSE). Copyright (C) 2026 Maja Bekurdts (hexedmaya).
+Modified versions must be clearly marked as unofficial (see the additional term at the top of
+[LICENSE](LICENSE)).
 
 ## Contact
 
