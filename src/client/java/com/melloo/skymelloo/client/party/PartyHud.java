@@ -94,7 +94,7 @@ public final class PartyHud implements HudElement {
 		// actual run - HypixelLocationTracker#isLikelyInDungeon is a best-effort substring match on
 		// Hypixel's own (undocumented) location data, not a hardcoded room/floor check, so it already
 		// covers "somewhere in the Catacombs area" rather than just "mid-run".
-		if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock() || !com.melloo.skymelloo.client.social.HypixelLocationTracker.isLikelyInDungeon()) {
+		if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock() || !com.melloo.mellooessentials.client.social.HypixelLocationTracker.isLikelyInDungeon()) {
 			return;
 		}
 		Map<java.util.UUID, PartyHudManager.MemberInfo> members = PartyHudManager.getMembers();

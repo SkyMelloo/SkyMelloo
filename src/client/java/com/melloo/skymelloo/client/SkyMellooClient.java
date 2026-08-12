@@ -94,7 +94,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		com.melloo.mellooessentials.client.highlight.HighlightManager.setPartyBlinkColorOverride(
 				com.melloo.skymelloo.client.highlight.HighlightManager::partyBlinkOverride);
 		PartyTracker.init();
-		com.melloo.skymelloo.client.social.HypixelLocationTracker.init();
+		ModPresenceManager.init();
 		PartyJoinWatcher.init();
 		DungeonRunTracker.init();
 		com.melloo.skymelloo.client.social.ActionBarTracker.init();
@@ -169,7 +169,6 @@ public class SkyMellooClient implements ClientModInitializer {
 			// just a no-op everywhere else.
 			ConnectionQualityMonitor.tick(client);
 			com.melloo.skymelloo.client.util.SkyblockDetector.tick(client);
-			com.melloo.skymelloo.client.util.AfkDetector.tick(client);
 			SkyMellooPingMonitor.tick(client);
 			com.melloo.skymelloo.client.util.AutoReconnect.tick(client);
 
@@ -221,7 +220,6 @@ public class SkyMellooClient implements ClientModInitializer {
 			MagicMissileManager.tick(client);
 			com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.tick(client);
 			com.melloo.skymelloo.client.combat.DeathRecapManager.tick(client);
-			ModPresenceManager.tick(client);
 			com.melloo.skymelloo.client.social.DungeonSyncManager.sampleTick(client);
 			com.melloo.skymelloo.client.social.BossRoomScanner.tick(client);
 			TickDelay.tick();

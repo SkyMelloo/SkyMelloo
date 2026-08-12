@@ -121,8 +121,8 @@ public final class DungeonDebugHud implements HudElement {
 		}
 		// Raw values straight from Hypixel's own Mod API location event - not documented anywhere
 		// public, shown here so the real strings can actually be read off live instead of guessed at.
-		lines.add(Component.translatable("skymelloo.chat.dungeon_debug.hypixel_mode", HypixelLocationTracker.getMode() != null ? HypixelLocationTracker.getMode() : "?").getString());
-		lines.add(Component.translatable("skymelloo.chat.dungeon_debug.hypixel_map", HypixelLocationTracker.getMap() != null ? HypixelLocationTracker.getMap() : "?").getString());
+		lines.add(Component.translatable("skymelloo.chat.dungeon_debug.hypixel_mode", com.melloo.mellooessentials.client.social.HypixelLocationTracker.getMode() != null ? com.melloo.mellooessentials.client.social.HypixelLocationTracker.getMode() : "?").getString());
+		lines.add(Component.translatable("skymelloo.chat.dungeon_debug.hypixel_map", com.melloo.mellooessentials.client.social.HypixelLocationTracker.getMap() != null ? com.melloo.mellooessentials.client.social.HypixelLocationTracker.getMap() : "?").getString());
 
 		int x = config.hudDebugX;
 		int y = config.hudDebugY;
