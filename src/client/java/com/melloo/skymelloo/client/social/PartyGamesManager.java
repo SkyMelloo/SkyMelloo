@@ -14,28 +14,15 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Two lightweight, entirely chat-based party minigames for downtime (queue waiting, deciding who
- * goes first, etc.) - fully self-contained, no hook into any other tracker in this mod:
- * <ul>
- *     <li>{@code /sm roll <amount>} - a dice roll; {@code /sm roll party} - picks a random party
- *     member (including yourself); {@code /sm roll <word> <seconds>} - a timed raffle, whoever
- *     types {@code <word>} in party chat within the time limit gets entered, one winner picked at
- *     the end.</li>
- *     <li>{@code /sm poll start <question>;<answer1>;<answer2>;...[;asword]} - starts a party vote,
- *     tallied on {@code /sm poll close}. Votes are read directly from party chat (a plain number
- *     matching an answer's position, or - if {@code asword} was given - the answer text itself).
- *     Each player's latest valid vote is the only one that counts, however many times they change
- *     their mind.</li>
- * </ul>
+ * {@code /sm roll <amount>} - a dice roll; {@code /sm roll party} - picks a random party member
+ * (including yourself); {@code /sm roll <word> <seconds>} - a timed raffle, whoever types
+ * {@code <word>} in party chat within the time limit gets entered, one winner picked at the end.
  */
 public final class PartyGamesManager {
 	// "Party > [MVP++] Name: message" or "Party > Name: message" - Hypixel never shows more than one
@@ -48,14 +35,6 @@ public final class PartyGamesManager {
 	private static String wordRollTarget = null;
 	private static final List<String> wordRollEntrants = new ArrayList<>();
 
-	// Poll state - null question means no poll currently running.
-	private static String pollQuestion = null;
-	private static List<String> pollAnswers = new ArrayList<>();
-	private static boolean pollAllowAnswersAsWord = false;
-	// Username (lowercased) -> chosen answer index - a repeat vote overwrites their previous one, so
-	// each player only ever counts once no matter how many times they change their mind.
-	private static final Map<String, Integer> pollVotes = new LinkedHashMap<>();
-
 	private PartyGamesManager() {
 	}
 
@@ -65,7 +44,7 @@ public final class PartyGamesManager {
 		}
 		initialized = true;
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-			if (wordRollTarget == null && pollQuestion == null) {
+			if (wordRollTarget == null) {
 				return;
 			}
 			Matcher matcher = PARTY_CHAT_LINE.matcher(message.getString());
@@ -76,35 +55,9 @@ public final class PartyGamesManager {
 	}
 
 	private static void onPartyChatLine(String sender, String body) {
-		if (wordRollTarget != null && body.equalsIgnoreCase(wordRollTarget) && !containsIgnoreCase(wordRollEntrants, sender)) {
+		if (body.equalsIgnoreCase(wordRollTarget) && !containsIgnoreCase(wordRollEntrants, sender)) {
 			wordRollEntrants.add(sender);
 		}
-		if (pollQuestion != null) {
-			Integer choice = resolveVoteChoice(body);
-			if (choice != null) {
-				pollVotes.put(sender.toLowerCase(Locale.ROOT), choice);
-			}
-		}
-	}
-
-	private static Integer resolveVoteChoice(String body) {
-		String trimmed = body.trim();
-		try {
-			int index = Integer.parseInt(trimmed);
-			if (index >= 1 && index <= pollAnswers.size()) {
-				return index - 1;
-			}
-		} catch (NumberFormatException ignored) {
-			// Not a plain index - fall through to the word-match check below.
-		}
-		if (pollAllowAnswersAsWord) {
-			for (int i = 0; i < pollAnswers.size(); i++) {
-				if (pollAnswers.get(i).equalsIgnoreCase(trimmed)) {
-					return i;
-				}
-			}
-		}
-		return null;
 	}
 
 	private static boolean containsIgnoreCase(List<String> list, String value) {
@@ -163,71 +116,6 @@ public final class PartyGamesManager {
 		});
 	}
 
-	// ---- /sm poll ----
-
-	/** {@code question;answer1;answer2;...;answerN[;asword]} - see the command's own usage message for the exact syntax. */
-	public static void startPoll(Minecraft client, String rawText) {
-		List<String> parts = new ArrayList<>();
-		for (String part : rawText.split(";")) {
-			String trimmed = part.trim();
-			if (!trimmed.isEmpty()) {
-				parts.add(trimmed);
-			}
-		}
-		boolean allowAsWord = !parts.isEmpty() && parts.get(parts.size() - 1).equalsIgnoreCase("asword");
-		if (allowAsWord) {
-			parts.remove(parts.size() - 1);
-		}
-		if (parts.size() < 3) {
-			send(client, Component.translatable("skymelloo.chat.party_games.poll_start_usage").getString());
-			return;
-		}
-		pollQuestion = parts.get(0);
-		pollAnswers = new ArrayList<>(parts.subList(1, parts.size()));
-		pollAllowAnswersAsWord = allowAsWord;
-		pollVotes.clear();
-
-		StringBuilder options = new StringBuilder();
-		for (int i = 0; i < pollAnswers.size(); i++) {
-			if (i > 0) {
-				options.append("§7 | ");
-			}
-			options.append("§e").append(i + 1).append("§7=§f").append(pollAnswers.get(i));
-		}
-		send(client, "§d" + pollQuestion + " §7(" + options + "§7)");
-		String wordHint = allowAsWord ? Component.translatable("skymelloo.chat.party_games.poll_word_option_hint").getString() : "";
-		send(client, Component.translatable("skymelloo.chat.party_games.poll_vote_instructions", wordHint).getString());
-	}
-
-	public static void closePoll(Minecraft client) {
-		if (pollQuestion == null) {
-			send(client, Component.translatable("skymelloo.chat.party_games.no_active_poll").getString());
-			return;
-		}
-		int[] counts = new int[pollAnswers.size()];
-		for (int choice : pollVotes.values()) {
-			counts[choice]++;
-		}
-		StringBuilder results = new StringBuilder();
-		int winnerIndex = 0;
-		for (int i = 0; i < pollAnswers.size(); i++) {
-			if (i > 0) {
-				results.append("§7, ");
-			}
-			results.append("§f").append(pollAnswers.get(i)).append("§7=§e").append(counts[i]);
-			if (counts[i] > counts[winnerIndex]) {
-				winnerIndex = i;
-			}
-		}
-		send(client, Component.translatable("skymelloo.chat.party_games.poll_results", pollQuestion, pollVotes.size(), results.toString()).getString());
-		if (!pollVotes.isEmpty()) {
-			send(client, Component.translatable("skymelloo.chat.party_games.poll_winner", pollAnswers.get(winnerIndex)).getString());
-		}
-		pollQuestion = null;
-		pollAnswers = new ArrayList<>();
-		pollVotes.clear();
-	}
-
 	private static void send(Minecraft client, String text) {
 		if (client.player == null) {
 			return;
@@ -263,20 +151,4 @@ public final class PartyGamesManager {
 						})));
 	}
 
-	public static LiteralArgumentBuilder<FabricClientCommandSource> buildPollCommand() {
-		return ClientCommands.literal("poll")
-				.executes(ctx -> {
-					ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.chat.party_games.poll_root_usage")));
-					return 1;
-				})
-				.then(ClientCommands.literal("start")
-						.then(ClientCommands.argument("text", StringArgumentType.greedyString()).executes(ctx -> {
-							startPoll(Minecraft.getInstance(), StringArgumentType.getString(ctx, "text"));
-							return 1;
-						})))
-				.then(ClientCommands.literal("close").executes(ctx -> {
-					closePoll(Minecraft.getInstance());
-					return 1;
-				}));
-	}
 }

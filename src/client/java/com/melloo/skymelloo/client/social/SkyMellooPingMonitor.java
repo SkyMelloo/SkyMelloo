@@ -33,9 +33,12 @@ public final class SkyMellooPingMonitor {
 		tickCounter = 0;
 		pingInFlight = true;
 		long start = System.currentTimeMillis();
-		SkyMellooApiClient.ping().whenComplete((v, error) -> {
-			pingInFlight = false;
-			lastPingMs = error == null ? (int) (System.currentTimeMillis() - start) : -1;
-		});
+		com.melloo.skymelloo.client.api.ModAuthManager.getIdentity(client)
+				.exceptionally(error -> null)
+				.thenCompose(SkyMellooApiClient::ping)
+				.whenComplete((v, error) -> {
+					pingInFlight = false;
+					lastPingMs = error == null ? (int) (System.currentTimeMillis() - start) : -1;
+				});
 	}
 }

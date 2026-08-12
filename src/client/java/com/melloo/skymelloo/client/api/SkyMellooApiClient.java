@@ -453,9 +453,9 @@ public final class SkyMellooApiClient {
 		return "/api/public/mod/v1" + pathOnly;
 	}
 
-	/** Lightweight, cheap endpoint used purely to measure round-trip latency to sky.melloo.me itself (see SkyMellooPingMonitor) - not for anything else. */
-	public static CompletableFuture<Void> ping() {
-		return getJson("/health").thenApply(root -> null);
+	/** Round-trip latency to sky.melloo.me (see SkyMellooPingMonitor) - v1's /health requires mod auth, unlike the old internal route. */
+	public static CompletableFuture<Void> ping(ModAuthManager.ModIdentity identity) {
+		return getJson("/health", identity).thenApply(root -> null);
 	}
 
 	/** Whether this build is still compatible with the current backend API - see ModVersionManager, checked once per join right alongside the whitelist check. */
