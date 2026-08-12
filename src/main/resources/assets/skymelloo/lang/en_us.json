@@ -782,7 +782,7 @@
 	"skymelloo.gui.settings.tip.boss_room.message_text": "Used when the run's score is still 300+ at entry. Placeholder: {player} (\"The party\" for the party-wide trigger, or a specific name for the per-player trigger).",
 	"skymelloo.gui.settings.tip.chat.mention_highlight": "Highlight (bold + colored marker) any chat message that mentions your own username, and play a short sound - so a mention doesn't slip by unnoticed.",
 	"skymelloo.gui.settings.tip.chat.mention_highlight_color": "Marker color for a chat mention of your own username.",
-	"skymelloo.gui.settings.tip.chat.anti_scam": "Flags repeated lowball-spam trade offers in public chat (same sender, same offer shape, sent repeatedly) - not a judgment of whether a price is actually low. Never applies to party/guild/whisper chat or SkyMelloo Friends.",
+	"skymelloo.gui.settings.tip.chat.anti_scam": "Flags any trade-offer-shaped message in public chat as possible lowball spam - not a judgment of whether a price is actually low. Never applies to party/guild/whisper chat or SkyMelloo Friends.",
 	"skymelloo.gui.settings.tip.chat.anti_scam_hide": "On = flagged messages are hidden entirely. Off = they stay visible with a warning marker prepended.",
 	"skymelloo.gui.settings.tip.chest_highlight.color": "Box color for chests.",
 	"skymelloo.gui.settings.tip.chest_highlight.enabled": "Highlight chests with a glowing box outline (only when actually in view, not through walls).",

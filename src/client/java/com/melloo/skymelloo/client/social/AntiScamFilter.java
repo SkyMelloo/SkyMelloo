@@ -7,23 +7,16 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Flags repeated lowball-spam public chat messages - the same sender sending the same
- * trade-offer-shaped line repeatedly to bait multiple people. Never applies to party/guild/whisper
- * chat or messages from SkyMelloo Friends - only unsolicited public chat from strangers.
+ * Flags lowball-spam public chat messages - any trade-offer-shaped line from a stranger. Never
+ * applies to party/guild/whisper chat or messages from SkyMelloo Friends.
  *
  * <p>Deliberately does NOT try to judge whether a price is actually "low" - that needs live market
- * data this mod doesn't have and would be unreliable. Detecting repetition instead is a much safer
- * signal than guessing at fair value. Link/phishing filtering isn't needed here - Hypixel's own
- * chat filter already blocks links in public chat.
+ * data this mod doesn't have and would be unreliable. Link/phishing filtering isn't needed here -
+ * Hypixel's own chat filter already blocks links in public chat.
  */
 public final class AntiScamFilter {
 	private static boolean initialized = false;
@@ -37,9 +30,6 @@ public final class AntiScamFilter {
 	// "offer/pay/give <number> for" - the structural shape of an unsolicited buy offer, regardless
 	// of whether the price is actually low.
 	private static final Pattern TRADE_OFFER_SHAPE = Pattern.compile("(?i)\\b(?:offer|pay|paying|give|giving|buying)\\b.{0,40}\\b\\d[\\d,.]*\\s*(?:k|m|mil|million)?\\b.{0,40}\\bfor\\b");
-	private static final long LOWBALL_WINDOW_MS = 30_000;
-	private static final int LOWBALL_THRESHOLD = 3;
-	private static final Map<String, Deque<Long>> recentTradeOffers = new ConcurrentHashMap<>();
 
 	private AntiScamFilter() {
 	}
@@ -59,7 +49,7 @@ public final class AntiScamFilter {
 			if (!config.antiScamEnabled || !config.antiScamHideMessages) {
 				return true;
 			}
-			return !isLowballSpam(message.getString());
+			return !isLowball(message.getString());
 		});
 		ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
 			if (overlay) {
@@ -69,16 +59,16 @@ public final class AntiScamFilter {
 			if (!config.antiScamEnabled || config.antiScamHideMessages) {
 				return message;
 			}
-			if (!isLowballSpam(message.getString())) {
+			if (!isLowball(message.getString())) {
 				return message;
 			}
-			MutableComponent warning = Component.literal("[Possible lowball spam] ")
+			MutableComponent warning = Component.literal("[Possible lowball] ")
 					.withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFF5555)).withBold(true));
 			return warning.append(message);
 		});
 	}
 
-	private static boolean isLowballSpam(String text) {
+	private static boolean isLowball(String text) {
 		if (PRIVATE_CHANNEL_PREFIX.matcher(text).find()) {
 			return false;
 		}
@@ -91,19 +81,6 @@ public final class AntiScamFilter {
 		if (com.melloo.mellooessentials.client.social.FriendsManager.isFriend(sender)) {
 			return false;
 		}
-		return TRADE_OFFER_SHAPE.matcher(body).find() && isRepeatedTradeOffer(sender);
-	}
-
-	/** True once this sender has sent {@link #LOWBALL_THRESHOLD}+ trade-offer-shaped messages within {@link #LOWBALL_WINDOW_MS}. */
-	private static boolean isRepeatedTradeOffer(String sender) {
-		long now = System.currentTimeMillis();
-		Deque<Long> timestamps = recentTradeOffers.computeIfAbsent(sender.toLowerCase(Locale.ROOT), k -> new ArrayDeque<>());
-		synchronized (timestamps) {
-			while (!timestamps.isEmpty() && now - timestamps.peekFirst() > LOWBALL_WINDOW_MS) {
-				timestamps.pollFirst();
-			}
-			timestamps.addLast(now);
-			return timestamps.size() >= LOWBALL_THRESHOLD;
-		}
+		return TRADE_OFFER_SHAPE.matcher(body).find();
 	}
 }

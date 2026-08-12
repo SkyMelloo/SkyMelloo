@@ -108,9 +108,9 @@ public final class SkyMellooConfig {
 	// Marker color for a chat mention of your own username (see above).
 	public Color chatMentionHighlightColor = new Color(0xFFFFD700, true);
 
-	// Flags repeated lowball-spam trade offers in public chat (same sender, same offer shape, sent
-	// repeatedly) - not a judgment of whether a price is actually low, that needs live market data
-	// this mod doesn't have. Never applies to party/guild/whisper chat or SkyMelloo Friends. See AntiScamFilter.
+	// Flags any trade-offer-shaped message in public chat as possible lowball spam - not a judgment
+	// of whether the price is actually low, that needs live market data this mod doesn't have. Never
+	// applies to party/guild/whisper chat or SkyMelloo Friends. See AntiScamFilter.
 	public boolean antiScamEnabled = true;
 
 	// true = hide the flagged message entirely, false = leave it visible with a warning marker prepended.
