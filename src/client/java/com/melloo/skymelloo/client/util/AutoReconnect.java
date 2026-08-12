@@ -26,7 +26,12 @@ import java.util.Map;
  */
 public final class AutoReconnect {
 	private static final int MAX_CONSECUTIVE_ATTEMPTS = 3;
-	private static final int RECONNECT_DELAY_TICKS = 5 * 20;
+	// Was 5s - too short to reliably tell a real disconnect apart from Hypixel's own internal
+	// server-to-server transfers (island/dungeon/lobby hops), which can briefly look like a
+	// disconnect at the vanilla client level and complete on their own within a few seconds. Racing
+	// our own reconnect attempt against Hypixel's still-in-progress one caused real disconnect/
+	// reconnect cycling on ordinary server hops, not just genuine drops.
+	private static final int RECONNECT_DELAY_TICKS = 12 * 20;
 	private static final int RESET_STREAK_TICKS = 30 * 20;
 
 	private static ServerData lastServer = null;
