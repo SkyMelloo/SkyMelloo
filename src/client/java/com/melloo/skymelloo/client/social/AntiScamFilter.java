@@ -10,14 +10,7 @@ import net.minecraft.network.chat.TextColor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Flags lowball-spam public chat messages - any trade-offer-shaped line from a stranger. Never
- * applies to party/guild/whisper chat or messages from SkyMelloo Friends.
- *
- * <p>Deliberately does NOT try to judge whether a price is actually "low" - that needs live market
- * data this mod doesn't have and would be unreliable. Link/phishing filtering isn't needed here -
- * Hypixel's own chat filter already blocks links in public chat.
- */
+/** Flags trade-offer-shaped public chat messages from strangers as possible lowball spam. */
 public final class AntiScamFilter {
 	private static boolean initialized = false;
 

@@ -6,28 +6,14 @@ import com.melloo.mellooessentials.client.social.PresenceManager;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * SkyMelloo's own contribution to MellooEssentials' single presence report/query loop - registers
- * extension points once at startup rather than running a second, independent report/query cycle
- * against the same endpoint. Two uncoordinated loops for the same account used to race each other,
- * each overwriting the other's data server-side (MellooEssentials' report always sent empty
- * status/afk/accountLinked/no location, silently stomping over SkyMelloo's richer data on its own
- * next tick).
- */
+/** SkyMelloo's contribution to MellooEssentials' presence report/query loop - registers extension points instead of running a second competing loop. */
 public final class ModPresenceManager {
-	// Boss-room-block send tracking - distinguishes "drained locally" from "actually reached the
-	// server", since BossRoomScanner's own "queued, not yet sent: 0" only proves the data was DRAINED
-	// out of its local pending list into a report payload, never that the HTTP request carrying it
-	// actually reached the server successfully. Once drained it's gone either way (drainPendingJson
-	// doesn't put anything back on failure) - this is what actually answers "did it arrive", counting
-	// only reports that genuinely had ≥1 boss-room block in them, not every presence report.
+	// Counts only reports that actually had ≥1 boss-room block, confirming the HTTP send succeeded (not just drained locally).
 	private static volatile long bossRoomSendAttempts = 0;
 	private static volatile long bossRoomSendSuccesses = 0;
 	private static volatile long bossRoomSendFailures = 0;
 	private static volatile String lastBossRoomSendError = null;
-	// Set synchronously right before MellooEssentials' report fires, read back in the completion
-	// listener - safe because only one report is ever in flight at a time (see PresenceManager's own
-	// reportInFlight guard), so this can't race a second concurrent report.
+	// Set right before the report fires, read back in the completion listener - safe since only one report is ever in flight.
 	private static volatile boolean lastReportHadBossRoomBlocks = false;
 	private static boolean registered = false;
 
@@ -97,13 +83,7 @@ public final class ModPresenceManager {
 		return PresenceManager.getStatusText(uuid);
 	}
 
-	/**
-	 * Only "magicMissile" (bare, no color) survives here - every other particle cosmetic moved to
-	 * MellooEssentials, which has its own separate presence/broadcast mechanism entirely. Magic
-	 * Missile itself stays a SkyMelloo feature (see MagicMissileManager), and {@link
-	 * com.melloo.skymelloo.client.mixin.RemoteMissileTriggerMixin} still needs {@link #hasCosmetic}
-	 * to know whether a nearby SkyMelloo user actually has it enabled before mirroring their cast.
-	 */
+	/** Only "magicMissile" - every other cosmetic is MellooEssentials' own. */
 	private static List<String> collectEnabledCosmetics() {
 		if (PermissionsManager.has("spell") && SkyMellooConfig.HANDLER.instance().magicMissileEnabled) {
 			return List.of("magicMissile");
