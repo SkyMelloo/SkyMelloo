@@ -521,9 +521,6 @@ public final class SkyMellooConfig {
 	// On joining a server, show a "Connecting..." title and check connection quality (ping stability, packet rate) for the first 5 seconds.
 	public boolean connectionQualityCheckEnabled = false;
 
-	// Automatically decline optional server resource packs on Hypixel instead of showing the prompt - avoids the pack download/load step that sometimes crashes or freezes the game and forces a restart. Packs the server marks as required (ones that could get you kicked for declining) are never touched.
-	public boolean autoDeclineHypixelResourcePacks = true;
-
 	// Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults, and multiple installs under the same account stay in sync with each other. On by default once linked - cloud is always authoritative on join, and local edits are pushed up the moment the settings screen closes.
 	public boolean cloudSyncEnabled = true;
 

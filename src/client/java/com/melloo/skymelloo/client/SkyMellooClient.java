@@ -21,7 +21,6 @@ import com.melloo.skymelloo.client.social.DungeonTabList;
 import com.melloo.skymelloo.client.social.ModPresenceManager;
 import com.melloo.skymelloo.client.social.PartyJoinWatcher;
 import com.melloo.skymelloo.client.social.PermissionsManager;
-import com.melloo.skymelloo.client.social.ResourcePackStatus;
 import com.melloo.skymelloo.client.social.SkyMellooPingMonitor;
 import com.melloo.skymelloo.client.social.WhitelistManager;
 import com.melloo.skymelloo.client.fishing.FishingScoreHud;
@@ -104,7 +103,6 @@ public class SkyMellooClient implements ClientModInitializer {
 		com.melloo.skymelloo.client.util.PartyChatSender.init();
 		com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.init();
 		com.melloo.skymelloo.client.util.AutoReconnect.init();
-		ResourcePackStatus.init();
 		BlockHighlightRenderer.init();
 		// INIT fires as soon as the play-protocol listener is set up, before the player entity/world exist.
 		ClientPlayConnectionEvents.INIT.register((handler, client) -> {
@@ -215,7 +213,6 @@ public class SkyMellooClient implements ClientModInitializer {
 			// actually sends a request once on join and then on party-related chat lines, not every
 			// tick, so this is cheap regardless.
 			PartyTracker.tick();
-			ResourcePackStatus.tick(client);
 			PartyJoinWatcher.tick(client);
 			BlockHighlightRenderer.tick(client);
 			MagicMissileManager.tick(client);

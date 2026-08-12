@@ -16,7 +16,6 @@
 		"FishingTargetHitMixin",
 		"RemoteMissileTriggerMixin",
 		"PlayerHeadInvisibilityMixin",
-		"ResourcePackAutoDeclineMixin",
 		"PlayerTabOverlayAccessor",
 		"ResourcePackFailureToastMixin",
 		"EntityRenderStateInvisibilityMixin",

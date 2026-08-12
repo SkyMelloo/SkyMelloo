@@ -139,7 +139,6 @@
 	"skymelloo.chat.party_join.low_stat_warning": "§cUser with too low %s: §f%s§c (%s < %s) ",
 	"skymelloo.chat.party_join.stats_load_failed": "§7Couldn't load stats for §f%s§7 (%s).",
 	"skymelloo.chat.permissions.spell_needs_link": "§dThe Spell (Magic Missile) needs a linked sky.melloo.me account - log in with Discord at §fsky.melloo.me/account §dand run §f/skymelloo verify <code>§d to use it. Cosmetics (via MellooEssentials) don't need this.",
-	"skymelloo.chat.resource_pack.declined": "§7Hypixel resource pack auto-declined for this connection.",
 	"skymelloo.chat.session_expired": "§cYour Minecraft session has expired - SkyMelloo's account-linked features (Friends, Cloud Sync, Party stats, /skymelloo view, etc.) won't work again until you §lrestart the game§r§c to get a fresh session.",
 	"skymelloo.chat.version.unofficial_build": "§eYou're on an unofficial SkyMelloo build (not one %s built/signed) - everything still works, this is just so you know. Official builds: §fsky.melloo.me/download",
 	"skymelloo.chat.whitelist.linked_as_admin": "§bYour account is now linked as admin.",
