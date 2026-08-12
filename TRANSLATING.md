@@ -19,4 +19,4 @@ To add a language, copy the English file to `<language_code>.json` in the same f
 
 ## A note on completeness
 
-Not every piece of user-facing text is necessarily routed through the language-file system yet - some chat messages, error text, and UI strings may still be hardcoded in English directly in the code. If you find text that doesn't seem to come from a lang file (i.e. it never changes no matter what your Minecraft language is set to), please report it via [Report a Bug](https://sky.melloo.me/report-bug) rather than guessing at a fix - a hardcoded string usually needs a small code change (moving it into the lang file with a new key) before it can be translated at all.
+Nearly all user-facing text is already routed through the language-file system. If you do find text that doesn't seem to come from a lang file (i.e. it never changes no matter what your Minecraft language is set to), please report it via [Report a Bug](https://sky.melloo.me/report-bug) rather than guessing at a fix - a hardcoded string needs a small code change (moving it into the lang file with a new key) before it can be translated at all.
