@@ -22,6 +22,7 @@ public final class WhitelistManager {
 
 	private static volatile boolean checkStarted = false;
 	private static volatile boolean admin = false;
+	private static volatile String roleLabel = null;
 	private static int periodicTicks = 0;
 
 	private WhitelistManager() {
@@ -34,6 +35,19 @@ public final class WhitelistManager {
 	/** Whether this account is verified-linked to the admin website account (via /skymelloo verify). */
 	public static boolean isAdmin() {
 		return admin;
+	}
+
+	/** The account's actual highest role label (e.g. "Owner", "Lead Mod Developer") - {@code null} if not admin, or against an older server that doesn't send it yet. */
+	public static String getRoleLabel() {
+		return roleLabel;
+	}
+
+	/** Display text for the connection HUD's admin badge - the real role label if known, else a generic "Admin" fallback while admin-linked but the server hasn't sent a role label yet. Null when not admin at all. */
+	public static String getAdminBadgeText() {
+		if (!admin) {
+			return null;
+		}
+		return roleLabel != null ? roleLabel : "Admin";
 	}
 
 	/** Bypasses the once-per-join gate and re-checks right now - used when opening the settings menu, so a fresh admin-link made moments ago (e.g. via /skymelloo verify) shows up without needing to reconnect. */
@@ -69,13 +83,14 @@ public final class WhitelistManager {
 		// Connection health itself (connected/connecting/failed) is MellooEssentials' own
 		// ConnectionStatusHud's job now, driven by its own ModAuthManager state - this only ever
 		// updates the admin-link flag itself, not any HUD's connection state.
-		ModAuthManager.getIdentity(client).thenCompose(SkyMellooApiClient::checkIsAdmin).whenComplete((isAdmin, error) -> Minecraft.getInstance().execute(() -> {
+		ModAuthManager.getIdentity(client).thenCompose(SkyMellooApiClient::checkIsAdmin).whenComplete((status, error) -> Minecraft.getInstance().execute(() -> {
 			if (error != null) {
 				DebugLog.log(DebugLog.Category.PERMISSIONS, "Admin-link check failed: " + error.getMessage());
 				return;
 			}
-			admin = isAdmin;
-			DebugLog.log(DebugLog.Category.PERMISSIONS, "Admin-linked: " + admin);
+			admin = status.isAdmin();
+			roleLabel = status.roleLabel();
+			DebugLog.log(DebugLog.Category.PERMISSIONS, "Admin-linked: " + admin + " (role: " + roleLabel + ")");
 			if (announceChanges && admin && !wasAdmin && client.player != null) {
 				client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.whitelist.linked_as_admin")));
 			}

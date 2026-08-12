@@ -1,6 +1,6 @@
 package com.melloo.skymelloo.client.mixin;
 
-import net.fabricmc.loader.api.FabricLoader;
+import com.melloo.skymelloo.client.util.LunarPackCacheCleaner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.DisconnectedScreen;
@@ -13,10 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.Locale;
 
 /**
@@ -30,12 +26,14 @@ import java.util.Locale;
  * Also automatically clears BOTH resource-pack caches the moment this is detected:
  * {@link Minecraft#clearDownloadedResourcePacks()} (the real, public vanilla API) AND, confirmed
  * directly from a real recurring case, Lunar Client's own separate per-profile pack cache at
- * {@code <gameDir>/downloads/}. The vanilla-only clear used to leave that second one untouched, and
- * Lunar re-uses whatever's already sitting there by content hash without re-verifying it - so
- * reconnecting after this toast could keep retrying against the exact same bad local copy and never
- * actually fix anything, which is exactly what was observed. This isn't a documented Lunar API (it's
- * a plain directory wipe of a layout confirmed by hand), so failures there are swallowed rather than
- * risking this screen itself over a bonus cleanup step.
+ * {@code <gameDir>/downloads/} (see {@link LunarPackCacheCleaner}). The vanilla-only clear used to
+ * leave that second one untouched, and Lunar re-uses whatever's already sitting there by content
+ * hash without re-verifying it - so reconnecting after this toast could keep retrying against the
+ * exact same bad local copy and never actually fix anything, which is exactly what was observed.
+ * This isn't a documented Lunar API (it's a plain directory wipe of a layout confirmed by hand), so
+ * failures there are swallowed rather than risking this screen itself over a bonus cleanup step -
+ * {@link LunarPackCacheCleaner} retries once more a few seconds later for anything that was still
+ * locked on the first pass.
  * <p>
  * This can't prevent the underlying download corruption itself (that's Lunar Client's own closed-
  * source pack-download pipeline, not something a Fabric mod can safely reach into) or the freeze
@@ -65,33 +63,12 @@ public abstract class ResourcePackFailureToastMixin {
 			return;
 		}
 		Minecraft.getInstance().clearDownloadedResourcePacks();
-		skymelloo$clearLunarPackCache();
+		LunarPackCacheCleaner.clearNowAndRetry();
 		SystemToast.add(
 				Minecraft.getInstance().getToastManager(),
 				SystemToast.SystemToastId.PACK_LOAD_FAILURE,
 				Component.translatable("skymelloo.toast.resource_pack_failure.title"),
 				Component.translatable("skymelloo.toast.resource_pack_failure.description")
 		);
-	}
-
-	/** Best-effort wipe of Lunar Client's own private pack-download cache (see class doc comment) - not a documented API, so any failure here (e.g. a still-locked file) just leaves that one entry behind instead of risking this screen. */
-	private static void skymelloo$clearLunarPackCache() {
-		try {
-			Path downloads = FabricLoader.getInstance().getGameDir().resolve("downloads");
-			if (!Files.isDirectory(downloads)) {
-				return;
-			}
-			try (var stream = Files.walk(downloads)) {
-				stream.sorted(Comparator.reverseOrder()).forEach(path -> {
-					try {
-						Files.deleteIfExists(path);
-					} catch (IOException ignored) {
-						// A locked/in-use entry just survives this pass - matches this whole
-						// cleanup's best-effort philosophy.
-					}
-				});
-			}
-		} catch (Exception ignored) {
-		}
 	}
 }

@@ -75,7 +75,7 @@ public class SkyMellooClient implements ClientModInitializer {
 				com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL));
 		// These two extension points let essentials' ConnectionStatusHud surface extra info only
 		// SkyMelloo has: whether this account is admin-linked, and the sky.melloo.me API ping.
-		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setAdminBadgeSupplier(WhitelistManager::isAdmin);
+		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setAdminBadgeSupplier(WhitelistManager::getAdminBadgeText);
 		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setExtraLineProvider(() -> {
 			int ms = com.melloo.skymelloo.client.social.SkyMellooPingMonitor.getLastPingMs();
 			return ms >= 0 ? ms + "ms" : "--";
@@ -170,6 +170,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			com.melloo.skymelloo.client.util.SkyblockDetector.tick(client);
 			SkyMellooPingMonitor.tick(client);
 			com.melloo.skymelloo.client.util.AutoReconnect.tick(client);
+			com.melloo.skymelloo.client.util.LunarPackCacheCleaner.tick(client);
 
 			while (mainMenuKey.consumeClick()) {
 				com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.openMenu(client);

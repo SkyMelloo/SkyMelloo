@@ -537,11 +537,17 @@ public final class SkyMellooApiClient {
 		});
 	}
 
+	/** Whether the account is admin-linked, and its actual highest role label (e.g. "Owner") if so - {@code roleLabel} is {@code null} against an older server that doesn't send it yet. */
+	public record AdminStatus(boolean isAdmin, String roleLabel) {
+	}
+
 	/** Whether the account behind this identity is verified-linked to the admin website account (via /skymelloo verify). */
-	public static CompletableFuture<Boolean> checkIsAdmin(ModAuthManager.ModIdentity identity) {
-		return getJson("/is-admin", identity).thenApply(root ->
-				root.has("isAdmin") && !root.get("isAdmin").isJsonNull() && root.get("isAdmin").getAsBoolean()
-		);
+	public static CompletableFuture<AdminStatus> checkIsAdmin(ModAuthManager.ModIdentity identity) {
+		return getJson("/is-admin", identity).thenApply(root -> {
+			boolean isAdmin = root.has("isAdmin") && !root.get("isAdmin").isJsonNull() && root.get("isAdmin").getAsBoolean();
+			String roleLabel = root.has("roleLabel") && !root.get("roleLabel").isJsonNull() ? root.get("roleLabel").getAsString() : null;
+			return new AdminStatus(isAdmin, roleLabel);
+		});
 	}
 
 	/** Result of completing the "/skymelloo unlink" account flow (account verification itself moved to MellooEssentials' "/me verify"). */
