@@ -4,7 +4,7 @@
 
 - Bug reports and feature requests: [Report a Bug](https://sky.melloo.me/report-bug) or GitHub Issues - not a PR.
 - Security issues: see [SECURITY.md](SECURITY.md) - never a public issue or PR.
-- Translations: see [TRANSLATING.md](TRANSLATING.md) - not a code PR.
+- Translations: see [TRANSLATING.md](TRANSLATING.md) - follow the translation contribution flow there.
 
 ## Code contributions
 
