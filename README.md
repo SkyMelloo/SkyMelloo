@@ -37,7 +37,7 @@ node scripts/build.js
 Asks a couple of questions and runs Gradle for you. Prefer raw Gradle directly?
 
 ```
-./gradlew build -PtestBuild=true                # unsigned test build, no key or changelog needed
+./gradlew build -PtestBuild=true           # unsigned test build, no key or changelog needed
 ./gradlew build -PchangelogFile=path.txt   # signed build, requires a private key you won't have
 ```
 
