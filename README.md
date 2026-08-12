@@ -1,4 +1,4 @@
-# SkyMelloo
+![SkyMelloo - Your SkyBlock Companion](.github/banner.png)
 
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPLv3-blue.svg)](LICENSE)
 [![Minecraft](https://img.shields.io/badge/minecraft-26.1.2-brightgreen.svg)](https://fabricmc.net/)
