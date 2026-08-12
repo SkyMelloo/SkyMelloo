@@ -476,6 +476,8 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.chat")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.chat.mention_highlight"), () -> c.chatMentionHighlightEnabled, v -> c.chatMentionHighlightEnabled = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.chat.mention_highlight")));
 				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.chat.mention_highlight_color"), () -> c.chatMentionHighlightColor, v -> c.chatMentionHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.chat.mention_highlight_color")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.chat.anti_scam"), () -> c.antiScamEnabled, v -> c.antiScamEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.chat.anti_scam")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.chat.anti_scam_hide"), () -> c.antiScamHideMessages, v -> c.antiScamHideMessages = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.chat.anti_scam_hide")));
 			}
 			case DEBUG -> {
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.debug_messages")));

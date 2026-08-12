@@ -99,6 +99,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		DungeonRunTracker.init();
 		com.melloo.skymelloo.client.social.ActionBarTracker.init();
 		com.melloo.skymelloo.client.social.ChatMentionHighlighter.init();
+		com.melloo.skymelloo.client.social.AntiScamFilter.init();
 		com.melloo.skymelloo.client.social.PartyGamesManager.init();
 		com.melloo.skymelloo.client.util.PartyChatSender.init();
 		com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.init();
