@@ -89,6 +89,14 @@ public final class DungeonRoomTracker {
 	private static final int ROOM_CONFIRM_TICKS = 6;
 
 	private static int[] currentPhysicalRoomPos = null; // northwest corner of the room we last reported
+	// Every grid cell (including currentPhysicalRoomPos itself) belonging to the same physical room -
+	// most rooms are exactly one cell, but multi-cell shapes (1x2, 2x1, 2x2, L-shaped) span several.
+	// Recomputed only when currentPhysicalRoomPos actually changes (see tick()), not per-tick/per-mob -
+	// see getCurrentRoomBounds's own doc comment for why this exists.
+	private static List<int[]> currentRoomConnectedCells = null;
+	// Largest known real dungeon room shape (2x2) - a safety cap so the flood-fill below can never
+	// chain arbitrarily far even in a pathological case.
+	private static final int MAX_CONNECTED_ROOM_CELLS = 4;
 	private static int[] pendingPhysicalRoomPos = null;
 	private static int pendingTicks = 0;
 	// Whether the Skyblocker-confirmed type for the CURRENT room has already been logged - reset
@@ -432,6 +440,7 @@ public final class DungeonRoomTracker {
 			return;
 		}
 		currentPhysicalRoomPos = physicalRoomPos;
+		currentRoomConnectedCells = findConnectedRoomCells(map, physicalRoomPos);
 		skyblockerConfirmedLogged = false;
 		updateSecretsForCurrentRoom(client);
 
@@ -533,6 +542,7 @@ public final class DungeonRoomTracker {
 		mapEntrancePos = null;
 		mapRoomSize = 0;
 		currentPhysicalRoomPos = null;
+		currentRoomConnectedCells = null;
 		pendingPhysicalRoomPos = null;
 		pendingTicks = 0;
 		bloodRoomPhysicalPos = null;
@@ -588,9 +598,59 @@ public final class DungeonRoomTracker {
 		if (currentPhysicalRoomPos == null) {
 			return null;
 		}
-		double minX = currentPhysicalRoomPos[0];
-		double minZ = currentPhysicalRoomPos[1];
-		return new AABB(minX, referenceY - verticalMargin, minZ, minX + 32, referenceY + verticalMargin, minZ + 32);
+		List<int[]> cells = currentRoomConnectedCells != null ? currentRoomConnectedCells : List.of(currentPhysicalRoomPos);
+		double minX = Double.POSITIVE_INFINITY, minZ = Double.POSITIVE_INFINITY;
+		double maxX = Double.NEGATIVE_INFINITY, maxZ = Double.NEGATIVE_INFINITY;
+		for (int[] cell : cells) {
+			minX = Math.min(minX, cell[0]);
+			minZ = Math.min(minZ, cell[1]);
+			maxX = Math.max(maxX, cell[0] + 32);
+			maxZ = Math.max(maxZ, cell[1] + 32);
+		}
+		return new AABB(minX, referenceY - verticalMargin, minZ, maxX, referenceY + verticalMargin, maxZ);
+	}
+
+	/**
+	 * Every physical room-grid cell connected to {@code startPos} that shares its exact room type -
+	 * a real bug report: an L-shaped (or any other multi-cell: 1x2/2x1/2x2) room got treated as
+	 * several separate rooms for highlighting purposes, since every other room-tracking method here
+	 * only ever reasons about the single 32x32 cell the player is physically standing in. Adjacent
+	 * same-type cells are assumed to be one physical room - true for every real multi-cell shape; the
+	 * only failure mode is two genuinely separate rooms of the same type placed directly next to each
+	 * other, which over-merges rather than under-merges (safer for a cosmetic highlight than the
+	 * original bug). Capped at {@link #MAX_CONNECTED_ROOM_CELLS} so that can never chain far even in
+	 * a pathological case. Computed once per room entry (see tick()), never per-tick/per-mob.
+	 */
+	private static List<int[]> findConnectedRoomCells(MapItemSavedData map, int[] startPos) {
+		List<int[]> result = new ArrayList<>();
+		result.add(startPos);
+		int[] startMapPos = getMapPosFromPhysical(physicalEntrancePos, mapEntrancePos, mapRoomSize, startPos);
+		RoomType startType = getRoomType(map, startMapPos[0], startMapPos[1]);
+		if (startType == null) {
+			return result;
+		}
+		Set<Long> visited = new HashSet<>();
+		visited.add(packKey(startPos));
+		Queue<int[]> queue = new ArrayDeque<>();
+		queue.add(startPos);
+		while (!queue.isEmpty() && result.size() < MAX_CONNECTED_ROOM_CELLS) {
+			int[] pos = queue.poll();
+			int[][] neighbors = {
+					{pos[0] - 32, pos[1]}, {pos[0] + 32, pos[1]},
+					{pos[0], pos[1] - 32}, {pos[0], pos[1] + 32},
+			};
+			for (int[] neighbor : neighbors) {
+				if (result.size() >= MAX_CONNECTED_ROOM_CELLS || !visited.add(packKey(neighbor))) {
+					continue;
+				}
+				int[] neighborMapPos = getMapPosFromPhysical(physicalEntrancePos, mapEntrancePos, mapRoomSize, neighbor);
+				if (getRoomType(map, neighborMapPos[0], neighborMapPos[1]) == startType) {
+					result.add(neighbor);
+					queue.add(neighbor);
+				}
+			}
+		}
+		return result;
 	}
 
 	/**
