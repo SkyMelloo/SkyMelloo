@@ -82,9 +82,11 @@ public final class DungeonRunTracker {
 	// Generic prefix-only match (name followed by a space, no hardcoded continuation phrase) - an
 	// earlier version only recognized 2 literal continuations ("wasn't fooled by"/"tied Tic Tac
 	// Toe"), which meant every OTHER puzzle type's solve message was silently never detected at all.
-	// Same shape as PUZZLE_FAIL_PATTERN below, verified against a real "PUZZLE FAIL!" line.
-	private static final Pattern PUZZLE_SOLVED_PATTERN = Pattern.compile("^PUZZLE SOLVED! .*?([A-Za-z0-9_]{2,16}) ");
-	private static final Pattern PUZZLE_FAIL_PATTERN = Pattern.compile("^PUZZLE FAIL! .*?([A-Za-z0-9_]{2,16}) ");
+	// Same shape as PUZZLE_FAIL_PATTERN below, verified against a real "PUZZLE FAIL!" line. No
+	// leading ^ - same chat-icon-prefix bug as DOOR_OPENED_PATTERN, confirmed on a real "PUZZLE
+	// SOLVED!" line too.
+	private static final Pattern PUZZLE_SOLVED_PATTERN = Pattern.compile("PUZZLE SOLVED! .*?([A-Za-z0-9_]{2,16}) ");
+	private static final Pattern PUZZLE_FAIL_PATTERN = Pattern.compile("PUZZLE FAIL! .*?([A-Za-z0-9_]{2,16}) ");
 	private static final Pattern CRYPT_PATTERN = Pattern.compile("found a Wither Essence! Everyone gains an extra essence!");
 	// No leading ^ - confirmed real bug: a chat-icon mod (e.g. chat_heads) can prepend "[Name head]"
 	// before the real name, which an anchored start would never match even though the door genuinely
@@ -96,18 +98,21 @@ public final class DungeonRunTracker {
 	// of a real reported bug: the debug HUD kept showing "Blood door not opened yet" even well after
 	// chat clearly showed "The BLOOD DOOR has been opened!", because bloodDoorOpened was only ever set
 	// from the never-matching DOOR_OPENED_PATTERN branch.
-	private static final Pattern BLOOD_DOOR_OPENED_PATTERN = Pattern.compile("^The BLOOD DOOR has been opened!$");
+	// No leading ^ - same chat-icon-prefix risk as the patterns above.
+	private static final Pattern BLOOD_DOOR_OPENED_PATTERN = Pattern.compile("The BLOOD DOOR has been opened!$");
 	// Confirmed directly from a real log - two forms depending on who picked it up: "[rank] [head]Name
 	// has obtained Wither Key!" for yourself, "A Wither Key was picked up!" (no name at all) seen for
 	// a teammate. Either way, a floor can have several Wither Doors, each its own key-then-open cycle -
 	// see witherDoorKeys.
 	private static final Pattern WITHER_KEY_OBTAINED_PATTERN = Pattern.compile("has obtained Wither Key!$");
-	private static final Pattern WITHER_KEY_PICKED_GENERIC_PATTERN = Pattern.compile("^A Wither Key was picked up!$");
+	// No leading ^ - same chat-icon-prefix risk as the patterns above.
+	private static final Pattern WITHER_KEY_PICKED_GENERIC_PATTERN = Pattern.compile("A Wither Key was picked up!$");
 	// Confirmed directly from a real log: "[rank]Name has obtained Blood Key!" - unlike
 	// the Wither Key pattern above, this captures the player's name (".*?" skips over the rank tag),
 	// for the end-of-run report's "who opened the Blood Room" line.
 	private static final Pattern BLOOD_KEY_OBTAINED_PATTERN = Pattern.compile("^.*?([A-Za-z0-9_]{2,16}) has obtained Blood Key!$");
-	private static final Pattern READY_PATTERN = Pattern.compile("^([A-Za-z0-9_]{1,16}) is now ready!$");
+	// No leading ^ - same chat-icon-prefix risk as the patterns above.
+	private static final Pattern READY_PATTERN = Pattern.compile("([A-Za-z0-9_]{1,16}) is now ready!$");
 	// Excludes "The Watcher" specifically - confirmed directly from a real report/log: The Watcher
 	// (the Blood Room's miniboss guardian, never the actual floor boss) sends MULTIPLE "[BOSS] The
 	// Watcher: ..." lines throughout the Blood Room fight, not just its one opening line. Only that
@@ -115,18 +120,21 @@ public final class DungeonRunTracker {
 	// !watcherEncountered, which only guards the FIRST one) - every later Watcher line during the
 	// same ongoing fight used to fall through all the way to this generic fallback and incorrectly
 	// fire "entered boss room" while still fighting in the Blood Room.
-	private static final Pattern BOSS_CHAT_PATTERN = Pattern.compile("^\\[BOSS] (?!The Watcher:)([^:]+):");
+	// No leading ^ - same chat-icon-prefix risk as the patterns above.
+	private static final Pattern BOSS_CHAT_PATTERN = Pattern.compile("\\[BOSS] (?!The Watcher:)([^:]+):");
 	// The Watcher (the miniboss guarding the Blood Room) always speaks with this exact prefix -
 	// confirmed directly from SkyHanni's own chat-pattern catalog (BloodTimer.kt, 7 cataloged opening
 	// lines all sharing this prefix), not guessed. Its FIRST line is the earliest reliable signal that
 	// the Blood Room fight has started - the boss-room portal itself only spawns once that fight ends
 	// (all Blood Room mobs defeated), so this just arms the portal scan below rather than claiming the
 	// portal exists yet; the existing periodic retry naturally picks it up once it actually does.
-	private static final Pattern WATCHER_PATTERN = Pattern.compile("^\\[BOSS] The Watcher: ");
+	// No leading ^ - same chat-icon-prefix risk as the patterns above.
+	private static final Pattern WATCHER_PATTERN = Pattern.compile("\\[BOSS] The Watcher: ");
 	// The Watcher's exact farewell line once the Blood Room fight is actually won - confirmed
 	// directly from SkyblockerMod/Skyblocker's DungeonScore.java (checkMessageForWatcher), not
 	// guessed. Marks rooms/secrets as no longer improvable for the score formula below.
-	private static final Pattern WATCHER_CLEARED_PATTERN = Pattern.compile("^\\[BOSS] The Watcher: You have proven yourself\\. You may pass\\.$");
+	// No leading ^ - same chat-icon-prefix risk as the patterns above.
+	private static final Pattern WATCHER_CLEARED_PATTERN = Pattern.compile("\\[BOSS] The Watcher: You have proven yourself\\. You may pass\\.$");
 	// Mimic/Prince kill announcements - also straight from DungeonScore.java. Various community mods
 	// (including Skytils) broadcast one of these in party chat when either is killed; Hypixel itself
 	// doesn't announce it, hence checking several known phrasings.
@@ -487,7 +495,7 @@ public final class DungeonRunTracker {
 				return;
 			}
 
-			if (!bloodRoomCompleted && WATCHER_CLEARED_PATTERN.matcher(colorless).matches()) {
+			if (!bloodRoomCompleted && WATCHER_CLEARED_PATTERN.matcher(colorless).find()) {
 				bloodRoomCompleted = true;
 				bloodRoomCompletedMillis = System.currentTimeMillis();
 				DebugLog.log(DebugLog.Category.DUNGEON, "Blood Room completed");
@@ -495,7 +503,7 @@ public final class DungeonRunTracker {
 				return;
 			}
 
-			if (!bloodDoorOpened && BLOOD_DOOR_OPENED_PATTERN.matcher(colorless).matches()) {
+			if (!bloodDoorOpened && BLOOD_DOOR_OPENED_PATTERN.matcher(colorless).find()) {
 				bloodDoorOpened = true;
 				bloodDoorOpenedMillis = System.currentTimeMillis();
 				DebugLog.log(DebugLog.Category.DUNGEON, "Blood Door opened");
@@ -521,7 +529,7 @@ public final class DungeonRunTracker {
 				return;
 			}
 
-			if (WITHER_KEY_OBTAINED_PATTERN.matcher(colorless).find() || WITHER_KEY_PICKED_GENERIC_PATTERN.matcher(colorless).matches()) {
+			if (WITHER_KEY_OBTAINED_PATTERN.matcher(colorless).find() || WITHER_KEY_PICKED_GENERIC_PATTERN.matcher(colorless).find()) {
 				witherDoorKeys.add(false);
 				witherDoorOpenedMillis.add(0L);
 				DebugLog.log(DebugLog.Category.DUNGEON, "Wither Key obtained (" + witherDoorKeys.size() + " total this run)");
