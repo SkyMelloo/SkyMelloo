@@ -1,0 +1,37 @@
+name: Bug Report
+description: Something isn't working the way it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Prefer a form instead? [sky.melloo.me/report-bug](https://sky.melloo.me/report-bug) works too - use whichever's easier. Security issue? See [SECURITY.md](../../SECURITY.md) instead of opening a public issue.
+  - type: input
+    id: version
+    attributes:
+      label: Mod version
+      description: "/sm version" in-game, or the jar filename
+      placeholder: e.g. 0.37.6
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what actually happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Client logs (.minecraft/logs/latest.log), if you have them
+      render: shell
+    validations:
+      required: false
