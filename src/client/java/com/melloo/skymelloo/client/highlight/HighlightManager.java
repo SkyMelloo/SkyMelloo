@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
@@ -110,7 +111,25 @@ public final class HighlightManager {
 		// every hostile mob everywhere" system (name filters, friendly mobs, default/named colors)
 		// is gone entirely, not just defaulted off.
 		return config.dungeonRoomMobHighlightEnabled
-				&& living instanceof Enemy && isInCurrentDungeonRoom(living);
+				&& isDungeonMobEntity(living) && isInCurrentDungeonRoom(living);
+	}
+
+	/**
+	 * Whether a living entity is a real (possibly Hypixel-disguised) dungeon mob rather than a
+	 * player. Many dungeon mobs - bosses and unique reskins especially - aren't actual vanilla
+	 * hostile mobs (Enemy) at all, just an ArmorStand or other passive entity type wearing a
+	 * custom skin, so instanceof Enemy alone misses them. A non-marker ArmorStand still counts;
+	 * marker stands are excluded since Hypixel also uses those for pure decoration (secret
+	 * indicators, labels) that never attacks and shouldn't glow.
+	 */
+	private static boolean isDungeonMobEntity(LivingEntity living) {
+		if (living instanceof Enemy) {
+			return true;
+		}
+		if (living instanceof ArmorStand stand) {
+			return !stand.isMarker();
+		}
+		return !(living instanceof Player);
 	}
 
 	/** Whether this entity gets ANY highlight treatment right now (glow, colored name, or item name) - used to gate the distance display. */
