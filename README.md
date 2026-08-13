@@ -6,6 +6,10 @@
 [![Requires](https://img.shields.io/badge/requires-MellooEssentials-8A2BE2.svg)](https://github.com/SkyMelloo/MellooEssentials)
 [![Website](https://img.shields.io/badge/website-sky.melloo.me-informational.svg)](https://sky.melloo.me)
 
+> [!NOTE]
+> No public release is planned yet - this is still full active development, no ETA on a first
+> public version. Interested in helping out? Reach out on Discord: **hexedmaya**.
+
 A [Fabric](https://fabricmc.net/) client mod for Hypixel SkyBlock dungeons - dungeon tracking,
 party tools, and player highlighting - paired with a companion website at
 [sky.melloo.me](https://sky.melloo.me) for a live/replay dungeon map and account dashboard.
