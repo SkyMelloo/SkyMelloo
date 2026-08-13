@@ -4,10 +4,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.party.PartyHudManager;
+import com.melloo.skymelloo.client.util.DebugLog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,6 +42,15 @@ public final class DungeonSyncManager {
 	}
 
 	private static final Map<String, TeammateProgress> teammateProgress = new LinkedHashMap<>();
+
+	// Bandwidth-savings tracking for the stand-still dedup below (see compactStandStillRuns) - reset
+	// at the start of each run, reported once via DebugLog (Category.DUNGEON, so off by default like
+	// every other debug category, and already goes to both the debug log file and chat when that
+	// toggle's on) the moment the run ends. Purely diagnostic - doesn't affect what actually gets
+	// sent either way.
+	private static boolean wasRunActive = false;
+	private static long runRawHistoryBytes = 0;
+	private static long runSavedHistoryBytes = 0;
 
 	/** One timestamped position - the building block for a real, dense path on the website instead of one sparse point per report cycle. */
 	private record PositionSample(double mapX, double mapY, float yaw, long atMillis) {
@@ -122,8 +133,22 @@ public final class DungeonSyncManager {
 	}
 
 	private static JsonArray historyToJson(List<PositionSample> history) {
+		JsonArray raw = sampleListToJson(history);
+		JsonArray compacted = sampleListToJson(compactStandStillRuns(history));
+		// Only tallied while an actual run is active - the report at the end is meant to answer "what
+		// did THIS run cost", not include idle time standing around in the dungeon hub between runs.
+		if (DungeonRunTracker.isRunActive()) {
+			int rawBytes = raw.toString().getBytes(StandardCharsets.UTF_8).length;
+			int compactedBytes = compacted.toString().getBytes(StandardCharsets.UTF_8).length;
+			runRawHistoryBytes += rawBytes;
+			runSavedHistoryBytes += rawBytes - compactedBytes;
+		}
+		return compacted;
+	}
+
+	private static JsonArray sampleListToJson(List<PositionSample> samples) {
 		JsonArray arr = new JsonArray();
-		for (PositionSample sample : compactStandStillRuns(history)) {
+		for (PositionSample sample : samples) {
 			JsonObject obj = new JsonObject();
 			obj.addProperty("mapX", sample.mapX());
 			obj.addProperty("mapY", sample.mapY());
@@ -168,6 +193,31 @@ public final class DungeonSyncManager {
 		return a.mapX() == b.mapX() && a.mapY() == b.mapY() && a.yaw() == b.yaw();
 	}
 
+	/** Fired once, right as a run ends - see {@link #runRawHistoryBytes}/{@link #runSavedHistoryBytes}'s own comment for why this only covers the run itself, not idle time around it. */
+	private static void reportBandwidthSavings() {
+		if (runRawHistoryBytes <= 0) {
+			return; // dungeonSync was off (or nothing was ever sent) for the whole run - nothing to report
+		}
+		double percent = 100.0 * runSavedHistoryBytes / runRawHistoryBytes;
+		DebugLog.log(DebugLog.Category.DUNGEON, String.format(
+				"Position history dedup saved %s of %s this run (%.1f%%).",
+				formatBytes(runSavedHistoryBytes), formatBytes(runRawHistoryBytes), percent));
+	}
+
+	/** {@code 1536} -> "1.5 KB", decimal (1000-based, matching how the website's own byte counts are usually shown) not binary (1024-based) - not a precision-critical figure, just a rough "was this worth it" sense. */
+	private static String formatBytes(long bytes) {
+		if (bytes < 1_000) {
+			return bytes + " B";
+		}
+		if (bytes < 1_000_000) {
+			return String.format("%.1f KB", bytes / 1_000.0);
+		}
+		if (bytes < 1_000_000_000) {
+			return String.format("%.1f MB", bytes / 1_000_000.0);
+		}
+		return String.format("%.1f GB", bytes / 1_000_000_000.0);
+	}
+
 	/**
 	 * Called from MellooEssentials' {@code PresenceManager#reportSelf} every ~1s - {@code null} if
 	 * there's nothing worth sharing right now (feature off, no permission, or neither an active run
@@ -180,6 +230,13 @@ public final class DungeonSyncManager {
 		}
 		SkyblockerBridge.RoomSecrets current = SkyblockerBridge.getCurrentRoomSecrets();
 		boolean runActive = DungeonRunTracker.isRunActive();
+		if (runActive && !wasRunActive) {
+			runRawHistoryBytes = 0;
+			runSavedHistoryBytes = 0;
+		} else if (!runActive && wasRunActive) {
+			reportBandwidthSavings();
+		}
+		wasRunActive = runActive;
 		// Run-wide state (floor/runActive/score/roster/etc., all below) comes straight from
 		// DungeonRunTracker's own scoreboard reading, NOT from Skyblocker at all - only the room
 		// NAME/secrets fields actually need Skyblocker's room match. This used to bail out on the
