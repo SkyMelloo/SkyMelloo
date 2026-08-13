@@ -539,7 +539,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									);
 							return 1;
 						}))
-						// "/sm link" - the mirror image of MellooEssentials' "/me verify <code>": instead of
+						// "/sm link" - the mirror image of MellooEssentials' "/mes verify <code>": instead of
 						// typing a website-generated code in-game, this generates a token in-game and opens
 						// sky.melloo.me/link/<token> directly in the system browser, where it completes using
 						// whatever Discord session is already there (or prompts a fresh login first) - no

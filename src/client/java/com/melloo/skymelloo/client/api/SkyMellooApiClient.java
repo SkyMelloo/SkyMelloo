@@ -550,7 +550,7 @@ public final class SkyMellooApiClient {
 		});
 	}
 
-	/** Result of completing the "/skymelloo unlink" account flow (account verification itself moved to MellooEssentials' "/me verify"). */
+	/** Result of completing the "/skymelloo unlink" account flow (account verification itself moved to MellooEssentials' "/mes verify"). */
 	public record VerifyResult(boolean ok, String error) {
 	}
 
