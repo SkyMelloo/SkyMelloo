@@ -4,9 +4,13 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.37.6 (from 0.37.5) · patch
+
+Fixed self-contradictory wording that slipped into the 0.37.5 entry below during the history rewrite (its own text got swept up in the same word-substitution rule it was describing). No functional change.
+
 ## 0.37.5 (from 0.37.4) · patch
 
-Reworded every remaining "Highlighting" mention in README/CHANGELOG.md (old internal terminology from before the rename to "highlighting", years ago) - never actually used in current code, just leftover history text. No functional change.
+Reworded every remaining mention of the old internal highlighting terminology in README/CHANGELOG.md, and rewrote git history (force-pushed) to scrub it out of every past commit's file content, paths, and messages too - never actually used in current code, just leftover history text. No functional change.
 
 ## 0.37.4 (from 0.37.3) · patch
 
