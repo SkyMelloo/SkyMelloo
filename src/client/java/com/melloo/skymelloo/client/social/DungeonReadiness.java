@@ -13,16 +13,16 @@ import java.util.Map;
  *     <li>{@link #statsBreakdown} - general SkyBlock investment, itself built from two 0-1000
  *     sub-scores: {@link #skillsBreakdown} (ALL 8 SkyBlock skills + SkyBlock level, weighted by
  *     dungeon relevance - Combat/dungeon-class-level highest, Mana-adjacent skills like Enchanting/
- *     Alchemy lowest) and Magical Power (benchmarked against a target floor - see
- *     {@link #MP_BENCHMARK_PER_FLOOR}, since "good enough MP" for Entrance is very different from
- *     "good enough MP" for Floor VII). Every field fetched fresh each time (no client-side caching
- *     inside this class) since gear/MP can change right before a run - see the callers
+ *     Alchemy lowest) and Accessory Power (benchmarked against a target floor - see
+ *     {@link #AP_BENCHMARK_PER_FLOOR}, since "good enough AP" for Entrance is very different from
+ *     "good enough AP" for Floor VII). Every field fetched fresh each time (no client-side caching
+ *     inside this class) since gear/AP can change right before a run - see the callers
  *     ({@link PartyHudManager}'s periodic re-fetch, {@link PartyJoinWatcher}'s on-join fetch) for
  *     where the actual network calls and their own cache windows live.</li>
  *     <li>{@link #experienceBreakdown} - actual dungeon track record: highest floor ever completed,
  *     and total dungeon completions as a volume/experience proxy. Also a per-component breakdown.</li>
  *     <li>{@link #combinedScore} - a weighted average of the two totals (stats weighted slightly
- *     higher, since gear/MP readiness is a better predictor of actually scoring well than raw
+ *     higher, since gear/AP readiness is a better predictor of actually scoring well than raw
  *     completion count alone - a veteran with bad gear can still struggle).</li>
  * </ul>
  * <p>
@@ -46,19 +46,19 @@ import java.util.Map;
  * information simply isn't persisted anywhere retrievable, in-game or via API, once a run ends), so
  * "how much damage did they usually do relative to their team" is NOT computable no matter how this
  * is built. The weights/thresholds below are a reasonable, transparent approximation (loosely
- * informed by community discussion - e.g. Magical Power >1000 commonly recommended for M4+ on any
+ * informed by community discussion - e.g. Accessory Power >1000 commonly recommended for M4+ on any
  * class), not a verified fact - expect to tune them, and don't present the result to users as more
  * authoritative than it is.
  */
 public final class DungeonReadiness {
-	// Rough per-floor Magical Power benchmark (the "mid" tier for MP below), index 0 = Entrance,
-	// 1-7 = Floor I-VII. There is no single published per-floor MP table anywhere (checked multiple
+	// Rough per-floor Accessory Power benchmark (the "mid" tier for AP below), index 0 = Entrance,
+	// 1-7 = Floor I-VII. There is no single published per-floor AP table anywhere (checked multiple
 	// wiki/forum sources) - this is OUR OWN interpolation between the only two concrete
-	// community-cited anchor points found: ~300 MP "optimal" to comfortably start Catacombs
-	// progression at all, and 600+ MP specifically cited for F7 Mage. Everything between is a smooth
+	// community-cited anchor points found: ~300 AP "optimal" to comfortably start Catacombs
+	// progression at all, and 600+ AP specifically cited for F7 Mage. Everything between is a smooth
 	// guess, not a verified figure - tune freely.
-	private static final int[] MP_BENCHMARK_PER_FLOOR = {50, 50, 100, 150, 250, 350, 450, 600};
-	private static final int MP_TIER_GAP = 50;
+	private static final int[] AP_BENCHMARK_PER_FLOOR = {50, 50, 100, 150, 250, 350, 450, 600};
+	private static final int AP_TIER_GAP = 50;
 
 	// Dungeon classes cap at level 50 - long-standing, well-established. The low/mid/high tiers are
 	// NOT verified milestones, just a reasonable guess.
@@ -88,7 +88,7 @@ public final class DungeonReadiness {
 	private static final int SKYBLOCK_LEVEL_LOW = 100, SKYBLOCK_LEVEL_MID = 200, SKYBLOCK_LEVEL_HIGH = 350;
 
 	private static final int SKILLS_SCORE_MAX = 1000;
-	private static final double MP_SHARE = 0.45;
+	private static final double AP_SHARE = 0.45;
 	private static final double SKILLS_SHARE = 0.55;
 
 	private static final int HIGHEST_FLOOR_WEIGHT = 600;
@@ -104,8 +104,8 @@ public final class DungeonReadiness {
 	                               int enchanting, int alchemy, int taming, int classLevel, int skyblockLevel, int total) {
 	}
 
-	/** {@code skills}/{@code mp} are each their own 0-1000 score, {@code total} is their weighted combination (see {@link #MP_SHARE}/{@link #SKILLS_SHARE}). */
-	public record StatsBreakdown(SkillsBreakdown skills, int mp, int total) {
+	/** {@code skills}/{@code ap} are each their own 0-1000 score, {@code total} is their weighted combination (see {@link #AP_SHARE}/{@link #SKILLS_SHARE}). */
+	public record StatsBreakdown(SkillsBreakdown skills, int ap, int total) {
 	}
 
 	/** Per-component point breakdown for {@link #experienceBreakdown} - see {@link StatsBreakdown}. */
@@ -150,20 +150,20 @@ public final class DungeonReadiness {
 	}
 
 	/**
-	 * Point breakdown (0-1000 total): {@link #skillsBreakdown} and Magical Power (benchmarked against
-	 * {@code targetFloor}, see {@link #MP_BENCHMARK_PER_FLOOR}) as two independent 0-1000 scores,
-	 * combined {@link #SKILLS_SHARE}/{@link #MP_SHARE}.
+	 * Point breakdown (0-1000 total): {@link #skillsBreakdown} and Accessory Power (benchmarked
+	 * against {@code targetFloor}, see {@link #AP_BENCHMARK_PER_FLOOR}) as two independent 0-1000
+	 * scores, combined {@link #SKILLS_SHARE}/{@link #AP_SHARE}.
 	 *
-	 * @param targetFloor which floor to benchmark MP against - 0 = Entrance, 1-7 = Floor I-VII, clamped to that range.
+	 * @param targetFloor which floor to benchmark AP against - 0 = Entrance, 1-7 = Floor I-VII, clamped to that range.
 	 */
-	public static StatsBreakdown statsBreakdown(SkyMellooApiClient.SummaryResult summary, int magicalPower, int targetFloor) {
-		int floorIndex = Math.max(0, Math.min(targetFloor, MP_BENCHMARK_PER_FLOOR.length - 1));
-		int mpMid = MP_BENCHMARK_PER_FLOOR[floorIndex];
-		int mpScore = (int) Math.round(tieredRatio(Math.max(magicalPower, 0), mpMid - MP_TIER_GAP, mpMid, mpMid + MP_TIER_GAP) * SKILLS_SCORE_MAX);
+	public static StatsBreakdown statsBreakdown(SkyMellooApiClient.SummaryResult summary, int accessoryPower, int targetFloor) {
+		int floorIndex = Math.max(0, Math.min(targetFloor, AP_BENCHMARK_PER_FLOOR.length - 1));
+		int apMid = AP_BENCHMARK_PER_FLOOR[floorIndex];
+		int apScore = (int) Math.round(tieredRatio(Math.max(accessoryPower, 0), apMid - AP_TIER_GAP, apMid, apMid + AP_TIER_GAP) * SKILLS_SCORE_MAX);
 
 		SkillsBreakdown skills = skillsBreakdown(summary);
-		int total = (int) Math.round(skills.total() * SKILLS_SHARE + mpScore * MP_SHARE);
-		return new StatsBreakdown(skills, mpScore, total);
+		int total = (int) Math.round(skills.total() * SKILLS_SHARE + apScore * AP_SHARE);
+		return new StatsBreakdown(skills, apScore, total);
 	}
 
 	/** Point breakdown (0-1000 total): highest floor ever completed (up to {@value #HIGHEST_FLOOR_WEIGHT}), plus total dungeon completions as an experience proxy (up to {@value #COMPLETIONS_WEIGHT}) - no per-run data exists to do better than this. */
@@ -174,19 +174,19 @@ public final class DungeonReadiness {
 	}
 
 	/** Weighted average of {@link #statsBreakdown}'s/{@link #experienceBreakdown}'s totals - stats weighted slightly higher, see class doc. */
-	public static int combinedScore(SkyMellooApiClient.SummaryResult summary, int magicalPower, int targetFloor) {
-		return (int) Math.round(statsBreakdown(summary, magicalPower, targetFloor).total() * STATS_SHARE + experienceBreakdown(summary).total() * EXPERIENCE_SHARE);
+	public static int combinedScore(SkyMellooApiClient.SummaryResult summary, int accessoryPower, int targetFloor) {
+		return (int) Math.round(statsBreakdown(summary, accessoryPower, targetFloor).total() * STATS_SHARE + experienceBreakdown(summary).total() * EXPERIENCE_SHARE);
 	}
 
 	/**
-	 * Text label for Magical Power relative to {@code targetFloor}'s benchmark ({@link #MP_BENCHMARK_PER_FLOOR}) -
-	 * a "Very Low" MP for F7 can be a comically "Overpowered" MP for Entrance. Doesn't affect
+	 * Text label for Accessory Power relative to {@code targetFloor}'s benchmark ({@link #AP_BENCHMARK_PER_FLOOR}) -
+	 * a "Very Low" AP for F7 can be a comically "Overpowered" AP for Entrance. Doesn't affect
 	 * {@link #statsBreakdown} at all - purely an additional, easier-to-read label.
 	 */
-	public static String magicalPowerTierLabel(int magicalPower, int targetFloor) {
-		int floorIndex = Math.max(0, Math.min(targetFloor, MP_BENCHMARK_PER_FLOOR.length - 1));
-		int mid = MP_BENCHMARK_PER_FLOOR[floorIndex];
-		return tierLabel(Math.max(magicalPower, 0), Math.max(mid - 30, 0), mid, mid + 50, mid + 150, mid + 400);
+	public static String accessoryPowerTierLabel(int accessoryPower, int targetFloor) {
+		int floorIndex = Math.max(0, Math.min(targetFloor, AP_BENCHMARK_PER_FLOOR.length - 1));
+		int mid = AP_BENCHMARK_PER_FLOOR[floorIndex];
+		return tierLabel(Math.max(accessoryPower, 0), Math.max(mid - 30, 0), mid, mid + 50, mid + 150, mid + 400);
 	}
 
 	/**

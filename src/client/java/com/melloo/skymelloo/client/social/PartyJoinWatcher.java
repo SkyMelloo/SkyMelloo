@@ -86,7 +86,7 @@ public final class PartyJoinWatcher {
 		tickCounter++;
 		if (pendingSelfJoinCheckTick >= 0 && tickCounter >= pendingSelfJoinCheckTick) {
 			pendingSelfJoinCheckTick = -1;
-			SkyMellooClient.checkPartyMagicalPowerAuto();
+			SkyMellooClient.checkPartyAccessoryPowerAuto();
 		}
 	}
 
@@ -97,7 +97,7 @@ public final class PartyJoinWatcher {
 	public static void lookupAndAnnounce(String username, String dungeonClass, String dungeonLevel) {
 		ModAuthManager.getIdentity(Minecraft.getInstance()).thenAccept(identity ->
 		SkyMellooApiClient.fetchSummary(username, identity).whenComplete((summary, summaryError) ->
-				SkyMellooApiClient.fetchMagicalPower(username, identity).whenComplete((mp, mpError) ->
+				SkyMellooApiClient.fetchAccessoryPower(username, identity).whenComplete((ap, apError) ->
 						Minecraft.getInstance().execute(() -> {
 							Minecraft client = Minecraft.getInstance();
 							if (client.player == null) {
@@ -108,16 +108,16 @@ public final class PartyJoinWatcher {
 								return;
 							}
 							SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
-							boolean mpAvailable = mpError == null && mp.magicalPower() >= 0;
+							boolean apAvailable = apError == null && ap.accessoryPower() >= 0;
 
 							if (config.partyJoinStatsEnabled) {
-								String rendered = renderTemplate(config.dungeonInfoMessageTemplate, username, summary, mpAvailable ? mp.magicalPower() : -1);
+								String rendered = renderTemplate(config.dungeonInfoMessageTemplate, username, summary, apAvailable ? ap.accessoryPower() : -1);
 								String finderSuffix = dungeonClass != null ? Component.translatable("skymelloo.chat.party_join.finder_suffix", dungeonClass, dungeonLevel).getString() : "";
 								DungeonRunTracker.sendDungeonMessage(client, rendered + finderSuffix, config.dungeonInfoMessageDelivery);
 							}
 
-							maybeAutoKick(client, username, summary, mpAvailable ? mp.magicalPower() : -1, config);
-							maybeAutoKickMax(client, username, summary, mpAvailable ? mp.magicalPower() : -1, config);
+							maybeAutoKick(client, username, summary, apAvailable ? ap.accessoryPower() : -1, config);
+							maybeAutoKickMax(client, username, summary, apAvailable ? ap.accessoryPower() : -1, config);
 							maybeAutoKickForFloor(client, username, summary, config);
 							maybeAutoKickForFloorMax(client, username, summary, config);
 							maybeAutoKickForFloorCompletion(client, username, summary, config);
@@ -141,17 +141,19 @@ public final class PartyJoinWatcher {
 	 * if it's off, posts the same warning but with a manual, clickable [Kick] button instead of
 	 * acting on its own, so the check is never fully silent either way.
 	 */
-	private static void maybeAutoKick(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, int mp, SkyMellooConfig config) {
-		boolean useMp = "MP".equalsIgnoreCase(config.dungeonAutoKickStat);
-		int value = useMp ? mp : summary.skyblockLevel();
-		if (useMp && mp < 0) {
-			// No MP data available for this player - can't safely judge them, so don't act blind.
+	private static void maybeAutoKick(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, int ap, SkyMellooConfig config) {
+		// Anything other than "LEVEL" means AP - covers both the current "AP" value and "MP" left
+		// over from configs saved before the Hypixel stat rename.
+		boolean useAp = !"LEVEL".equalsIgnoreCase(config.dungeonAutoKickStat);
+		int value = useAp ? ap : summary.skyblockLevel();
+		if (useAp && ap < 0) {
+			// No AP data available for this player - can't safely judge them, so don't act blind.
 			return;
 		}
 		if (value >= config.dungeonAutoKickThreshold) {
 			return;
 		}
-		String statLabel = useMp ? "MP" : "Level";
+		String statLabel = useAp ? "AP" : "Level";
 		// Only the actual party LEADER can /party kick at all on Hypixel - anyone else's attempt just
 		// fails server-side. Auto-kicking only happens if leader; the button is only even shown if
 		// leader too, rather than offering something that would silently fail when clicked.
@@ -182,7 +184,7 @@ public final class PartyJoinWatcher {
 	/**
 	 * Checks {@link #qualifyingFloor} (real level REQUIREMENTS - Catacombs/Combat Skill - not just
 	 * "have they ever completed floor N before") against {@link SkyMellooConfig#dungeonFloorKickThreshold}.
-	 * Independent toggle/threshold from the MP/Level check above - a party can reasonably want both,
+	 * Independent toggle/threshold from the AP/Level check above - a party can reasonably want both,
 	 * either, or neither.
 	 */
 	/** Public - also called by {@link com.melloo.skymelloo.client.party.PartyHudManager} once it independently resolves a tracked party member's floor stat, not just on the join-message path. */
@@ -209,14 +211,16 @@ public final class PartyJoinWatcher {
 	 * OVER the threshold doesn't need carrying and may be taking a slot from someone who does.
 	 * Independent toggle/stat/threshold from the min check, so a party can run either, both, or neither.
 	 */
-	private static void maybeAutoKickMax(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, int mp, SkyMellooConfig config) {
+	private static void maybeAutoKickMax(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, int ap, SkyMellooConfig config) {
 		if (!config.dungeonAutoKickMaxEnabled) {
 			return;
 		}
-		boolean useMp = "MP".equalsIgnoreCase(config.dungeonAutoKickMaxStat);
-		int value = useMp ? mp : summary.skyblockLevel();
-		if (useMp && mp < 0) {
-			// No MP data available for this player - can't safely judge them, so don't act blind.
+		// Anything other than "LEVEL" means AP - covers both the current "AP" value and "MP" left
+		// over from configs saved before the Hypixel stat rename.
+		boolean useAp = !"LEVEL".equalsIgnoreCase(config.dungeonAutoKickMaxStat);
+		int value = useAp ? ap : summary.skyblockLevel();
+		if (useAp && ap < 0) {
+			// No AP data available for this player - can't safely judge them, so don't act blind.
 			return;
 		}
 		if (value <= config.dungeonAutoKickMaxThreshold) {
@@ -225,7 +229,7 @@ public final class PartyJoinWatcher {
 		if (!com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
 			return;
 		}
-		String statLabel = useMp ? "MP" : "Level";
+		String statLabel = useAp ? "AP" : "Level";
 		com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
 		String text = config.dungeonAutoKickMaxMessageTemplate
 				.replace("{player}", username)
@@ -331,8 +335,8 @@ public final class PartyJoinWatcher {
 		return floor;
 	}
 
-	/** Substitutes {username} {mp} {level} {cata} {class} {skillavg} {networth} {rank} {guild} {maxfloor} {qualfloor} {time} {date} in the Dungeon Info message template. */
-	private static String renderTemplate(String template, String username, SkyMellooApiClient.SummaryResult summary, int mp) {
+	/** Substitutes {username} {ap} {level} {cata} {class} {skillavg} {networth} {rank} {guild} {maxfloor} {qualfloor} {time} {date} (also the legacy {mp}/{mptier}/{mpscore} names, for templates saved before the AP rename) in the Dungeon Info message template. */
+	private static String renderTemplate(String template, String username, SkyMellooApiClient.SummaryResult summary, int ap) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		ZoneId zone;
 		try {
@@ -341,13 +345,14 @@ public final class PartyJoinWatcher {
 			zone = ZoneId.systemDefault();
 		}
 		ZonedDateTime now = ZonedDateTime.now(zone);
-		String mpText = config.dungeonInfoShowMp && mp >= 0 ? String.valueOf(mp) : "-";
-		DungeonReadiness.StatsBreakdown stats = DungeonReadiness.statsBreakdown(summary, mp, config.dungeonTargetFloor);
+		String apText = config.dungeonInfoShowMp && ap >= 0 ? String.valueOf(ap) : "-";
+		DungeonReadiness.StatsBreakdown stats = DungeonReadiness.statsBreakdown(summary, ap, config.dungeonTargetFloor);
 		DungeonReadiness.ExperienceBreakdown experience = DungeonReadiness.experienceBreakdown(summary);
-		int readiness = DungeonReadiness.combinedScore(summary, mp, config.dungeonTargetFloor);
+		int readiness = DungeonReadiness.combinedScore(summary, ap, config.dungeonTargetFloor);
 		return template
 				.replace("{username}", username)
-				.replace("{mp}", mpText)
+				.replace("{ap}", apText)
+				.replace("{mp}", apText)
 				.replace("{level}", String.valueOf(summary.skyblockLevel()))
 				.replace("{cata}", String.valueOf(summary.catacombsLevel()))
 				.replace("{class}", summary.selectedClass() != null ? summary.selectedClass() : "-")
@@ -361,7 +366,8 @@ public final class PartyJoinWatcher {
 				.replace("{expscore}", String.valueOf(experience.total()))
 				.replace("{readiness}", String.valueOf(readiness))
 				.replace("{skillsscore}", String.valueOf(stats.skills().total()))
-				.replace("{mpscore}", String.valueOf(stats.mp()))
+				.replace("{apscore}", String.valueOf(stats.ap()))
+				.replace("{mpscore}", String.valueOf(stats.ap()))
 				.replace("{farmingpoints}", String.valueOf(stats.skills().farming()))
 				.replace("{miningpoints}", String.valueOf(stats.skills().mining()))
 				.replace("{combatpoints}", String.valueOf(stats.skills().combat()))
@@ -374,7 +380,8 @@ public final class PartyJoinWatcher {
 				.replace("{sblevelpoints}", String.valueOf(stats.skills().skyblockLevel()))
 				.replace("{floorpoints}", String.valueOf(experience.highestFloor()))
 				.replace("{completionspoints}", String.valueOf(experience.completions()))
-				.replace("{mptier}", DungeonReadiness.magicalPowerTierLabel(mp, config.dungeonTargetFloor))
+				.replace("{aptier}", DungeonReadiness.accessoryPowerTierLabel(ap, config.dungeonTargetFloor))
+				.replace("{mptier}", DungeonReadiness.accessoryPowerTierLabel(ap, config.dungeonTargetFloor))
 				.replace("{catatier}", DungeonReadiness.catacombsLevelTierLabel(summary.catacombsLevel(), config.dungeonTargetFloor))
 				.replace("{time}", now.format(DateTimeFormatter.ofPattern("HH:mm")))
 				.replace("{date}", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));

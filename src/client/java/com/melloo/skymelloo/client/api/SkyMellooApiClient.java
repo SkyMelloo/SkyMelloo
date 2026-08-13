@@ -41,7 +41,7 @@ public final class SkyMellooApiClient {
 	private SkyMellooApiClient() {
 	}
 
-	public record MagicalPowerResult(int magicalPower, String selectedPower) {
+	public record AccessoryPowerResult(int accessoryPower, String selectedPower) {
 	}
 
 	public record SummaryResult(
@@ -86,28 +86,33 @@ public final class SkyMellooApiClient {
 		return levels;
 	}
 
-	/** From /api/player/:username/inventory - the only endpoint that exposes Magical Power. */
-	public static CompletableFuture<MagicalPowerResult> fetchMagicalPower(String username, ModAuthManager.ModIdentity identity) {
-		return fetchMagicalPower(username, null, identity);
+	/** From /api/player/:username/inventory - the only endpoint that exposes Accessory Power. */
+	public static CompletableFuture<AccessoryPowerResult> fetchAccessoryPower(String username, ModAuthManager.ModIdentity identity) {
+		return fetchAccessoryPower(username, null, identity);
 	}
 
 	/** @param profile a specific SkyBlock profile name (see {@link #fetchProfileNames}), or null for the player's currently-selected profile. */
-	public static CompletableFuture<MagicalPowerResult> fetchMagicalPower(String username, String profile, ModAuthManager.ModIdentity identity) {
+	public static CompletableFuture<AccessoryPowerResult> fetchAccessoryPower(String username, String profile, ModAuthManager.ModIdentity identity) {
 		return getJson("/player/" + encode(username) + "/inventory" + profileQuery(profile), identity).thenApply(root -> {
-			JsonObject mp = safeObject(root, "magicalPower");
-			if (mp == null) {
-				return new MagicalPowerResult(-1, null);
+			// Prefers the website's new "accessoryPower" field, falls back to the legacy
+			// "magicalPower" name (same shape) so this keeps working during the website's own rollout.
+			JsonObject ap = safeObject(root, "accessoryPower");
+			if (ap == null) {
+				ap = safeObject(root, "magicalPower");
 			}
-			int current = mp.has("current") && !mp.get("current").isJsonNull() ? mp.get("current").getAsInt() : -1;
-			String selected = mp.has("selectedPower") && !mp.get("selectedPower").isJsonNull() ? mp.get("selectedPower").getAsString() : null;
-			return new MagicalPowerResult(current, selected);
+			if (ap == null) {
+				return new AccessoryPowerResult(-1, null);
+			}
+			int current = ap.has("current") && !ap.get("current").isJsonNull() ? ap.get("current").getAsInt() : -1;
+			String selected = ap.has("selectedPower") && !ap.get("selectedPower").isJsonNull() ? ap.get("selectedPower").getAsString() : null;
+			return new AccessoryPowerResult(current, selected);
 		});
 	}
 
 	/**
 	 * Forces the backend to bypass its own 3-5 minute profile cache (POST /player/:username/request-refresh)
 	 * and pull straight from Hypixel - used right when a dungeon run starts, since a party member's
-	 * gear/MP could have changed just before queueing and {@link DungeonReadiness} needs current data,
+	 * gear/AP could have changed just before queueing and {@link DungeonReadiness} needs current data,
 	 * not up-to-5-minutes-stale. Server-side cooldown-limited to once per 10 minutes per account
 	 * (shared across every caller, not per-IP) - a 429 here just means someone already refreshed this
 	 * account recently enough, which is a fine outcome too, not a real failure. Callers should treat

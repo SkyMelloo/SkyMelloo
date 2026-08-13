@@ -336,14 +336,14 @@ public class SkyMellooSettingsScreen extends Screen {
 
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.auto_kick")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.auto_kick.enabled"), () -> c.dungeonAutoKickEnabled, v -> c.dungeonAutoKickEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.auto_kick.enabled")));
-				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick.check_stat"), () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "MP", "LEVEL" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick.check_stat")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick.check_stat"), () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "AP", "LEVEL" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick.check_stat")));
 				rows.add(tip(intTextRow(tr("skymelloo.gui.settings.row.auto_kick.threshold"), () -> c.dungeonAutoKickThreshold, v -> c.dungeonAutoKickThreshold = v, 0, 100000), Component.translatable("skymelloo.gui.settings.tip.auto_kick.threshold")));
 				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.auto_kick.message_text"), () -> c.dungeonAutoKickMessageTemplate, v -> c.dungeonAutoKickMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.auto_kick.message_text")));
 				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick.delivery"), () -> c.dungeonAutoKickDelivery, v -> c.dungeonAutoKickDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick.delivery")));
 
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.auto_kick_max")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.auto_kick_max.enabled"), () -> c.dungeonAutoKickMaxEnabled, v -> c.dungeonAutoKickMaxEnabled = v, 0xFFFF9955), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.enabled")));
-				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick_max.check_stat"), () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "MP", "LEVEL" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.check_stat")));
+				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick_max.check_stat"), () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "AP", "LEVEL" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.check_stat")));
 				rows.add(tip(intTextRow(tr("skymelloo.gui.settings.row.auto_kick_max.threshold"), () -> c.dungeonAutoKickMaxThreshold, v -> c.dungeonAutoKickMaxThreshold = v, 0, 100000), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.threshold")));
 				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.auto_kick_max.message_text"), () -> c.dungeonAutoKickMaxMessageTemplate, v -> c.dungeonAutoKickMaxMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.message_text")));
 				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.auto_kick_max.delivery"), () -> c.dungeonAutoKickMaxDelivery, v -> c.dungeonAutoKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.auto_kick_max.delivery")));
@@ -558,7 +558,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		return (x, y, w, h) -> new IntStepRowWidget(x, y, w, h, label, getter, setter, min, max, step);
 	}
 
-	/** Like {@link #intStepRow}, but opens a text-input screen instead of cycling by a fixed step - for values worth typing directly (e.g. an MP threshold in the thousands). */
+	/** Like {@link #intStepRow}, but opens a text-input screen instead of cycling by a fixed step - for values worth typing directly (e.g. an AP threshold in the thousands). */
 	private RowFactory intTextRow(String label, IntSupplier getter, IntConsumer setter, int min, int max) {
 		return (x, y, w, h) -> new IntTextRowWidget(x, y, w, h, label, getter, setter, min, max);
 	}
@@ -1209,7 +1209,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** A row that cycles through a small fixed set of string options on click - e.g. "MP" / "LEVEL". */
+	/** A row that cycles through a small fixed set of string options on click - e.g. "AP" / "LEVEL". */
 	private final class CycleRowWidget extends AbstractWidget {
 		private final String label;
 		private final Supplier<String> getter;

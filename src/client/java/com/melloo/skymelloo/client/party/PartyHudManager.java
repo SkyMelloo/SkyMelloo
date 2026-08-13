@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Resolves the current roster ({@link DungeonRunTracker#getEffectiveRoster()} - live party
  * membership normally, but locked to who was in the party when a dungeon run started while one is
- * active) into displayable info for {@link PartyHud} - usernames via the tab list, Magical Power
+ * active) into displayable info for {@link PartyHud} - usernames via the tab list, Accessory Power
  * via a periodic API fetch cached per player, so the HUD's own render never has to do any network
  * work.
  * <p>
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * server instance as you at all. When that happens, the tab list lookup returns nothing (that's
  * not a bug in it, they're just genuinely not part of your connection) - fall back to resolving
  * their username directly from Mojang's session server by UUID instead of showing a raw UUID
- * fragment, since that's needed anyway for the Magical Power lookup to work for them too.
+ * fragment, since that's needed anyway for the Accessory Power lookup to work for them too.
  */
 public final class PartyHudManager {
 	/**
@@ -44,17 +44,17 @@ public final class PartyHudManager {
 	 * "could they queue for this right now." {@code readinessScore} is {@link DungeonReadiness#combinedScore}
 	 * (-1 until resolved) - a rough 0-1000 gear/level/experience estimate, NOT an authoritative score.
 	 */
-	public record MemberInfo(String username, int magicalPower, int highestFloor, int qualifyingFloor, int readinessScore) {
+	public record MemberInfo(String username, int accessoryPower, int highestFloor, int qualifyingFloor, int readinessScore) {
 	}
 
 	private static final int REFRESH_INTERVAL_TICKS = 100; // 5s, matches PartyTracker's own cadence
-	private static final long MP_CACHE_MS = 60_000;
-	private static final long FLOOR_CACHE_MS = 300_000; // highest-floor barely changes mid-session, no need to refetch as often as MP
+	private static final long AP_CACHE_MS = 60_000;
+	private static final long FLOOR_CACHE_MS = 300_000; // highest-floor barely changes mid-session, no need to refetch as often as AP
 	private static final long MOJANG_RETRY_MS = 10_000; // cap retry rate for a persistently-failing/absent lookup
 	private static final HttpClient MOJANG_HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
 	private static final Map<UUID, MemberInfo> members = new ConcurrentHashMap<>();
-	private static final Map<UUID, Long> mpFetchedAt = new ConcurrentHashMap<>();
+	private static final Map<UUID, Long> apFetchedAt = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> floorFetchedAt = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> mojangRetryAt = new ConcurrentHashMap<>();
 	private static final Map<UUID, Boolean> mojangLookupInFlight = new ConcurrentHashMap<>();
@@ -75,7 +75,7 @@ public final class PartyHudManager {
 
 	public static void reset() {
 		members.clear();
-		mpFetchedAt.clear();
+		apFetchedAt.clear();
 		floorFetchedAt.clear();
 		mojangRetryAt.clear();
 		mojangLookupInFlight.clear();
@@ -85,10 +85,10 @@ public final class PartyHudManager {
 	}
 
 	/**
-	 * Forces every tracked member's MP/summary data to be re-fetched on the very next tick, bypassing
-	 * our OWN client-side {@link #MP_CACHE_MS}/{@link #FLOOR_CACHE_MS} - called by
+	 * Forces every tracked member's AP/summary data to be re-fetched on the very next tick, bypassing
+	 * our OWN client-side {@link #AP_CACHE_MS}/{@link #FLOOR_CACHE_MS} - called by
 	 * {@link DungeonRunTracker} right as a run actually starts, since the readiness score (see
-	 * {@link DungeonReadiness}) needs CURRENT gear/MP, not up-to-5-minutes-stale data - a player can
+	 * {@link DungeonReadiness}) needs CURRENT gear/AP, not up-to-5-minutes-stale data - a player can
 	 * freely swap armor/accessories right up until the run begins.
 	 * <p>
 	 * Clearing our own cache alone isn't enough though - the sky.melloo.me BACKEND has its own
@@ -102,7 +102,7 @@ public final class PartyHudManager {
 	 * never worse than before this existed.
 	 */
 	public static void forceRefreshAll() {
-		mpFetchedAt.clear();
+		apFetchedAt.clear();
 		floorFetchedAt.clear();
 
 		Minecraft client = Minecraft.getInstance();
@@ -144,7 +144,7 @@ public final class PartyHudManager {
 		// already have been resolved from an earlier cycle.
 		if (tickCounter % REFRESH_INTERVAL_TICKS == 0) {
 			members.keySet().retainAll(currentMembers);
-			mpFetchedAt.keySet().retainAll(currentMembers);
+			apFetchedAt.keySet().retainAll(currentMembers);
 			floorFetchedAt.keySet().retainAll(currentMembers);
 			mojangRetryAt.keySet().retainAll(currentMembers);
 			mojangLookupInFlight.keySet().retainAll(currentMembers);
@@ -163,7 +163,7 @@ public final class PartyHudManager {
 			String placeholder = uuid.toString().substring(0, 8);
 
 			if (info != null) {
-				members.put(uuid, new MemberInfo(info.getProfile().name(), existing != null ? existing.magicalPower() : -1, existing != null ? existing.highestFloor() : -1, existing != null ? existing.qualifyingFloor() : -1, existing != null ? existing.readinessScore() : -1));
+				members.put(uuid, new MemberInfo(info.getProfile().name(), existing != null ? existing.accessoryPower() : -1, existing != null ? existing.highestFloor() : -1, existing != null ? existing.qualifyingFloor() : -1, existing != null ? existing.readinessScore() : -1));
 			} else if (existing == null) {
 				members.put(uuid, new MemberInfo(placeholder, -1, -1, -1, -1));
 			}
@@ -173,7 +173,7 @@ public final class PartyHudManager {
 			String username = members.get(uuid).username();
 			if (username.equals(placeholder)) {
 				// Still just the UUID-fragment placeholder, not a real resolved username - a PREVIOUS
-				// version only skipped the MP/floor fetches below on the exact tick the placeholder was
+				// version only skipped the AP/floor fetches below on the exact tick the placeholder was
 				// FIRST created, but kept using it as a real username on every tick after that (since
 				// `existing` was no longer null), still firing both API calls against a fake name and
 				// spamming "Minecraft account not found" forever. Check the actual VALUE every tick
@@ -192,19 +192,19 @@ public final class PartyHudManager {
 			if (haveRosterBaseline && announcedJoins.add(uuid) && !username.equalsIgnoreCase(client.player.getGameProfile().name())) {
 				com.melloo.mellooessentials.client.party.PartyKickQueue.handleMemberJoined(client, username);
 			}
-			Long lastMpFetch = mpFetchedAt.get(uuid);
-			if (lastMpFetch == null || System.currentTimeMillis() - lastMpFetch > MP_CACHE_MS) {
-				mpFetchedAt.put(uuid, System.currentTimeMillis());
-				DebugLog.log(DebugLog.Category.PARTY, "Party HUD: fetching MP for " + username + "...");
-				ModAuthManager.getIdentity(client).thenCompose(identity -> SkyMellooApiClient.fetchMagicalPower(username, identity)).whenComplete((result, error) -> {
+			Long lastApFetch = apFetchedAt.get(uuid);
+			if (lastApFetch == null || System.currentTimeMillis() - lastApFetch > AP_CACHE_MS) {
+				apFetchedAt.put(uuid, System.currentTimeMillis());
+				DebugLog.log(DebugLog.Category.PARTY, "Party HUD: fetching AP for " + username + "...");
+				ModAuthManager.getIdentity(client).thenCompose(identity -> SkyMellooApiClient.fetchAccessoryPower(username, identity)).whenComplete((result, error) -> {
 					if (error != null) {
-						DebugLog.log(DebugLog.Category.PARTY, "Party HUD: MP fetch for " + username + " failed (" + error.getMessage() + ").");
+						DebugLog.log(DebugLog.Category.PARTY, "Party HUD: AP fetch for " + username + " failed (" + error.getMessage() + ").");
 						return;
 					}
-					if (result.magicalPower() >= 0) {
-						members.computeIfPresent(uuid, (id, old) -> new MemberInfo(old.username(), result.magicalPower(), old.highestFloor(), old.qualifyingFloor(), old.readinessScore()));
+					if (result.accessoryPower() >= 0) {
+						members.computeIfPresent(uuid, (id, old) -> new MemberInfo(old.username(), result.accessoryPower(), old.highestFloor(), old.qualifyingFloor(), old.readinessScore()));
 					} else {
-						DebugLog.log(DebugLog.Category.PARTY, "Party HUD: MP fetch for " + username + " returned no data.");
+						DebugLog.log(DebugLog.Category.PARTY, "Party HUD: AP fetch for " + username + " returned no data.");
 					}
 				});
 			}
@@ -225,7 +225,7 @@ public final class PartyHudManager {
 					int targetFloor = SkyMellooConfig.HANDLER.instance().dungeonTargetFloor;
 					DebugLog.log(DebugLog.Category.PARTY, "Party HUD: " + username + " -> cata=" + summary.catacombsLevel()
 							+ ", combat=" + summary.skillLevels().getOrDefault("combat", -1) + ", qualifies=F" + qualifying + ", highestFloor=F" + summary.highestFloor());
-					members.computeIfPresent(uuid, (id, old) -> new MemberInfo(old.username(), old.magicalPower(), summary.highestFloor(), qualifying, DungeonReadiness.combinedScore(summary, old.magicalPower(), targetFloor)));
+					members.computeIfPresent(uuid, (id, old) -> new MemberInfo(old.username(), old.accessoryPower(), summary.highestFloor(), qualifying, DungeonReadiness.combinedScore(summary, old.accessoryPower(), targetFloor)));
 					Minecraft mcClient = Minecraft.getInstance();
 					if (mcClient.player != null && !username.equalsIgnoreCase(mcClient.player.getGameProfile().name())) {
 						PartyJoinWatcher.maybeAutoKickForFloor(mcClient, username, summary, SkyMellooConfig.HANDLER.instance());
@@ -250,7 +250,7 @@ public final class PartyHudManager {
 					JsonObject root = JsonParser.parseString(response.body()).getAsJsonObject();
 					if (root.has("name")) {
 						String username = root.get("name").getAsString();
-						members.computeIfPresent(uuid, (id, old) -> new MemberInfo(username, old.magicalPower(), old.highestFloor(), old.qualifyingFloor(), old.readinessScore()));
+						members.computeIfPresent(uuid, (id, old) -> new MemberInfo(username, old.accessoryPower(), old.highestFloor(), old.qualifyingFloor(), old.readinessScore()));
 					}
 				})
 				.exceptionally(error -> null)

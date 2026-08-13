@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Shows your current Hypixel party - each member's name, face and Magical Power (see
+ * Shows your current Hypixel party - each member's name, face and Accessory Power (see
  * {@link PartyHudManager}) - only while you're actually in one. "Full" mode's per-member sub-line
  * shows different info depending on whether a dungeon run is active ({@link DungeonRunTracker#isRunActive()}):
  * DURING a run, a ready-up indicator, live HP%, death count, current room type, and a "near boss
@@ -45,25 +45,25 @@ public final class PartyHud implements HudElement {
 	private PartyHud() {
 	}
 
-	private static String mpText(int mp) {
-		return mp >= 0 ? mp + " MP" : "-- MP";
+	private static String apText(int ap) {
+		return ap >= 0 ? ap + " AP" : "-- AP";
 	}
 
-	private static final int MP_NORMAL_COLOR = 0xFF55FFFF;
-	private static final int MP_LOW_COLOR_YELLOW = 0xFFFFFF55;
-	private static final int MP_LOW_COLOR_RED = 0xFFFF5555;
-	// A member needs this fraction of your own MP or less before their color maxes out at pure red -
-	// e.g. 0.5 means "half your MP or less is as bad as it gets", not literally zero.
-	private static final double MP_DEFICIT_FOR_FULL_RED = 0.5;
+	private static final int AP_NORMAL_COLOR = 0xFF55FFFF;
+	private static final int AP_LOW_COLOR_YELLOW = 0xFFFFFF55;
+	private static final int AP_LOW_COLOR_RED = 0xFFFF5555;
+	// A member needs this fraction of your own AP or less before their color maxes out at pure red -
+	// e.g. 0.5 means "half your AP or less is as bad as it gets", not literally zero.
+	private static final double AP_DEFICIT_FOR_FULL_RED = 0.5;
 
-	/** Default cyan unless {@code memberMp} is meaningfully LOWER than your own {@code localMp} - then a yellow-to-red gradient scaled by how big the gap is, not a flat "low MP" threshold. */
-	private static int mpColor(int memberMp, int localMp) {
-		if (memberMp < 0 || localMp <= 0 || memberMp >= localMp) {
-			return MP_NORMAL_COLOR;
+	/** Default cyan unless {@code memberAp} is meaningfully LOWER than your own {@code localAp} - then a yellow-to-red gradient scaled by how big the gap is, not a flat "low AP" threshold. */
+	private static int apColor(int memberAp, int localAp) {
+		if (memberAp < 0 || localAp <= 0 || memberAp >= localAp) {
+			return AP_NORMAL_COLOR;
 		}
-		double deficit = (localMp - memberMp) / (double) localMp;
-		double t = Math.min(1.0, deficit / MP_DEFICIT_FOR_FULL_RED);
-		return lerpArgb(MP_LOW_COLOR_YELLOW, MP_LOW_COLOR_RED, t);
+		double deficit = (localAp - memberAp) / (double) localAp;
+		double t = Math.min(1.0, deficit / AP_DEFICIT_FOR_FULL_RED);
+		return lerpArgb(AP_LOW_COLOR_YELLOW, AP_LOW_COLOR_RED, t);
 	}
 
 	private static int lerpArgb(int from, int to, double t) {
@@ -90,7 +90,7 @@ public final class PartyHud implements HudElement {
 			return;
 		}
 		// SkyBlock's Dungeons only - not the main hub, other islands, or any other Hypixel gamemode.
-		// Covers both the dungeon hub (pre-run floor/MP readiness, see the class doc comment) and an
+		// Covers both the dungeon hub (pre-run floor/AP readiness, see the class doc comment) and an
 		// actual run - HypixelLocationTracker#isLikelyInDungeon is a best-effort substring match on
 		// Hypixel's own (undocumented) location data, not a hardcoded room/floor check, so it already
 		// covers "somewhere in the Catacombs area" rather than just "mid-run".
@@ -104,12 +104,12 @@ public final class PartyHud implements HudElement {
 		Minecraft client = Minecraft.getInstance();
 		int x = config.hudPartyX;
 		int y = config.hudPartyY;
-		// Your own MP, if known - used to color OTHER members' MP relative to yours (see mpColor).
-		int localMp = -1;
+		// Your own AP, if known - used to color OTHER members' AP relative to yours (see apColor).
+		int localAp = -1;
 		if (client.player != null) {
 			PartyHudManager.MemberInfo self = members.get(client.player.getUUID());
 			if (self != null) {
-				localMp = self.magicalPower();
+				localAp = self.accessoryPower();
 			}
 		}
 		// Full mode renders a BIGGER face icon, so textX needs the wider size too.
@@ -169,11 +169,11 @@ public final class PartyHud implements HudElement {
 		for (Map.Entry<UUID, PartyHudManager.MemberInfo> widthEntry : members.entrySet()) {
 			PartyHudManager.MemberInfo member = widthEntry.getValue();
 			String nameWidthText = member.username() + (ModPresenceManager.isModUser(widthEntry.getKey()) ? " ◆" : "");
-			int rowWidth = rowFaceSize + 4 + client.font.width(nameWidthText) + client.font.width(mpText(member.magicalPower())) + 24;
+			int rowWidth = rowFaceSize + 4 + client.font.width(nameWidthText) + client.font.width(apText(member.accessoryPower())) + 24;
 			width = Math.max(width, rowWidth);
 		}
 		if (full) {
-			// Sub-info lines can be wider than the name+MP line above them on their own - widen the
+			// Sub-info lines can be wider than the name+AP line above them on their own - widen the
 			// box for that too instead of letting it clip.
 			for (java.util.List<String> subLines : subLinesByMember.values()) {
 				for (String sub : subLines) {
@@ -216,12 +216,12 @@ public final class PartyHud implements HudElement {
 			// embedded §-code, honored regardless of the base color passed to gg.text below.
 			String nameText = member.username() + (ModPresenceManager.isModUser(entry.getKey()) ? " §b◆" : "");
 			gg.text(client.font, nameText, textX, rowY, 0xFFFFFFFF);
-			String mp = mpText(member.magicalPower());
-			gg.text(client.font, mp, x + width - 4 - client.font.width(mp), rowY, mpColor(member.magicalPower(), localMp));
+			String ap = apText(member.accessoryPower());
+			gg.text(client.font, ap, x + width - 4 - client.font.width(ap), rowY, apColor(member.accessoryPower(), localAp));
 
 			java.util.List<String> subLines = subLinesByMember.getOrDefault(entry.getKey(), java.util.List.of());
 			if (full) {
-				// Full mode's extra info hangs BELOW the name/MP line (not widening it sideways) - one
+				// Full mode's extra info hangs BELOW the name/AP line (not widening it sideways) - one
 				// or more of its own lines per member, stacked, rather than crammed onto one line.
 				int subY = rowY + ROW_HEIGHT - 2;
 				for (String sub : subLines) {

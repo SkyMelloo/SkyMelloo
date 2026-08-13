@@ -494,7 +494,7 @@ public class SkyMellooMenuScreen extends Screen {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
 			list.add(toggleAction(tr("skymelloo.gui.menu.row.auto_kick.enabled.name"), tr("skymelloo.gui.menu.row.auto_kick.enabled.description"), () -> c.dungeonAutoKickEnabled, v -> c.dungeonAutoKickEnabled = v, screen));
-			list.add(cycleAction(Items.NETHER_STAR, tr("skymelloo.gui.menu.row.auto_kick.check_stat.name"), tr("skymelloo.gui.menu.row.auto_kick.check_stat.description"), () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "MP", "LEVEL" }, screen));
+			list.add(cycleAction(Items.NETHER_STAR, tr("skymelloo.gui.menu.row.auto_kick.check_stat.name"), tr("skymelloo.gui.menu.row.auto_kick.check_stat.description"), () -> c.dungeonAutoKickStat, v -> c.dungeonAutoKickStat = v, new String[] { "AP", "LEVEL" }, screen));
 			list.add(deliveryAction(tr("skymelloo.gui.menu.row.auto_kick.delivery.name"), tr("skymelloo.gui.menu.row.auto_kick.delivery.description"), () -> c.dungeonAutoKickDelivery, v -> c.dungeonAutoKickDelivery = v, screen));
 			return list;
 		}
@@ -511,7 +511,7 @@ public class SkyMellooMenuScreen extends Screen {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
 			list.add(toggleAction(tr("skymelloo.gui.menu.row.carry_auto_kick.enabled.name"), tr("skymelloo.gui.menu.row.carry_auto_kick.enabled.description"), () -> c.dungeonAutoKickMaxEnabled, v -> c.dungeonAutoKickMaxEnabled = v, screen));
-			list.add(cycleAction(Items.NETHER_STAR, tr("skymelloo.gui.menu.row.carry_auto_kick.check_stat.name"), tr("skymelloo.gui.menu.row.carry_auto_kick.check_stat.description"), () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "MP", "LEVEL" }, screen));
+			list.add(cycleAction(Items.NETHER_STAR, tr("skymelloo.gui.menu.row.carry_auto_kick.check_stat.name"), tr("skymelloo.gui.menu.row.carry_auto_kick.check_stat.description"), () -> c.dungeonAutoKickMaxStat, v -> c.dungeonAutoKickMaxStat = v, new String[] { "AP", "LEVEL" }, screen));
 			list.add(deliveryAction(tr("skymelloo.gui.menu.row.carry_auto_kick.delivery.name"), tr("skymelloo.gui.menu.row.carry_auto_kick.delivery.description"), () -> c.dungeonAutoKickMaxDelivery, v -> c.dungeonAutoKickMaxDelivery = v, screen));
 			return list;
 		}

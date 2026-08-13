@@ -50,15 +50,15 @@ public final class SkyMellooHudElements {
 		// line" as a representative during-run case, since the real count is unbounded.
 		int partyRowHeight = 14 + (partyFull ? 3 * 10 : 2 * 10);
 		int partyHeight = 16 + partyPreviewMembers * partyRowHeight + 12; // +12 for the pre-run party-bottleneck line
-		// Widened from 220/160 - a 16-char username plus the mod-user marker and MP text routinely
+		// Widened from 220/160 - a 16-char username plus the mod-user marker and AP text routinely
 		// exceeds the old compact width, and the during-run combined sub-line (readiness + deaths +
 		// room + portal/AFK markers) routinely exceeds the old full width.
 		int partyWidth = partyFull ? 260 : 190;
-		// PartyMpBarHud - a fixed-width horizontal strip regardless of member count (heads are
+		// PartyApBarHud - a fixed-width horizontal strip regardless of member count (heads are
 		// positioned proportionally along it, not stacked), so its preview size is just the range
 		// label height + the bar itself.
 		elements.add(new HudLayoutEditorScreen.Draggable(
-				"Party MP Bar",
+				"Party AP Bar",
 				() -> config.hudPartyMpBarX, () -> config.hudPartyMpBarY,
 				(x, y) -> {
 					config.hudPartyMpBarX = x;

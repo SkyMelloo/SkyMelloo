@@ -120,11 +120,11 @@ public final class SkyMellooConfig {
 	// Where the Dungeon Info join announcement goes - "LOCAL" (only you see it) or "PARTY" (sent for real via /pc, everyone sees it). Falls back to LOCAL automatically if you're not actually in a party.
 	public String dungeonInfoMessageDelivery = "LOCAL";
 
-	// Include Magical Power in the Dungeon Info join announcement.
+	// Include Accessory Power in the Dungeon Info join announcement.
 	public boolean dungeonInfoShowMp = true;
 
-	// Message template for the Dungeon Info join announcement. Placeholders: {username} {mp} {level} {cata} {class} {skillavg} {networth} {rank} {guild} {maxfloor} {qualfloor} {statscore} {expscore} {readiness} {skillsscore} {mpscore} {farmingpoints} {miningpoints} {combatpoints} {foragingpoints} {fishingpoints} {enchantingpoints} {alchemypoints} {tamingpoints} {classpoints} {sblevelpoints} {floorpoints} {completionspoints} {mptier} {catatier} {time} {date}. {maxfloor} = highest floor ever completed; {qualfloor} = highest floor they're currently level-eligible for. {statscore}/{expscore}/{readiness} are 0-1000 rough estimates (see DungeonReadiness) - NOT an authoritative score, just gear/level/experience proxies since Hypixel exposes no per-run damage/performance data at all. {statscore} itself is built from {skillsscore} (all 8 skills + class level + SB level) and {mpscore}, each 0-1000. {farmingpoints} etc. break {skillsscore} down into exactly how many points each skill/class-level/SB-level earned; {floorpoints}/{completionspoints} do the same for {expscore}. {mptier}/{catatier} are text labels (Very Low/Low/Medium/Good/Excellent/Overpowered) for MP and Catacombs level relative to dungeonTargetFloor's benchmark/requirement.
-	public String dungeonInfoMessageTemplate = "§a{username}§r: Cata §b{cata}§r, SB-Level §b{level}§r, Class §e{class}§r, MP §d{mp}§r ({mptier}), Max Floor §b{maxfloor}§r, Qualifies F§b{qualfloor}§r, Readiness §a{readiness}§r/1000 (Skills {skillsscore} · MP {mpscore})";
+	// Message template for the Dungeon Info join announcement. Placeholders: {username} {ap} {level} {cata} {class} {skillavg} {networth} {rank} {guild} {maxfloor} {qualfloor} {statscore} {expscore} {readiness} {skillsscore} {apscore} {farmingpoints} {miningpoints} {combatpoints} {foragingpoints} {fishingpoints} {enchantingpoints} {alchemypoints} {tamingpoints} {classpoints} {sblevelpoints} {floorpoints} {completionspoints} {aptier} {catatier} {time} {date} (older templates using {mp}/{mptier}/{mpscore} still work - same values, legacy names). {maxfloor} = highest floor ever completed; {qualfloor} = highest floor they're currently level-eligible for. {statscore}/{expscore}/{readiness} are 0-1000 rough estimates (see DungeonReadiness) - NOT an authoritative score, just gear/level/experience proxies since Hypixel exposes no per-run damage/performance data at all. {statscore} itself is built from {skillsscore} (all 8 skills + class level + SB level) and {apscore}, each 0-1000. {farmingpoints} etc. break {skillsscore} down into exactly how many points each skill/class-level/SB-level earned; {floorpoints}/{completionspoints} do the same for {expscore}. {aptier}/{catatier} are text labels (Very Low/Low/Medium/Good/Excellent/Overpowered) for AP and Catacombs level relative to dungeonTargetFloor's benchmark/requirement.
+	public String dungeonInfoMessageTemplate = "§a{username}§r: Cata §b{cata}§r, SB-Level §b{level}§r, Class §e{class}§r, AP §d{ap}§r ({aptier}), Max Floor §b{maxfloor}§r, Qualifies F§b{qualfloor}§r, Readiness §a{readiness}§r/1000 (Skills {skillsscore} · AP {apscore})";
 
 	// Timezone used for the {time}/{date} placeholders above (IANA zone ID, e.g. Europe/Berlin, America/New_York).
 	public String dungeonInfoTimezone = java.time.ZoneId.systemDefault().getId();
@@ -132,8 +132,8 @@ public final class SkyMellooConfig {
 	// Automatically /party kick a joining member if their chosen stat (below) is under the threshold.
 	public boolean dungeonAutoKickEnabled = false;
 
-	// Which stat Auto-Kick checks - "MP" (Magical Power) or "LEVEL" (SkyBlock level).
-	public String dungeonAutoKickStat = "MP";
+	// Which stat Auto-Kick checks - "AP" (Accessory Power, "MP" also still accepted from old configs) or "LEVEL" (SkyBlock level).
+	public String dungeonAutoKickStat = "AP";
 
 	// Auto-Kick threshold - a joining player whose stat is below this gets kicked from the party.
 	public int dungeonAutoKickThreshold = 100;
@@ -147,8 +147,8 @@ public final class SkyMellooConfig {
 	// The opposite of Auto-Kick above: automatically /party kick a joining member if their chosen stat (below) is OVER the threshold - for carry parties, where an overqualified joiner defeats the point (they don't need carrying, and may be taking a slot from someone who does).
 	public boolean dungeonAutoKickMaxEnabled = false;
 
-	// Which stat the Max Auto-Kick above checks - "MP" (Magical Power) or "LEVEL" (SkyBlock level). Independent of the MIN stat above - a party can reasonably check both at once (e.g. MP for the min, Level for the max) or just one.
-	public String dungeonAutoKickMaxStat = "MP";
+	// Which stat the Max Auto-Kick above checks - "AP" (Accessory Power, "MP" also still accepted from old configs) or "LEVEL" (SkyBlock level). Independent of the MIN stat above - a party can reasonably check both at once (e.g. AP for the min, Level for the max) or just one.
+	public String dungeonAutoKickMaxStat = "AP";
 
 	// Max Auto-Kick threshold - a joining player whose stat is OVER this gets kicked from the party.
 	public int dungeonAutoKickMaxThreshold = 300;
@@ -159,10 +159,10 @@ public final class SkyMellooConfig {
 	// Where the Max Auto-Kick announcement above goes - "LOCAL" or "PARTY" (falls back to LOCAL automatically if you're not actually in a party). Independent of every other kick message's delivery.
 	public String dungeonAutoKickMaxDelivery = "LOCAL";
 
-	// Which floor to benchmark the readiness/stats score against (0 = Entrance, 7 = Floor VII) - see DungeonReadiness. Magical Power expectations are very different for Entrance vs. Floor VII, so this has to be set manually since there's no way to auto-detect which floor a party is actually planning to run before it starts.
+	// Which floor to benchmark the readiness/stats score against (0 = Entrance, 7 = Floor VII) - see DungeonReadiness. Accessory Power expectations are very different for Entrance vs. Floor VII, so this has to be set manually since there's no way to auto-detect which floor a party is actually planning to run before it starts.
 	public int dungeonTargetFloor = 7;
 
-	// Automatically /party kick (or warn with a manual [Kick] button, same behavior as the MP/Level Auto-Kick above) a party member who doesn't currently meet the REQUIREMENTS (Catacombs/Combat Skill, verified in-game) for the floor threshold below - not whether they've ever actually completed it before. Uses the same sky.melloo.me stats lookup as the join announcement, no extra API calls.
+	// Automatically /party kick (or warn with a manual [Kick] button, same behavior as the AP/Level Auto-Kick above) a party member who doesn't currently meet the REQUIREMENTS (Catacombs/Combat Skill, verified in-game) for the floor threshold below - not whether they've ever actually completed it before. Uses the same sky.melloo.me stats lookup as the join announcement, no extra API calls.
 	public boolean dungeonFloorKickEnabled = false;
 
 	// Minimum floor a member needs to be level-ELIGIBLE for right now (0 = just needs Combat Skill 15 for Entrance, 7 = needs Catacombs Skill 24 for Floor VII). Based on the real Hypixel requirements (Combat 15 for Entrance, then Catacombs 1/3/5/9/14/19/24 for Floors I-VII) - Master Mode requirements aren't included, only Normal Mode.
@@ -500,7 +500,7 @@ public final class SkyMellooConfig {
 	// Where Presence debug messages above go - "LOCAL" or "PARTY". Falls back to LOCAL automatically if you're not actually in a party.
 	public String debugPresenceDelivery = "LOCAL";
 
-	// Debug messages for the party HUD's username/Magical Power resolution.
+	// Debug messages for the party HUD's username/Accessory Power resolution.
 	public boolean debugParty = false;
 	// Where Party debug messages above go - "LOCAL" or "PARTY". Falls back to LOCAL automatically if you're not actually in a party.
 	public String debugPartyDelivery = "LOCAL";
@@ -538,21 +538,21 @@ public final class SkyMellooConfig {
 	// See hudFishingScoreX.
 	public int hudFishingScoreY = -1;
 
-	// Party HUD display mode - "OFF", "COMPACT" (name + MP), or "FULL" (also shows each member's death count for the current dungeon run). Position set via the HUD layout editor (default J).
+	// Party HUD display mode - "OFF", "COMPACT" (name + AP), or "FULL" (also shows each member's death count for the current dungeon run). Position set via the HUD layout editor (default J).
 	public String partyHudMode = "COMPACT";
 
 	// In FULL mode during a run, show each puzzle that member specifically solved/failed as extra lines under their row (only appears for members actually involved in a puzzle - everyone else's row stays as-is).
 	public boolean partyHudShowPuzzleHistory = true;
 
-	// A horizontal Magical Power "spread" bar for the party - each member's face is placed along it from lowest to highest MP, with the range labeled above. Shows the SHAPE of the party's gear gap at a glance rather than exact numbers per member. Needs at least 2 members with known MP.
+	// A horizontal Accessory Power "spread" bar for the party - each member's face is placed along it from lowest to highest AP, with the range labeled above. Shows the SHAPE of the party's gear gap at a glance rather than exact numbers per member. Needs at least 2 members with known AP.
 	public boolean partyMpBarEnabled = false;
 
-	// Position of the party HUD (shows your party's members + Magical Power), set via the HUD layout editor (default J).
+	// Position of the party HUD (shows your party's members + Accessory Power), set via the HUD layout editor (default J).
 	public int hudPartyX = 6;
 	// See hudPartyX.
 	public int hudPartyY = 50;
 
-	// Position of the party MP bar above, set via the HUD layout editor (default J).
+	// Position of the party AP bar above, set via the HUD layout editor (default J).
 	public int hudPartyMpBarX = 6;
 	// See hudPartyMpBarX.
 	public int hudPartyMpBarY = 220;

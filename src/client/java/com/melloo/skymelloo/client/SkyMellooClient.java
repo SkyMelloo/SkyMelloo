@@ -122,7 +122,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		// registered below for the admin badge and sky.melloo.me ping line this mod still owns).
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "fishing_score"), FishingScoreHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "party"), PartyHud.INSTANCE);
-		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "party_mp_bar"), com.melloo.skymelloo.client.party.PartyMpBarHud.INSTANCE);
+		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "party_mp_bar"), com.melloo.skymelloo.client.party.PartyApBarHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "dungeon_score"), DungeonScoreHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "dungeon_debug"), DungeonDebugHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "health_mana_bars"), com.melloo.skymelloo.client.gui.HealthManaBarsHud.INSTANCE);
@@ -687,19 +687,19 @@ public class SkyMellooClient implements ClientModInitializer {
 	}
 
 	/**
-	 * Every leaf stat name under getdata, in the order they were added. "all" and "mp" are handled
+	 * Every leaf stat name under getdata, in the order they were added. "all" and "ap" are handled
 	 * specially in {@link #dispatchStat}/{@link #dispatchPartyStat} (different data source/shape
 	 * than the plain summary-endpoint stats); everything else maps 1:1 to an {@link ExtraStat}.
 	 */
 	private static final java.util.List<String> GETDATA_STAT_NAMES = java.util.List.of(
-			"all", "mp", "networth", "bank", "purse", "fairysouls", "guild", "rank",
+			"all", "ap", "networth", "bank", "purse", "fairysouls", "guild", "rank",
 			"skills", "slayer", "classes", "minions", "bestiary", "highestfloor", "firstjoin",
 			"pets", "collections", "minionslots", "profiles", "dungeonruns"
 	);
 
 	/**
 	 * Builds "/skymelloo getdata" with player/party (and the target name/profile) BEFORE the stat
-	 * you want, e.g. "getdata player Foo Bar all" / "getdata player Foo mp" / "getdata party all" -
+	 * you want, e.g. "getdata player Foo Bar all" / "getdata player Foo ap" / "getdata party all" -
 	 * so every stat shares one player-then-profile-then-stat shape instead of one command tree per stat.
 	 */
 	private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> buildGetDataCommand() {
@@ -731,7 +731,7 @@ public class SkyMellooClient implements ClientModInitializer {
 				return 1;
 			});
 			// Same idea as the party version below - "announce" only actually changes behavior for
-			// "all"/"mp" right now (the only two that have a party-chat-safe combined format), harmless
+			// "all"/"ap" right now (the only two that have a party-chat-safe combined format), harmless
 			// no-op on the others - accepted everywhere for a consistent command shape.
 			statLiteral.then(ClientCommands.literal("announce").executes(ctx -> {
 				String name = StringArgumentType.getString(ctx, "name");
@@ -797,9 +797,9 @@ public class SkyMellooClient implements ClientModInitializer {
 				announceAllStats(name, profile, () -> {
 				}, announce);
 			}
-			case "mp" -> {
+			case "ap" -> {
 				source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.getdata.looking_mp", name)));
-				announceMagicalPower(name, profile, announce);
+				announceAccessoryPower(name, profile, announce);
 			}
 			default -> announceExtraStat(ExtraStat.byCommandName(stat), name, profile, announce);
 		}
@@ -808,13 +808,13 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static void dispatchPartyStat(String stat, FabricClientCommandSource source, boolean announce) {
 		switch (stat) {
 			case "all" -> announcePartyAllStats(source, announce);
-			case "mp" -> announcePartyMagicalPower(source, announce);
+			case "ap" -> announcePartyAccessoryPower(source, announce);
 			default -> announcePartyExtraStat(ExtraStat.byCommandName(stat), source, announce);
 		}
 	}
 
 	/**
-	 * Stats beyond Magical Power that all live in the plain /player/:username summary endpoint
+	 * Stats beyond Accessory Power that all live in the plain /player/:username summary endpoint
 	 * (no extra API call needed per-stat) - networth/bank/purse/fairysouls/guild.
 	 */
 	private enum ExtraStat {
@@ -1049,8 +1049,8 @@ public class SkyMellooClient implements ClientModInitializer {
 		);
 	}
 
-	private static void announceMagicalPower(String name, String profile, boolean announce) {
-		ModAuthManager.getIdentity(Minecraft.getInstance()).thenCompose(identity -> SkyMellooApiClient.fetchMagicalPower(name, profile, identity)).whenComplete((result, error) ->
+	private static void announceAccessoryPower(String name, String profile, boolean announce) {
+		ModAuthManager.getIdentity(Minecraft.getInstance()).thenCompose(identity -> SkyMellooApiClient.fetchAccessoryPower(name, profile, identity)).whenComplete((result, error) ->
 				Minecraft.getInstance().execute(() -> {
 					Minecraft client = Minecraft.getInstance();
 					if (client.player == null) {
@@ -1060,14 +1060,14 @@ public class SkyMellooClient implements ClientModInitializer {
 						client.player.sendSystemMessage(ChatUtil.prefixed(ChatUtil.errorMessage(name, error)));
 						return;
 					}
-					if (result.magicalPower() < 0) {
+					if (result.accessoryPower() < 0) {
 						client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.mp.not_found", name)));
 						return;
 					}
 					Component activeSuffix = result.selectedPower() != null
 							? Component.translatable("skymelloo.command.mp.active_suffix", result.selectedPower())
 							: Component.empty();
-					Component textComponent = Component.translatable("skymelloo.command.mp.result", name, result.magicalPower(), activeSuffix);
+					Component textComponent = Component.translatable("skymelloo.command.mp.result", name, result.accessoryPower(), activeSuffix);
 					if (announce) {
 						DungeonRunTracker.sendDungeonMessage(client, textComponent.getString(), "PARTY");
 						return;
@@ -1086,7 +1086,7 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static void announceAllStats(String name, String profile, Runnable onDone, boolean announce) {
 		ModAuthManager.getIdentity(Minecraft.getInstance()).thenAccept(identity ->
 		SkyMellooApiClient.fetchSummary(name, profile, identity).whenComplete((summary, summaryError) ->
-				SkyMellooApiClient.fetchMagicalPower(name, profile, identity).whenComplete((mp, mpError) ->
+				SkyMellooApiClient.fetchAccessoryPower(name, profile, identity).whenComplete((ap, apError) ->
 						Minecraft.getInstance().execute(() -> {
 							try {
 								Minecraft client = Minecraft.getInstance();
@@ -1097,7 +1097,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									client.player.sendSystemMessage(ChatUtil.prefixed(ChatUtil.errorMessage(name, summaryError)));
 									return;
 								}
-								String mpValue = (mpError == null && mp.magicalPower() >= 0) ? String.valueOf(mp.magicalPower()) : "?";
+								String apValue = (apError == null && ap.accessoryPower() >= 0) ? String.valueOf(ap.accessoryPower()) : "?";
 								Component rank = summary.rankLabel() != null ? Component.literal(summary.rankLabel()) : Component.translatable("skymelloo.command.common.none");
 								Component guild = summary.guildName() != null ? Component.literal(summary.guildName()) : Component.translatable("skymelloo.command.common.none");
 								String classSuffix = summary.selectedClass() != null ? " (" + summary.selectedClass() + ")" : "";
@@ -1109,7 +1109,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									// there's no need to hold back the rest of what the LOCAL view already
 									// shows.
 									Component textComponent = Component.translatable("skymelloo.command.getdata.all.party_summary",
-											name, summary.skyblockLevel(), rank, guild, summary.catacombsLevel(), classSuffix, mpValue, avgSkillText,
+											name, summary.skyblockLevel(), rank, guild, summary.catacombsLevel(), classSuffix, apValue, avgSkillText,
 											formatAmount(summary.purse()), formatAmount(summary.bank()), formatAmount(summary.netWorth()),
 											summary.fairySouls(), summary.petCount(), summary.minionSlots(), summary.dungeonCompletions(),
 											debugCacheAgeSuffix(summary.dataFetchedAt()));
@@ -1127,7 +1127,7 @@ public class SkyMellooClient implements ClientModInitializer {
 										Component.translatable("skymelloo.command.getdata.all.line2", formatAmount(summary.purse()), formatAmount(summary.bank()), formatAmount(summary.netWorth()))
 								));
 								client.player.sendSystemMessage(ChatUtil.prefixed(
-										Component.translatable("skymelloo.command.getdata.all.line3", mpValue, summary.catacombsLevel(), classSuffix, avgSkillText)
+										Component.translatable("skymelloo.command.getdata.all.line3", apValue, summary.catacombsLevel(), classSuffix, avgSkillText)
 								));
 								client.player.sendSystemMessage(ChatUtil.prefixed(
 										Component.translatable("skymelloo.command.getdata.all.line4", summary.fairySouls(), summary.petCount(), summary.minionSlots())
@@ -1192,8 +1192,8 @@ public class SkyMellooClient implements ClientModInitializer {
 		announceAllStats(name, null, onDone, announce);
 	}
 
-	/** Resolves the current party's members to usernames and checks their MP one at a time (not all at once). */
-	private static void announcePartyMagicalPower(FabricClientCommandSource source, boolean announce) {
+	/** Resolves the current party's members to usernames and checks their AP one at a time (not all at once). */
+	private static void announcePartyAccessoryPower(FabricClientCommandSource source, boolean announce) {
 		java.util.List<String> names = resolvePartyMemberNames(false);
 		if (names == null) {
 			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_party")));
@@ -1204,7 +1204,7 @@ public class SkyMellooClient implements ClientModInitializer {
 			return;
 		}
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.party.checking_mp", names.size())));
-		announcePartyMagicalPowerSequentially(names.iterator(), announce);
+		announcePartyAccessoryPowerSequentially(names.iterator(), announce);
 	}
 
 	/**
@@ -1213,7 +1213,7 @@ public class SkyMellooClient implements ClientModInitializer {
 	 * nothing if there's no party data yet (e.g. HypixelModAPI hasn't responded, or you made the
 	 * party yourself and there's no one else in it).
 	 */
-	public static void checkPartyMagicalPowerAuto() {
+	public static void checkPartyAccessoryPowerAuto() {
 		java.util.List<String> names = resolvePartyMemberNames(true);
 		if (names == null || names.isEmpty()) {
 			return;
@@ -1222,7 +1222,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		if (client.player != null) {
 			client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.party.joined_checking_mp", names.size())));
 		}
-		announcePartyMagicalPowerSequentially(names.iterator(), false);
+		announcePartyAccessoryPowerSequentially(names.iterator(), false);
 	}
 
 	/** @return null if there's no party at all, otherwise the resolved (possibly empty) member name list. */
@@ -1269,23 +1269,23 @@ public class SkyMellooClient implements ClientModInitializer {
 		return names;
 	}
 
-	private static void announcePartyMagicalPowerSequentially(java.util.Iterator<String> remaining, boolean announce) {
+	private static void announcePartyAccessoryPowerSequentially(java.util.Iterator<String> remaining, boolean announce) {
 		if (!remaining.hasNext()) {
 			return;
 		}
 		String name = remaining.next();
-		Runnable next = () -> announcePartyMagicalPowerSequentially(remaining, announce);
+		Runnable next = () -> announcePartyAccessoryPowerSequentially(remaining, announce);
 		Runnable onDone = announce ? () -> TickDelay.schedule(ANNOUNCE_STAGGER_TICKS, next) : next;
-		ModAuthManager.getIdentity(Minecraft.getInstance()).thenCompose(identity -> SkyMellooApiClient.fetchMagicalPower(name, identity)).whenComplete((result, error) ->
+		ModAuthManager.getIdentity(Minecraft.getInstance()).thenCompose(identity -> SkyMellooApiClient.fetchAccessoryPower(name, identity)).whenComplete((result, error) ->
 				Minecraft.getInstance().execute(() -> {
 					Minecraft client = Minecraft.getInstance();
 					if (client.player != null) {
 						if (error != null) {
 							client.player.sendSystemMessage(ChatUtil.prefixed(ChatUtil.errorMessage(name, error)));
-						} else if (result.magicalPower() < 0) {
+						} else if (result.accessoryPower() < 0) {
 							client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.mp.no_data", name)));
 						} else {
-							String text = Component.translatable("skymelloo.command.mp.result_colon", name, result.magicalPower()).getString()
+							String text = Component.translatable("skymelloo.command.mp.result_colon", name, result.accessoryPower()).getString()
 									+ (result.selectedPower() != null ? Component.translatable("skymelloo.command.mp.active_suffix", result.selectedPower()).getString() : "");
 							if (announce) {
 								DungeonRunTracker.sendDungeonMessage(client, text, "PARTY");

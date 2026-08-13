@@ -1477,14 +1477,14 @@ public final class DungeonRunTracker {
 		Minecraft client = Minecraft.getInstance();
 		// PartyTracker's cached membership can be a few seconds stale right as a run begins (e.g. just
 		// switched parties shortly before queueing) - request a fresh packet right now so it catches up
-		// as soon as possible, same idea as forceRefreshAll() below for MP/gear data.
+		// as soon as possible, same idea as forceRefreshAll() below for AP/gear data.
 		PartyTracker.requestRefreshNow();
 		runRoster = new LinkedHashSet<>(PartyTracker.getMembers());
 		if (client.player != null) {
 			runRoster.add(client.player.getUUID());
 		}
 		DebugLog.log(DebugLog.Category.DUNGEON, "Run started (floor=" + floor + ", roster=" + runRoster.size() + ")");
-		// Readiness (see DungeonReadiness) needs CURRENT gear/MP, not a stale cached reading from
+		// Readiness (see DungeonReadiness) needs CURRENT gear/AP, not a stale cached reading from
 		// before someone swapped armor - force a fresh fetch for everyone right as the run begins.
 		com.melloo.skymelloo.client.party.PartyHudManager.forceRefreshAll();
 		// Reset here, not just implicitly whenever tick() next sees a non-null floor - startRun() can
