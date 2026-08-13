@@ -102,6 +102,8 @@ public final class DungeonRoomTracker {
 	// database usually takes a little longer than our own instant map-color read, so this keeps
 	// checking (cheaply, once already back in a confirmed room - see tick()) until it lands.
 	private static boolean skyblockerConfirmedLogged = false;
+	// Same reset/recheck pattern as skyblockerConfirmedLogged, for currentRoomConnectedCells.
+	private static boolean skyblockerSegmentsApplied = false;
 	// Cached once found by scanning the MAP itself (not by the local player having to physically
 	// visit it) - see findBloodRoomMapPos(). Exposed to DungeonRunTracker so its boss-room-portal
 	// scan can center on the actual Blood Room instead of wherever the local player happens to be,
@@ -440,6 +442,7 @@ public final class DungeonRoomTracker {
 		currentPhysicalRoomPos = physicalRoomPos;
 		currentRoomConnectedCells = findConnectedRoomCells(map, physicalRoomPos);
 		skyblockerConfirmedLogged = false;
+		skyblockerSegmentsApplied = false;
 		updateSecretsForCurrentRoom(client);
 
 		int[] mapPos = getMapPosFromPhysical(physicalEntrancePos, mapEntrancePos, mapRoomSize, physicalRoomPos);
@@ -521,7 +524,20 @@ public final class DungeonRoomTracker {
 	 * room-detection pipeline above.
 	 */
 	private static void logSkyblockerConfirmationIfNewlyAvailable() {
-		if (skyblockerConfirmedLogged || currentPhysicalRoomPos == null) {
+		if (currentPhysicalRoomPos == null) {
+			return;
+		}
+		// Skyblocker's real shape match (correct even for a not-yet-fully-explored multi-cell room,
+		// unlike our own map-color flood-fill) can land on a different tick than the type confirmation
+		// below - checked independently so it's picked up the moment it's ready either way.
+		if (!skyblockerSegmentsApplied) {
+			List<int[]> segments = SkyblockerBridge.getCurrentRoomSegments();
+			if (segments != null && !segments.isEmpty()) {
+				currentRoomConnectedCells = segments;
+				skyblockerSegmentsApplied = true;
+			}
+		}
+		if (skyblockerConfirmedLogged) {
 			return;
 		}
 		String confirmedTypeName = SkyblockerBridge.getCurrentRoomTypeName();
@@ -541,6 +557,7 @@ public final class DungeonRoomTracker {
 		mapRoomSize = 0;
 		currentPhysicalRoomPos = null;
 		currentRoomConnectedCells = null;
+		skyblockerSegmentsApplied = false;
 		pendingPhysicalRoomPos = null;
 		pendingTicks = 0;
 		bloodRoomPhysicalPos = null;

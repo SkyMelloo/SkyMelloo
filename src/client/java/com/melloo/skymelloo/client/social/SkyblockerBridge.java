@@ -43,6 +43,9 @@ public final class SkyblockerBridge {
 	private static Method getScore;
 	private static Method isDungeonStarted;
 	private static Field clearStateField;
+	private static Method getSegments;
+	private static Method vector2icX;
+	private static Method vector2icY;
 
 	// Deeper, more fragile reflection than the rest of this class - secretWaypoints is a PROTECTED
 	// field (a Guava Table<Integer, BlockPos, SecretWaypoint>), not part of Room's public API, so
@@ -85,6 +88,10 @@ public final class SkyblockerBridge {
 			// of whether it also sends a chat line for it - used as a fallback signal for puzzle rooms that
 			// get solved on a retry, since Hypixel doesn't always re-send "PUZZLE SOLVED!" for those.
 			clearStateField = roomClass.getField("clearState");
+			getSegments = roomClass.getMethod("getSegments");
+			Class<?> vector2icClass = Class.forName("org.joml.Vector2ic");
+			vector2icX = vector2icClass.getMethod("x");
+			vector2icY = vector2icClass.getMethod("y");
 			available = true;
 			DebugLog.log(DebugLog.Category.DUNGEON, "Skyblocker detected - reading its room-secrets/score data");
 		} catch (ReflectiveOperationException | LinkageError e) {
@@ -150,6 +157,33 @@ public final class SkyblockerBridge {
 			int found = (int) getFoundSecretCount.invoke(room);
 			return new RoomSecrets(name, found, max);
 		} catch (ReflectiveOperationException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Every physical grid-cell corner ({@code {x, z}}, same format as our own room-position math) that
+	 * belongs to the LOCAL player's current room, per Skyblocker's own shape/door match - correct even
+	 * for a multi-cell room (1x2/L-shaped/etc.) the player hasn't fully walked into yet, unlike our own
+	 * map-color read which only sees a cell once it's actually revealed. {@code null} if Skyblocker
+	 * isn't installed or hasn't matched the room yet.
+	 */
+	public static List<int[]> getCurrentRoomSegments() {
+		if (!isAvailable()) {
+			return null;
+		}
+		try {
+			Object room = getCurrentRoom.invoke(null);
+			if (room == null || !(boolean) isMatched.invoke(room)) {
+				return null;
+			}
+			Collection<?> segments = (Collection<?>) getSegments.invoke(room);
+			List<int[]> result = new ArrayList<>();
+			for (Object segment : segments) {
+				result.add(new int[]{(int) vector2icX.invoke(segment), (int) vector2icY.invoke(segment)});
+			}
+			return result;
+		} catch (ReflectiveOperationException | ClassCastException e) {
 			return null;
 		}
 	}
