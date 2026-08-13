@@ -29,6 +29,7 @@ public final class ModPresenceManager {
 		PresenceManager.setStatusTextSupplier(() -> SkyMellooConfig.HANDLER.instance().customStatusText);
 		PresenceManager.setExtraCosmeticsSupplier(ModPresenceManager::collectEnabledCosmetics);
 		PresenceManager.setDungeonSyncSupplier(ModPresenceManager::buildDungeonSyncPayload);
+		PresenceManager.setDungeonSyncEnabledSupplier(() -> SkyMellooConfig.HANDLER.instance().dungeonSyncEnabled);
 		PresenceManager.setDungeonSyncListener((uuid, username, payload) -> DungeonSyncManager.onReceivedPayload(uuid, username, payload));
 		PresenceManager.setReportCompletionListener(ModPresenceManager::onReportCompleted);
 	}

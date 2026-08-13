@@ -216,6 +216,9 @@ public final class DungeonRunTracker {
 	private static final double PORTAL_ENTER_DISTANCE_SQ = 1.0 * 1.0;
 
 	private static boolean runActive = false;
+	// "completed" | "wiped" | "left" | null (unknown/not yet ended) - set right before each
+	// runActive=false, for the website's run-history end-reason display. See DungeonSyncManager.
+	private static String lastRunEndReason = null;
 	private static boolean bossRoomEntered = false;
 	private static int puzzlesSolved = 0;
 	private static int puzzlesFailed = 0;
@@ -430,6 +433,9 @@ public final class DungeonRunTracker {
 				boolean reportAlreadySent = runReportSentAwaitingLeave;
 				DebugLog.log(DebugLog.Category.DUNGEON, "Leaving this server instance (\"" + colorless + "\") while still marked active - keeping run/HUD visible for 20 more seconds before actually ending tracking"
 						+ (reportAlreadySent ? " (report already sent)." : " (no report, run wasn't fully completed)."));
+				// reportAlreadySent means finishRun() genuinely ran (either just above, or earlier via
+				// the normal completion chat sequence) - a real "completed" signal, not a guess.
+				lastRunEndReason = reportAlreadySent ? "completed" : (isEntirePartyDead() ? "wiped" : "left");
 				TickDelay.schedule(FLOOR_NULL_END_RUN_TICKS, () -> {
 					runActive = false;
 					resetBossRoomDisplayFlags();
@@ -702,6 +708,7 @@ public final class DungeonRunTracker {
 				// report here - that's only for real completions, see finishRun() - this just silently
 				// releases the run-lock so live party membership takes back over immediately.
 				DebugLog.log(DebugLog.Category.DUNGEON, "Left the dungeon while still marked active (no floor for " + floorNullTicks + " ticks) - ending run tracking silently, no report.");
+				lastRunEndReason = isEntirePartyDead() ? "wiped" : "left";
 				runActive = false;
 				resetBossRoomDisplayFlags();
 			}
@@ -1490,6 +1497,7 @@ public final class DungeonRunTracker {
 		// thing that reset this counter back to 0).
 		floorNullTicks = 0;
 		runActive = true;
+		lastRunEndReason = null;
 		sawNoDungeonSinceLastRun = false;
 		bossRoomEntered = false;
 		localPlayerDied = false;
@@ -1777,6 +1785,11 @@ public final class DungeonRunTracker {
 			}
 		}
 		return true;
+	}
+
+	/** "completed" | "wiped" | "left", or {@code null} if the run hasn't ended yet (or hasn't ended since the last one started) - see {@link #lastRunEndReason}. */
+	public static String getRunEndReason() {
+		return lastRunEndReason;
 	}
 
 	/** Whether the Score HUD's post-run "Final Result" panel should currently be shown - see {@link #lastFinalResult}/{@link SkyMellooConfig#dungeonScoreFinalResultDurationSeconds}. False once a new run starts (isRunActive() takes priority over this in the HUD regardless). */

@@ -174,6 +174,12 @@ public final class DungeonSyncManager {
 		}
 		payload.addProperty("floor", DungeonRunTracker.getFloor());
 		payload.addProperty("runActive", runActive);
+		// "completed" | "wiped" | "left" - only present once a run has actually ended, so the website
+		// can show why instead of just guessing from runActive going false. See DungeonRunTracker#getRunEndReason.
+		String runEndReason = DungeonRunTracker.getRunEndReason();
+		if (!runActive && runEndReason != null) {
+			payload.addProperty("runEndReason", runEndReason);
+		}
 		// Real wall-clock start time of THIS specific run - lets the run-recording
 		// backend tell "still the same run" from "a genuinely new run started" independent of
 		// runActive's own timing, which no longer flips false right away (see DungeonRunTracker's
