@@ -45,8 +45,7 @@ public final class DungeonSyncManager {
 
 	// Sampled every client tick (see sampleTick, called from SkyMellooClient's tick handler) rather
 	// than once per presence-report cycle (fixed at 1s, see MellooEssentials'
-	// PresenceManager#REPORT_INTERVAL_TICKS - this mod's own presence loop was consolidated into
-	// that one, see ModPresenceManager's own doc comment): a single position
+	// PresenceManager#REPORT_INTERVAL_TICKS): a single position
 	// per report is too sparse for the website to draw anything smoother than a rough guess between
 	// two far-apart points - sampling every tick (20/s) and bundling the whole buffer into the NEXT
 	// report instead gives it a real, dense recorded path to draw through. Cleared every time
@@ -61,13 +60,8 @@ public final class DungeonSyncManager {
 	// The server (lib/presence.js#mergePositionHistory) and website (app.js#mergeMarkerHistory)
 	// both already dedupe incoming samples by their exact atMillis, so resending overlapping data
 	// is free/harmless on that end.
-	// Was 1000 (bare report interval) - a real report found the website's persisted replays had
-	// ~1s gaps in position history, since the actual report cadence turned out to be 2s
-	// (PresenceManager#REPORT_INTERVAL_TICKS), not the 1s this assumed. That's now fixed to a real
-	// 1s cadence, but this window is widened well beyond the bare interval on top of that - 0.5s of
-	// overlap padded onto BOTH edges of the 1s window being filled, so consecutive reports overlap
-	// by a full second combined even if one report is delayed or dropped outright, not just exactly
-	// meeting at the edges with zero margin for jitter.
+	// 0.5s of overlap padded onto both edges of the 1s report interval, so consecutive reports still
+	// overlap even if one is delayed or dropped outright.
 	private static final long HISTORY_SEND_WINDOW_MS = 2000;
 	// A bit more than the send window so two consecutive reports' windows always overlap even with
 	// some jitter in the report timer, rather than bounding memory as tightly as possible.
@@ -139,10 +133,9 @@ public final class DungeonSyncManager {
 	}
 
 	/**
-	 * Registered as MellooEssentials' dungeon-sync supplier (see ModPresenceManager#init), called
-	 * from its {@code PresenceManager#reportSelf} every ~1s (the existing presence report cycle) -
-	 * {@code null} if there's nothing worth sharing right now (feature off, no permission, or
-	 * neither an active run nor a Skyblocker room match).
+	 * Called from MellooEssentials' {@code PresenceManager#reportSelf} every ~1s - {@code null} if
+	 * there's nothing worth sharing right now (feature off, no permission, or neither an active run
+	 * nor a Skyblocker room match).
 	 */
 	public static JsonObject buildOutgoingPayload() {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();

@@ -89,10 +89,8 @@ public final class DungeonRoomTracker {
 	private static final int ROOM_CONFIRM_TICKS = 6;
 
 	private static int[] currentPhysicalRoomPos = null; // northwest corner of the room we last reported
-	// Every grid cell (including currentPhysicalRoomPos itself) belonging to the same physical room -
-	// most rooms are exactly one cell, but multi-cell shapes (1x2, 2x1, 2x2, L-shaped) span several.
-	// Recomputed only when currentPhysicalRoomPos actually changes (see tick()), not per-tick/per-mob -
-	// see getCurrentRoomBounds's own doc comment for why this exists.
+	// Every grid cell belonging to the same physical room as currentPhysicalRoomPos - most rooms are
+	// one cell, multi-cell shapes (1x2, 2x1, 2x2, L-shaped) span several. Recomputed only in tick().
 	private static List<int[]> currentRoomConnectedCells = null;
 	// Largest known real dungeon room shape (2x2) - a safety cap so the flood-fill below can never
 	// chain arbitrarily far even in a pathological case.
@@ -611,15 +609,9 @@ public final class DungeonRoomTracker {
 	}
 
 	/**
-	 * Every physical room-grid cell connected to {@code startPos} that shares its exact room type -
-	 * a real bug report: an L-shaped (or any other multi-cell: 1x2/2x1/2x2) room got treated as
-	 * several separate rooms for highlighting purposes, since every other room-tracking method here
-	 * only ever reasons about the single 32x32 cell the player is physically standing in. Adjacent
-	 * same-type cells are assumed to be one physical room - true for every real multi-cell shape; the
-	 * only failure mode is two genuinely separate rooms of the same type placed directly next to each
-	 * other, which over-merges rather than under-merges (safer for a cosmetic highlight than the
-	 * original bug). Capped at {@link #MAX_CONNECTED_ROOM_CELLS} so that can never chain far even in
-	 * a pathological case. Computed once per room entry (see tick()), never per-tick/per-mob.
+	 * Flood-fills through adjacent grid cells sharing {@code startPos}'s exact room type, so a
+	 * multi-cell room (1x2/2x1/2x2/L-shaped) counts as one room. Capped at
+	 * {@link #MAX_CONNECTED_ROOM_CELLS}; computed once per room entry (see tick()), not per-mob.
 	 */
 	private static List<int[]> findConnectedRoomCells(MapItemSavedData map, int[] startPos) {
 		List<int[]> result = new ArrayList<>();
