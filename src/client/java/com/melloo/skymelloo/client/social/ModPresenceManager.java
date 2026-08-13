@@ -26,7 +26,9 @@ public final class ModPresenceManager {
 		}
 		registered = true;
 		PresenceManager.setSkyMellooInstalled(true);
-		PresenceManager.setStatusTextSupplier(() -> SkyMellooConfig.HANDLER.instance().customStatusText);
+		// Status text is no longer set here - MellooEssentials' own presence.js on the server now
+		// derives it from the linked website account's statusText directly (see T-website task filed
+		// for that), not from anything the mod self-reports.
 		PresenceManager.setExtraCosmeticsSupplier(ModPresenceManager::collectEnabledCosmetics);
 		PresenceManager.setDungeonSyncSupplier(ModPresenceManager::buildDungeonSyncPayload);
 		PresenceManager.setDungeonSyncEnabledSupplier(() -> SkyMellooConfig.HANDLER.instance().dungeonSyncEnabled);

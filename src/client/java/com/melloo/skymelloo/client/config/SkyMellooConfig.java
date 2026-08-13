@@ -525,12 +525,6 @@ public final class SkyMellooConfig {
 	// Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults, and multiple installs under the same account stay in sync with each other. On by default once linked - cloud is always authoritative on join, and local edits are pushed up the moment the settings screen closes.
 	public boolean cloudSyncEnabled = true;
 
-	// Master switch for showing up as "online" to anyone else - other SkyMelloo users' mod-user detection, the in-game Credits menu's online dot, and the website's public online-user count all depend on this. Off means you still report NOTHING about yourself, but you can still see/detect others who have it on. Doesn't affect Cloud Sync (that's private, never shown to anyone else).
-	public boolean presenceSharingEnabled = false;
-
-	// Custom status text shown next to your name to other SkyMelloo users nearby (via sky.melloo.me presence). Leave empty to show nothing. Requires presenceSharingEnabled above.
-	public String customStatusText = "";
-
 	// A fake "SkyMelloo Menu" item in hotbar slot 8 (not 9 - that's Hypixel's own real SkyBlock Menu slot) whenever that slot is empty - right-click it to open a chest-style menu for SkyMelloo's own settings, the same way Hypixel's own menu item works. Client-side only, never overwrites a real item actually in that slot.
 	public boolean skyMellooMenuItemEnabled = true;
 

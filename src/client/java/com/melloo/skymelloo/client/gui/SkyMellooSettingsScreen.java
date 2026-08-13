@@ -59,8 +59,12 @@ public class SkyMellooSettingsScreen extends Screen {
 		// (now "Party Highlighting", including the admin/dev/owner gold color) moved here instead.
 		// HP Armor Stand highlighting is gone entirely, not relocated. FUN removed entirely - its one
 		// row (Spell enabled/color) is fully configurable from the item-menu now (Spells -> Switch
-		// Spell / Spell Color), so this tab was a pure duplicate.
-		PARTY("skymelloo.gui.settings.tab.party"), HP("skymelloo.gui.settings.tab.hp"), FISHING("skymelloo.gui.settings.tab.fishing"), DUNGEONS("skymelloo.gui.settings.tab.dungeons"), GENERAL("skymelloo.gui.settings.tab.general"), CLOUD("skymelloo.gui.settings.tab.cloud"), DEBUG("skymelloo.gui.settings.tab.debug");
+		// Spell / Spell Color), so this tab was a pure duplicate. CLOUD removed entirely too - Account
+		// and Cloud Sync were pure duplicates of MellooEssentials' own Cloud tab; Presence Sharing and
+		// the custom status field moved to MellooEssentials (see EssentialsConfig#presenceSharingEnabled -
+		// status is now read from your linked sky.melloo.me account instead of typed locally); Dungeon
+		// Sync moved to DUNGEONS below instead, since it's SkyBlock-specific.
+		PARTY("skymelloo.gui.settings.tab.party"), HP("skymelloo.gui.settings.tab.hp"), FISHING("skymelloo.gui.settings.tab.fishing"), DUNGEONS("skymelloo.gui.settings.tab.dungeons"), GENERAL("skymelloo.gui.settings.tab.general"), DEBUG("skymelloo.gui.settings.tab.debug");
 
 		// Stores a translation key, not display text - resolved at render time (Tab constants are
 		// created at class-load, before Minecraft's language system is guaranteed to be ready).
@@ -108,7 +112,7 @@ public class SkyMellooSettingsScreen extends Screen {
 				// the same day - this tab always shows since every feature it contains is available
 				// to everyone now.
 				case DUNGEONS -> true;
-				case GENERAL, CLOUD, DEBUG -> true;
+				case GENERAL, DEBUG -> true;
 			};
 			if (visible) {
 				tabs.add(tab);
@@ -322,6 +326,12 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.minigame.minigame_glow_color"), () -> c.fishingMinigameColor, v -> c.fishingMinigameColor = v), Component.translatable("skymelloo.gui.settings.tip.minigame.minigame_glow_color")));
 			}
 			case DUNGEONS -> {
+				// Moved here from the (now-removed) Cloud tab's Sharing & Privacy section - kept in
+				// SkyMelloo rather than moving to MellooEssentials like Presence Sharing did, since this
+				// is Dungeon-specific (SkyBlock), not something the general mod should own.
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.dungeon_sync")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.dungeon_sync.enabled"), () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.dungeon_sync.enabled")));
+
 				// One bulk control for every LOCAL/PARTY/PARTY SM delivery setting on this tab (and Death
 				// Recap's, also here) - so switching how you want announcements delivered doesn't mean
 				// clicking through 18 separate rows one at a time.
@@ -489,6 +499,13 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.delivery"), () -> c.dungeonFloorCompletionKickMaxDelivery, v -> c.dungeonFloorCompletionKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.delivery")));
 			}
 			case GENERAL -> {
+				// Kept here (not removed with the rest of the old Cloud tab) - this gates SkyMelloo's
+				// OWN separate cloud-sync process (com.melloo.skymelloo.client.social.CloudSyncManager,
+				// syncs SkyMelloo's own settings/HUD positions), distinct from MellooEssentials' own
+				// Cloud Sync toggle for ITS settings - there's no single shared switch for both.
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.cloud_sync")));
+				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.cloud_sync.enabled"), () -> c.cloudSyncEnabled, v -> c.cloudSyncEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.enabled")));
+
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.hotkeys")));
 				rows.add(tip(keybindRow(tr("skymelloo.gui.settings.row.hotkeys.open_this_menu"), SkyMellooClient.getOpenConfigKey()), Component.translatable("skymelloo.gui.settings.tip.hotkeys.open_this_menu")));
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.menu")));
@@ -529,30 +546,6 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.connection")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.connection.quality_check"), () -> c.connectionQualityCheckEnabled, v -> c.connectionQualityCheckEnabled = v, 0xFFFFCC00), Component.translatable("skymelloo.gui.settings.tip.connection.quality_check")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.connection.auto_reconnect"), () -> c.autoReconnectEnabled, v -> c.autoReconnectEnabled = v, 0xFFFFCC00), Component.translatable("skymelloo.gui.settings.tip.connection.auto_reconnect")));
-			}
-			case CLOUD -> {
-				rows.add(headerRow(tr("skymelloo.gui.settings.header.account")));
-				rows.add(infoRow("sky.melloo.me", this::connectionStatusLabel, this::connectionStatusColor));
-
-				rows.add(headerRow(tr("skymelloo.gui.settings.header.cloud_sync")));
-				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.cloud_sync.enabled"), () -> c.cloudSyncEnabled, v -> c.cloudSyncEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.enabled")));
-				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.cloud_sync.push_now"), tr("skymelloo.gui.settings.button.cloud_sync.upload"), () -> CloudSyncManager.push(Minecraft.getInstance())), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.push_now")));
-				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.cloud_sync.pull_now"), tr("skymelloo.gui.settings.button.cloud_sync.download"), () -> CloudSyncManager.forcePull(Minecraft.getInstance(), this::buildRows)), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.pull_now")));
-
-				// Everything below is stuff other people (or the public sky.melloo.me website) can see
-				// about you - grouped here together rather than scattered under Dungeons/General, so
-				// it's obvious at a glance everything this account shares and there's one place to shut
-				// it all off for privacy.
-				rows.add(headerRow(tr("skymelloo.gui.settings.header.sharing_privacy")));
-				// Renamed from "Presence Sharing" - this and Dungeon Sync below are now presented as
-				// the two peer halves of sharing: this one is the lightweight "general sync" (online
-				// status + which world/island/dungeon floor you're in), Dungeon Sync is the heavy
-				// per-tick dungeon-run detail. The underlying field is still presenceSharingEnabled -
-				// only the label/description changed, not the config key.
-				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.sharing_privacy.sync"), () -> c.presenceSharingEnabled, v -> c.presenceSharingEnabled = v, 0xFFAA33FF), Component.translatable("skymelloo.gui.settings.tip.sharing_privacy.sync")));
-				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.sharing_privacy.status"), () -> c.customStatusText, v -> c.customStatusText = v),
-						Component.translatable("skymelloo.gui.settings.tip.sharing_privacy.status")));
-				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.sharing_privacy.dungeon_sync"), () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.sharing_privacy.dungeon_sync")));
 			}
 		}
 		return rows;
@@ -601,20 +594,6 @@ public class SkyMellooSettingsScreen extends Screen {
 	/** A non-interactive row - label on the left, a colored status value on the right. */
 	private RowFactory infoRow(String label, Supplier<String> valueGetter, IntSupplier colorGetter) {
 		return (x, y, w, h) -> new InfoRowWidget(x, y, w, h, label, valueGetter, colorGetter);
-	}
-
-	private String connectionStatusLabel() {
-		if (WhitelistManager.isAdmin()) {
-			return tr("skymelloo.gui.settings.status.connected_admin");
-		}
-		if (WhitelistManager.isAllowed()) {
-			return tr("skymelloo.gui.settings.status.connected");
-		}
-		return tr("skymelloo.gui.settings.status.not_connected");
-	}
-
-	private int connectionStatusColor() {
-		return WhitelistManager.isAllowed() ? 0xFF55FF55 : 0xFFFF5555;
 	}
 
 	/** Resolves a translation key to its display string, for row labels rendered as raw text. */
