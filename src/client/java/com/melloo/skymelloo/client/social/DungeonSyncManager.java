@@ -5,6 +5,8 @@ import com.google.gson.JsonObject;
 import com.melloo.skymelloo.client.config.SkyMellooConfig;
 import com.melloo.skymelloo.client.party.PartyHudManager;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -285,6 +287,43 @@ public final class DungeonSyncManager {
 		if (BossRoomScanner.isActive()) {
 			payload.addProperty("bossRoomScanId", BossRoomScanner.getScanId());
 			payload.add("bossRoomBlocks", BossRoomScanner.drainPendingJson());
+			// Min-corner of everything scanned so far, relative to the same origin bossRoomBlocks uses -
+			// lets the website re-align this encounter's blocks onto the same frame as a different
+			// encounter of the same boss room (see BossRoomScanner's own doc comment on why origin
+			// alone isn't a stable anchor across runs). Resent (not just once) since it gets more
+			// accurate as more of the room is scanned - the website should always use the latest value
+			// for a given bossRoomScanId, not the first.
+			int[] anchor = BossRoomScanner.getAnchorOffset();
+			if (anchor != null) {
+				JsonObject anchorObj = new JsonObject();
+				anchorObj.addProperty("dx", anchor[0]);
+				anchorObj.addProperty("dy", anchor[1]);
+				anchorObj.addProperty("dz", anchor[2]);
+				payload.add("bossRoomAnchor", anchorObj);
+			}
+			// Real 3D player positions inside the boss room ("dass Player dort drin angezeigt werden,
+			// also in dem drei-d-Room") - self plus every currently-visible roster member, in the same
+			// relative-to-origin coordinate space as bossRoomBlocks/bossRoomAnchor, so the website can
+			// place a simple avatar/marker directly in its existing three.js scene.
+			Minecraft bossRoomClient = Minecraft.getInstance();
+			BlockPos scanOrigin = BossRoomScanner.getOrigin();
+			if (bossRoomClient.level != null && bossRoomClient.player != null && scanOrigin != null) {
+				JsonArray bossRoomPlayersArr = new JsonArray();
+				UUID selfId = bossRoomClient.player.getUUID();
+				addBossRoomPlayer(bossRoomPlayersArr, bossRoomClient.player.getGameProfile().name(), bossRoomClient.player, scanOrigin);
+				for (net.minecraft.client.player.AbstractClientPlayer other : bossRoomClient.level.players()) {
+					UUID id = other.getUUID();
+					if (id.equals(selfId) || !DungeonRunTracker.getEffectiveRoster().contains(id)) {
+						continue;
+					}
+					PartyHudManager.MemberInfo info = PartyHudManager.getMembers().get(id);
+					if (info == null) {
+						continue;
+					}
+					addBossRoomPlayer(bossRoomPlayersArr, info.username(), other, scanOrigin);
+				}
+				payload.add("bossRoomPlayers", bossRoomPlayersArr);
+			}
 		}
 		// Real floor-plan data (see DungeonRoomTracker's own doc comment - a faithful port of
 		// Skyblocker's map-pixel room detection) - "die map wo ich die map sehe... map von oben wo
@@ -441,6 +480,18 @@ public final class DungeonSyncManager {
 			// self-trims by age in appendSample instead of being fully drained every report.
 		}
 		return payload;
+	}
+
+	/** Appends one entry to a bossRoomPlayers array - real (sub-block-precision) position relative to {@code origin}, plus yaw/pitch. */
+	private static void addBossRoomPlayer(JsonArray array, String username, Player player, BlockPos origin) {
+		JsonObject obj = new JsonObject();
+		obj.addProperty("username", username);
+		obj.addProperty("x", player.getX() - origin.getX());
+		obj.addProperty("y", player.getY() - origin.getY());
+		obj.addProperty("z", player.getZ() - origin.getZ());
+		obj.addProperty("yaw", player.getYRot());
+		obj.addProperty("pitch", player.getXRot());
+		array.add(obj);
 	}
 
 	/** Called from {@link ModPresenceManager} for every queried player who reported a dungeonSync payload - stored by username, same as before. */

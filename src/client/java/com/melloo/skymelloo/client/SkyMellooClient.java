@@ -385,6 +385,8 @@ public class SkyMellooClient implements ClientModInitializer {
 												com.melloo.skymelloo.client.social.BossRoomScanner.getOrigin(), com.melloo.skymelloo.client.social.BossRoomScanner.getScanId())));
 										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.positions",
 												com.melloo.skymelloo.client.social.BossRoomScanner.getSeenCount(), com.melloo.skymelloo.client.social.BossRoomScanner.getPendingCount())));
+										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.frontier",
+												com.melloo.skymelloo.client.social.BossRoomScanner.getFrontierSize())));
 									} else {
 										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.not_scanning")));
 									}

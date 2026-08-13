@@ -145,6 +145,7 @@
 	"skymelloo.command.common.state_on": "§aon",
 	"skymelloo.command.contact.label": "Contact",
 	"skymelloo.command.debug.bossroom.entered_cleared": "§dbossRoomEntered: §f%1$s§7  ·  §dbossRoomCleared: §f%2$s",
+	"skymelloo.command.debug.bossroom.frontier": "§dFrontier (discovered, not yet read): §f%1$s",
 	"skymelloo.command.debug.bossroom.header": "§6=== Boss Room Scanner Debug ===",
 	"skymelloo.command.debug.bossroom.last_error": "§cLast send error: §f%1$s",
 	"skymelloo.command.debug.bossroom.not_scanning": "§7Not scanning - walk into an active (not yet cleared) boss room first.",
