@@ -743,9 +743,50 @@ public class SkyMellooMenuScreen extends Screen {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
 			list.add(linkAction(Items.BLAZE_ROD, tr("skymelloo.gui.menu.link.switch_spell.name"), tr("skymelloo.gui.menu.link.switch_spell.description"), new SwitchSpellPage(), screen));
+			list.add(linkAction(Items.PURPLE_DYE, tr("skymelloo.gui.menu.link.spell_color.name"), tr("skymelloo.gui.menu.link.spell_color.description"), new SpellColorPage(), screen));
 			list.add(linkAction(Items.EXPERIENCE_BOTTLE, tr("skymelloo.gui.menu.link.spell_stats.name"), tr("skymelloo.gui.menu.link.spell_stats.description"), new SpellStatsPage(), screen));
 			list.add(linkAction(Items.PAPER, tr("skymelloo.gui.menu.link.recent_kills.name"), tr("skymelloo.gui.menu.link.recent_kills.description"), new LastKillsPage(), screen));
 			return list;
+		}
+	}
+
+	/** Same 12-color palette as SkyMellooSettingsScreen's own color dropdown - moved here so the spell's color is fully configurable from this item-menu too, not just the (now-removed) Fun settings tab. */
+	private static final class SpellColorPage implements Page {
+		private static final int[] COLOR_PALETTE = {
+				0xFFFF5555, 0xFFFFAA00, 0xFFFFFF55, 0xFF55FF55, 0xFF55FFFF,
+				0xFF5599FF, 0xFFAA33FF, 0xFFFF55FF, 0xFFFFFFFF, 0xFF888888,
+				0xFF227777, 0xFFFF8800
+		};
+		private static final Item[] PALETTE_ICONS = {
+				Items.RED_DYE, Items.ORANGE_DYE, Items.YELLOW_DYE, Items.LIME_DYE, Items.LIGHT_BLUE_DYE,
+				Items.BLUE_DYE, Items.PURPLE_DYE, Items.MAGENTA_DYE, Items.WHITE_DYE, Items.GRAY_DYE,
+				Items.CYAN_DYE, Items.ORANGE_DYE
+		};
+
+		@Override
+		public String title() {
+			return tr("skymelloo.gui.menu.page.spell_color.title");
+		}
+
+		@Override
+		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
+			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
+			List<MenuAction> list = new ArrayList<>();
+			for (int i = 0; i < COLOR_PALETTE.length; i++) {
+				list.add(colorSwatchAction(PALETTE_ICONS[i], COLOR_PALETTE[i], c, screen));
+			}
+			return list;
+		}
+
+		private static MenuAction colorSwatchAction(Item item, int rgb, SkyMellooConfig c, SkyMellooMenuScreen screen) {
+			boolean selected = c.magicMissileColor.getRGB() == (rgb | 0xFF000000);
+			ItemStack icon = named(item, tr(selected ? "skymelloo.gui.menu.format.selected_name" : "skymelloo.gui.menu.format.toggle_name_off", tr("skymelloo.gui.menu.format.color_swatch_name")),
+					List.of(selected ? tr("skymelloo.gui.menu.spell_type.currently_selected") : tr("skymelloo.gui.menu.spell_type.click_to_select")));
+			return new MenuAction(icon, () -> {
+				c.magicMissileColor = new java.awt.Color(rgb, true);
+				SkyMellooConfig.HANDLER.save();
+				screen.rebuild();
+			});
 		}
 	}
 

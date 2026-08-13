@@ -82,7 +82,8 @@ public final class SkyMellooConfig {
 	public boolean dungeonRoomMobHighlightEnabled = false;
 
 	// Glow color for hostile mobs inside your current dungeon room (see above).
-	public Color dungeonRoomMobHighlightColor = new Color(0xFFFF0000, true);
+	// Orange, not purple/red - purple collides with MellooEssentials' own Owner/Staff highlight color.
+	public Color dungeonRoomMobHighlightColor = new Color(0xFFFFA500, true);
 
 	// A party member's highlight (both the glow outline and the nametag marker) blinks bright red once their HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a fight.
 	public boolean lowHpBlinkEnabled = true;

@@ -57,8 +57,10 @@ public class SkyMellooSettingsScreen extends Screen {
 	public enum Tab {
 		// Item/Chest/Mob highlighting all relocated into DUNGEONS (see rowsFor), Player highlighting
 		// (now "Party Highlighting", including the admin/dev/owner gold color) moved here instead.
-		// HP Armor Stand highlighting is gone entirely, not relocated.
-		PARTY("skymelloo.gui.settings.tab.party"), FUN("skymelloo.gui.settings.tab.fun"), HP("skymelloo.gui.settings.tab.hp"), FISHING("skymelloo.gui.settings.tab.fishing"), DUNGEONS("skymelloo.gui.settings.tab.dungeons"), GENERAL("skymelloo.gui.settings.tab.general"), CLOUD("skymelloo.gui.settings.tab.cloud"), DEBUG("skymelloo.gui.settings.tab.debug");
+		// HP Armor Stand highlighting is gone entirely, not relocated. FUN removed entirely - its one
+		// row (Spell enabled/color) is fully configurable from the item-menu now (Spells -> Switch
+		// Spell / Spell Color), so this tab was a pure duplicate.
+		PARTY("skymelloo.gui.settings.tab.party"), HP("skymelloo.gui.settings.tab.hp"), FISHING("skymelloo.gui.settings.tab.fishing"), DUNGEONS("skymelloo.gui.settings.tab.dungeons"), GENERAL("skymelloo.gui.settings.tab.general"), CLOUD("skymelloo.gui.settings.tab.cloud"), DEBUG("skymelloo.gui.settings.tab.debug");
 
 		// Stores a translation key, not display text - resolved at render time (Tab constants are
 		// created at class-load, before Minecraft's language system is guaranteed to be ready).
@@ -106,9 +108,6 @@ public class SkyMellooSettingsScreen extends Screen {
 				// the same day - this tab always shows since every feature it contains is available
 				// to everyone now.
 				case DUNGEONS -> true;
-				// Only Spell/Spell Essence live here now (Kill Tracker/Death Double removed
-				// entirely, Death Recap moved to Dungeons) - both need "cosmetics".
-				case FUN -> PermissionsManager.has("spell");
 				case GENERAL, CLOUD, DEBUG -> true;
 			};
 			if (visible) {
@@ -223,6 +222,32 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
+	/** Sets every dungeon-announcement delivery setting on this tab to {@code value} in one go, instead of clicking through each row individually - see the "Delivery" section at the top of the Dungeons tab. */
+	private void setAllDungeonDeliveries(SkyMellooConfig c, String value) {
+		c.deathRecapPartyAnnounceDelivery = value;
+		c.dungeonInfoMessageDelivery = value;
+		c.dungeonAutoKickDelivery = value;
+		c.dungeonAutoKickMaxDelivery = value;
+		c.dungeonRunPartySummaryDelivery = value;
+		c.dungeonBossRoomMessageDelivery = value;
+		c.dungeonDeathMessageDelivery = value;
+		c.dungeonPreBossScoreWarningDelivery = value;
+		c.dungeonRoomsDiscoveredDelivery = value;
+		c.dungeonSecretsPaceWarningDelivery = value;
+		c.dungeonPuzzleRetryFailDelivery = value;
+		c.dungeonSPlusImpossibleDelivery = value;
+		c.dungeonSPlusBackDelivery = value;
+		c.dungeonGradeMilestoneDelivery = value;
+		c.dungeonTimeLimitWarningDelivery = value;
+		c.dungeonTimeLimitExceededDelivery = value;
+		c.dungeonFloorKickDelivery = value;
+		c.dungeonFloorKickMaxDelivery = value;
+		c.dungeonFloorCompletionKickDelivery = value;
+		c.dungeonFloorCompletionKickMaxDelivery = value;
+		SkyMellooConfig.HANDLER.save();
+		buildRows();
+	}
+
 	/**
 	 * Single scrollable column instead of the old multi-column layout - a tab with more rows than
 	 * fit on screen (Cosmetics has ~30) now scrolls down with the mouse wheel instead of spilling
@@ -297,6 +322,13 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.minigame.minigame_glow_color"), () -> c.fishingMinigameColor, v -> c.fishingMinigameColor = v), Component.translatable("skymelloo.gui.settings.tip.minigame.minigame_glow_color")));
 			}
 			case DUNGEONS -> {
+				// One bulk control for every LOCAL/PARTY/PARTY SM delivery setting on this tab (and Death
+				// Recap's, also here) - so switching how you want announcements delivered doesn't mean
+				// clicking through 18 separate rows one at a time.
+				rows.add(headerRow(tr("skymelloo.gui.settings.header.delivery_bulk")));
+				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.delivery_bulk.all_local"), tr("skymelloo.gui.settings.button.delivery_bulk.apply"), () -> setAllDungeonDeliveries(c, "LOCAL")), Component.translatable("skymelloo.gui.settings.tip.delivery_bulk.all_local")));
+				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.delivery_bulk.all_party"), tr("skymelloo.gui.settings.button.delivery_bulk.apply"), () -> setAllDungeonDeliveries(c, "PARTY")), Component.translatable("skymelloo.gui.settings.tip.delivery_bulk.all_party")));
+
 				// Chest/Item/Mob highlighting all relocated here from their previous tabs - purely a
 				// settings-screen reorg, the underlying scan/render logic (HighlightManager,
 				// BlockHighlightRenderer) is unchanged and still works everywhere in-game, not just dungeons.
@@ -456,12 +488,6 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.message_text"), () -> c.dungeonFloorCompletionKickMaxMessageTemplate, v -> c.dungeonFloorCompletionKickMaxMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.message_text")));
 				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.delivery"), () -> c.dungeonFloorCompletionKickMaxDelivery, v -> c.dungeonFloorCompletionKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.delivery")));
 			}
-			case FUN -> {
-				if (PermissionsManager.has("spell")) {
-					rows.add(headerRow(tr("skymelloo.gui.settings.header.spell")));
-					rows.add(tip(cosmeticColorRow(tr("skymelloo.gui.settings.row.spell.spell"), () -> c.magicMissileEnabled, v -> c.magicMissileEnabled = v, () -> c.magicMissileColor, v -> c.magicMissileColor = v), Component.translatable("skymelloo.gui.settings.tip.spell.spell")));
-				}
-			}
 			case GENERAL -> {
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.hotkeys")));
 				rows.add(tip(keybindRow(tr("skymelloo.gui.settings.row.hotkeys.open_this_menu"), SkyMellooClient.getOpenConfigKey()), Component.translatable("skymelloo.gui.settings.tip.hotkeys.open_this_menu")));
@@ -538,12 +564,6 @@ public class SkyMellooSettingsScreen extends Screen {
 
 	private RowFactory boolRow(String label, BooleanSupplier getter, Consumer<Boolean> setter, int accent) {
 		return (x, y, w, h) -> new BoolRowWidget(x, y, w, h, label, getter, setter, accent);
-	}
-
-	/** A cosmetic toggle with a color swatch inline on the same row, so it can never get split
-	 * across a column break the way two separate stacked rows could. */
-	private RowFactory cosmeticColorRow(String label, BooleanSupplier getter, Consumer<Boolean> setter, Supplier<Color> colorGetter, Consumer<Color> colorSetter) {
-		return (x, y, w, h) -> new CosmeticFullRowWidget(x, y, w, h, label, getter, setter, () -> colorGetter.get().getRGB(), colorGetter, colorSetter);
 	}
 
 	private RowFactory colorRow(String label, Supplier<Color> getter, Consumer<Color> setter) {
@@ -932,84 +952,6 @@ public class SkyMellooSettingsScreen extends Screen {
 				setter.accept(color);
 				SkyMellooConfig.HANDLER.save();
 			});
-		}
-	}
-
-	/**
-	 * A cosmetic entry as ONE row: toggle dot + name on the left, an optional color swatch on the
-	 * right of the same row. Keeping name/toggle/color together in a single widget means they can
-	 * never end up split across a column break the way two separately-flowed rows could.
-	 */
-	private final class CosmeticFullRowWidget extends AbstractWidget {
-		private static final int SWATCH_SIZE = 10;
-
-		private final String label;
-		private final BooleanSupplier getter;
-		private final Consumer<Boolean> setter;
-		private final IntSupplier accent;
-		private final Supplier<Color> colorGetter;
-		private final Consumer<Color> colorSetter;
-
-		CosmeticFullRowWidget(int x, int y, int width, int height, String label, BooleanSupplier getter, Consumer<Boolean> setter,
-				IntSupplier accent, Supplier<Color> colorGetter, Consumer<Color> colorSetter) {
-			super(x, y, width, height, Component.literal(label));
-			this.label = label;
-			this.getter = getter;
-			this.setter = setter;
-			this.accent = accent;
-			this.colorGetter = colorGetter;
-			this.colorSetter = colorSetter;
-		}
-
-		private int swatchX() {
-			return getX() + getWidth() - SWATCH_SIZE - 4;
-		}
-
-		@Override
-		protected void extractWidgetRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
-			boolean enabled = getter.getAsBoolean();
-			int x1 = getX();
-			int y1 = getY();
-			int x2 = getX() + getWidth();
-			int y2 = getY() + getHeight();
-
-			if (this.isHovered()) {
-				gg.fill(x1, y1, x2, y2, ROW_BG_HOVER_BONUS);
-			}
-
-			int dotSize = 6;
-			int dotY = y1 + (getHeight() - dotSize) / 2;
-			gg.fill(x1 + 2, dotY, x1 + 2 + dotSize, dotY + dotSize, enabled ? (accent.getAsInt() | 0xFF000000) : 0xFF555555);
-			gg.text(Minecraft.getInstance().font, label, x1 + 2 + dotSize + 6, y1 + (getHeight() - 8) / 2, enabled ? TEXT_ON : TEXT_OFF);
-
-			if (colorGetter != null) {
-				int sx = swatchX();
-				int sy = y1 + (getHeight() - SWATCH_SIZE) / 2;
-				int col = colorGetter.get().getRGB() | 0xFF000000;
-				gg.fill(sx, sy, sx + SWATCH_SIZE, sy + SWATCH_SIZE, col);
-			}
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput output) {
-			this.defaultButtonNarrationText(output);
-		}
-
-		@Override
-		public void onClick(MouseButtonEvent event, boolean doubleClick) {
-			if (colorGetter != null && event.x() >= swatchX() - 2) {
-				if (openDropdownOwner == this) {
-					closeColorDropdown();
-					return;
-				}
-				openColorDropdown(this, getX(), getY() + getHeight() + 2, color -> {
-					colorSetter.accept(color);
-					SkyMellooConfig.HANDLER.save();
-				});
-				return;
-			}
-			setter.accept(!getter.getAsBoolean());
-			SkyMellooConfig.HANDLER.save();
 		}
 	}
 
