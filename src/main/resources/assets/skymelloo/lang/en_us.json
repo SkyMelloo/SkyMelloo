@@ -20,7 +20,7 @@
 	"skymelloo.chat.dungeon_debug.hypixel_map": "§7Hypixel map: §f%s",
 	"skymelloo.chat.dungeon_debug.hypixel_mode": "§7Hypixel mode: §f%s",
 	"skymelloo.chat.dungeon_debug.run_active": "Run active",
-	"skymelloo.chat.dungeon_debug.run_failed_died": "Run failed (you died)",
+	"skymelloo.chat.dungeon_debug.run_failed_died": "You died (party may still finish)",
 	"skymelloo.chat.dungeon_debug.run_failed_wiped": "Run failed (party wiped)",
 	"skymelloo.chat.dungeon_debug.state_cleared": "cleared",
 	"skymelloo.chat.dungeon_debug.state_not_cleared_yet": "not cleared yet",
