@@ -85,16 +85,13 @@ public final class DungeonDebugHud implements HudElement {
 						i + 1, opened ? stateOpened : stateNotOpenedYet, elapsedSuffix(witherDoorMillis.get(i))).getString(), opened));
 			}
 		}
-		// Same "key obtained" framing as Wither Doors above - Catacombs has no separate pickup message
-		// for a literal Blood Key the way Wither Essence drops one, so entering the Blood Room (the
-		// Watcher speaking) is the real-world equivalent of "having the key" here. Once that's true,
-		// the actual Blood door-opened event (a real "X opened a BLOOD door!" chat line, same pattern
-		// as Wither's) is now shown too, mirroring Wither Door's exact "opened/not opened
-		// yet (key obtained)" wording instead of the old flat "Blood key obtained" line. Blood room
-		// cleared stays its own separate line.
-		boolean bloodEntered = DungeonRunTracker.isBloodRoomEntered();
+		// Same "key obtained" framing as Wither Doors above - real bug fix: this used to gate on having
+		// entered the Blood Room instead of the actual key pickup, based on a wrong assumption that
+		// Hypixel sends no real "X has obtained Blood Key!" message - confirmed directly from a real
+		// log that it does (see BLOOD_KEY_OBTAINED_PATTERN, already tracked but never read here).
+		boolean bloodKeyObtained = DungeonRunTracker.isBloodKeyObtained();
 		boolean bloodCleared = DungeonRunTracker.isBloodRoomCleared();
-		if (!bloodEntered) {
+		if (!bloodKeyObtained) {
 			lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.blood_key_obtained").getString(), false));
 		} else {
 			boolean bloodDoorOpened = DungeonRunTracker.isBloodDoorOpened();

@@ -86,7 +86,10 @@ public final class DungeonRunTracker {
 	private static final Pattern PUZZLE_SOLVED_PATTERN = Pattern.compile("^PUZZLE SOLVED! .*?([A-Za-z0-9_]{2,16}) ");
 	private static final Pattern PUZZLE_FAIL_PATTERN = Pattern.compile("^PUZZLE FAIL! .*?([A-Za-z0-9_]{2,16}) ");
 	private static final Pattern CRYPT_PATTERN = Pattern.compile("found a Wither Essence! Everyone gains an extra essence!");
-	private static final Pattern DOOR_OPENED_PATTERN = Pattern.compile("^([A-Za-z0-9_]{1,16}) opened a (WITHER|BLOOD) door!$");
+	// No leading ^ - confirmed real bug: a chat-icon mod (e.g. chat_heads) can prepend "[Name head]"
+	// before the real name, which an anchored start would never match even though the door genuinely
+	// opened. find() naturally lands on whichever name directly precedes the fixed "opened a ... door!" ending.
+	private static final Pattern DOOR_OPENED_PATTERN = Pattern.compile("([A-Za-z0-9_]{1,16}) opened a (WITHER|BLOOD) door!$");
 	// The Blood Door's REAL message - confirmed directly from a real log/screenshot that
 	// DOOR_OPENED_PATTERN's guessed "BLOOD" branch above never actually fires: unlike the Wither Door
 	// (attributed to whoever opened it), Hypixel sends this as a plain, nameless broadcast. Root cause
@@ -1716,6 +1719,11 @@ public final class DungeonRunTracker {
 	/** Mirrors {@link #isWitherDoorOpened()} but for the Blood Room's own door - see DOOR_OPENED_PATTERN("BLOOD"). */
 	public static boolean isBloodDoorOpened() {
 		return bloodDoorOpened;
+	}
+
+	/** Whether the real "X has obtained Blood Key!" chat line has fired this run - see BLOOD_KEY_OBTAINED_PATTERN. */
+	public static boolean isBloodKeyObtained() {
+		return bloodKeyPlayer != null;
 	}
 
 	public static boolean isBloodRoomCleared() {
