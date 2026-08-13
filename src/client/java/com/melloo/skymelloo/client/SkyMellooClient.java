@@ -99,7 +99,6 @@ public class SkyMellooClient implements ClientModInitializer {
 		com.melloo.skymelloo.client.social.ActionBarTracker.init();
 		com.melloo.skymelloo.client.social.ChatMentionHighlighter.init();
 		com.melloo.skymelloo.client.social.AntiScamFilter.init();
-		com.melloo.skymelloo.client.social.PartyGamesManager.init();
 		com.melloo.skymelloo.client.util.PartyChatSender.init();
 		com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.init();
 		com.melloo.skymelloo.client.util.AutoReconnect.init();
@@ -249,7 +248,6 @@ public class SkyMellooClient implements ClientModInitializer {
 								})))
 						.then(com.melloo.skymelloo.client.highlight.LobbySearchManager.buildSearchCommand())
 						.then(buildGetDataCommand())
-						.then(com.melloo.skymelloo.client.social.PartyGamesManager.buildRollCommand())
 						.then(ClientCommands.literal("partyjoin")
 								.executes(ctx -> {
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.usage.partyjoin_test")));
@@ -619,7 +617,6 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.party_header")));
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.sync")));
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.social_note")));
-		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.roll")));
 
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.dungeons_header")));
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.kills")));
