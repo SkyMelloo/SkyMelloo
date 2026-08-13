@@ -529,10 +529,13 @@ public final class DungeonRoomTracker {
 		}
 		// Skyblocker's real shape match (correct even for a not-yet-fully-explored multi-cell room,
 		// unlike our own map-color flood-fill) can land on a different tick than the type confirmation
-		// below - checked independently so it's picked up the moment it's ready either way.
+		// below - checked independently so it's picked up the moment it's ready either way. Verified
+		// to actually contain currentPhysicalRoomPos before trusting it - a real bug: right after
+		// switching rooms, Skyblocker's own match can briefly still point at the PREVIOUS room, which
+		// would otherwise silently overwrite the already-correct new room with stale old segments.
 		if (!skyblockerSegmentsApplied) {
 			List<int[]> segments = SkyblockerBridge.getCurrentRoomSegments();
-			if (segments != null && !segments.isEmpty()) {
+			if (segments != null && containsCell(segments, currentPhysicalRoomPos)) {
 				currentRoomConnectedCells = segments;
 				skyblockerSegmentsApplied = true;
 			}
@@ -746,6 +749,15 @@ public final class DungeonRoomTracker {
 
 	private static long packKey(int[] pos) {
 		return (((long) pos[0]) << 32) | (pos[1] & 0xFFFFFFFFL);
+	}
+
+	private static boolean containsCell(List<int[]> cells, int[] target) {
+		for (int[] cell : cells) {
+			if (cell[0] == target[0] && cell[1] == target[1]) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Ported verbatim from {@code DungeonMapUtils.getMapEntrancePosAndRoomSizeAt} - walks to the entrance color block's top-left corner, then measures its width. */
