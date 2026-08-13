@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.38.1 (from 0.38.0) · patch
+
+DungeonSyncManager now applies the same stand-still dedup to outgoing positionHistory that the website already applies on the storage side (`lib/dungeonRuns.js#compactPositionHistory`, T43) - a run of consecutive samples with identical mapX/mapY/yaw collapses to just its first and last tick before being sent, saving real upload bandwidth on long stand-stills, not just server storage. Lossless: never fewer than the run's first+last tick, and a yaw-only change (turning in place) is never collapsed - position/rotation stay independent signals, same as the website side.
+
 ## 0.38.0 (from 0.37.8) · minor
 
 Deleted this mod's own entire ModVersionManager (version/integrity check) - MellooEssentials' own copy now checks this mod too (Fabric Loader's mod registry is global, no dependency-direction issue), fixing the double "unofficial build" chat notice both mods used to fire independently on join. "/sm version"/"/sm legal" now read MellooEssentials' new `getSkyMellooXxx()` getters instead. Synced dependency pin to 0.13.0.

@@ -123,7 +123,7 @@ public final class DungeonSyncManager {
 
 	private static JsonArray historyToJson(List<PositionSample> history) {
 		JsonArray arr = new JsonArray();
-		for (PositionSample sample : history) {
+		for (PositionSample sample : compactStandStillRuns(history)) {
 			JsonObject obj = new JsonObject();
 			obj.addProperty("mapX", sample.mapX());
 			obj.addProperty("mapY", sample.mapY());
@@ -132,6 +132,40 @@ public final class DungeonSyncManager {
 			arr.add(obj);
 		}
 		return arr;
+	}
+
+	/**
+	 * Same dedup the website's own lib/dungeonRuns.js#compactPositionHistory already applies on the
+	 * storage side (T43, filed by the website session) - applied here too so a long stand-still
+	 * doesn't cost real upload bandwidth either, not just server storage. A run of consecutive
+	 * samples with IDENTICAL mapX/mapY/yaw collapses to just its first and last tick - never fewer,
+	 * so how long the stand-still actually lasted is never lost. A yaw-only change (turning in place,
+	 * position unchanged) is NOT collapsed - position and rotation are independent signals here, same
+	 * as the website side, never silently merged into one.
+	 */
+	private static List<PositionSample> compactStandStillRuns(List<PositionSample> samples) {
+		if (samples.size() <= 2) {
+			return samples;
+		}
+		List<PositionSample> result = new ArrayList<>();
+		int i = 0;
+		while (i < samples.size()) {
+			PositionSample runStart = samples.get(i);
+			int runEnd = i;
+			while (runEnd + 1 < samples.size() && isSamePosition(samples.get(runEnd + 1), runStart)) {
+				runEnd++;
+			}
+			result.add(runStart);
+			if (runEnd > i) {
+				result.add(samples.get(runEnd));
+			}
+			i = runEnd + 1;
+		}
+		return result;
+	}
+
+	private static boolean isSamePosition(PositionSample a, PositionSample b) {
+		return a.mapX() == b.mapX() && a.mapY() == b.mapY() && a.yaw() == b.yaw();
 	}
 
 	/**
