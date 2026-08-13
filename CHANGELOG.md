@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.37.8 (from 0.37.7) · patch
+
+SECURITY.md scope now also covers developer-api/api-client (both just got the same community-health docs this repo already has). No functional change.
+
 ## 0.37.7 (from 0.37.6) · patch
 
 Added GitHub issue templates (bug report, feature request) and a PR template under `.github/` - closes out most of the repo's Community Profile checklist. Synced mellooessentials_version pin to 0.12.4. No functional change.
