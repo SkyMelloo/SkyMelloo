@@ -196,9 +196,9 @@ public class SkyMellooClient implements ClientModInitializer {
 
 			WhitelistManager.checkOnce(client);
 			WhitelistManager.tickPeriodicRecheck(client);
-			com.melloo.skymelloo.client.social.ModVersionManager.checkOnce(client);
-			// ModVersionManager only ever sends an informational chat warning (see its own checkOnce),
-			// never disables anything.
+			// Version/integrity check for THIS mod now lives in MellooEssentials' own
+			// ModVersionManager (checks itself and, since Fabric Loader's mod registry is global, this
+			// mod too) - no separate check/tick needed here anymore, see its own class doc comment.
 			PermissionsManager.fetchIfNeeded(client);
 			PermissionsManager.tickPeriodicRecheck(client);
 			CloudSyncManager.pullIfNeeded(client);
@@ -441,14 +441,14 @@ public class SkyMellooClient implements ClientModInitializer {
 						// yourself - plain informational, version numbers and a reminder of where the real
 						// thing comes from, nothing more.
 						.then(ClientCommands.literal("version").executes(ctx -> {
-							String version = com.melloo.skymelloo.client.social.ModVersionManager.getLocalVersion();
-							String publicVersion = com.melloo.skymelloo.client.social.ModVersionManager.getPublicVersion();
-							String jarHash = com.melloo.skymelloo.client.social.ModVersionManager.getLocalJarHash();
+							String version = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooLocalVersion();
+							String publicVersion = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooPublicVersion();
+							String jarHash = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooJarHash();
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.header")));
 							Component jarHashText = jarHash != null ? Component.literal(jarHash) : Component.translatable("skymelloo.command.version.jarhash_unknown");
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.running", publicVersion, version, jarHashText)));
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.checking")));
-							com.melloo.skymelloo.client.social.ModVersionManager.checkNow(
+							com.melloo.mellooessentials.client.util.ModVersionManager.checkSkyMellooNow(
 									result -> {
 										Minecraft c = Minecraft.getInstance();
 										if (c.player == null) {
@@ -485,14 +485,14 @@ public class SkyMellooClient implements ClientModInitializer {
 						// it can't verify as an official/dev SkyMelloo release, since a modified build
 						// genuinely isn't legally covered by the maintainer's own imprint/privacy/terms.
 						.then(ClientCommands.literal("legal").executes(ctx -> {
-							String jarHash = com.melloo.skymelloo.client.social.ModVersionManager.getLocalJarHash();
+							String jarHash = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooJarHash();
 							com.melloo.skymelloo.client.api.SkyMellooApiClient.fetchLegalInfo(jarHash).whenComplete((info, error) -> Minecraft.getInstance().execute(() -> {
 								if (error != null || info == null) {
 									// Addressed partly to whoever actually built this - a test/private build is
 									// almost always someone's own compile, so it's worth telling them directly that
 									// this command still points at the real maintainer's own legal pages and
 									// probably shouldn't ship as-is in a real fork, not just a generic refusal.
-									var lastResult = com.melloo.skymelloo.client.social.ModVersionManager.getLastResult();
+									var lastResult = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooLastResult();
 									Component maintainer = lastResult != null && lastResult.maintainerUsername() != null
 											? Component.literal(lastResult.maintainerUsername())
 											: Component.translatable("skymelloo.command.legal.fallback_maintainer");

@@ -463,29 +463,6 @@ public final class SkyMellooApiClient {
 		return getJson("/health", identity).thenApply(root -> null);
 	}
 
-	/** Whether this build is still compatible with the current backend API - see ModVersionManager, checked once per join right alongside the whitelist check. */
-	/** {@code buildKind} - "release" (published, validly signed), "dev-build" (validly signed but unpublished, only within the most-recent-2 trust window), "dev-whitelist" (admin-whitelisted, unsigned), "unverified" (a reported hash that's none of those), or "unknown" (no hash reported at all) - see server.js's own comment. */
-	/** {@code latestVersion} is the real latest PUBLISHED release's internal dev version string (see server.js's own latestRelease()) - always fetched fresh from the server, never guessed/cached client-side. {@code latestPublicVersion} is the separate user-facing release number for that same release (set by the admin at publish time, see server.js's publish route) - null if that release predates public-version tracking. {@code maintainerUsername} is the real connected owner account's name, fetched live rather than hardcoded client-side - null if the owner hasn't linked one. */
-	public record VersionCheckResult(boolean compatible, String minVersion, String message, boolean upToDate, String updateAvailableMessage, boolean integrityOk, String buildKind, String latestVersion, String latestPublicVersion, String maintainerUsername) {
-	}
-
-	/** {@code jarHash} (lowercase hex SHA-256 of this build's own jar, see ModVersionManager) is optional - null when running from a dev/exploded classpath rather than a real packaged jar. */
-	public static CompletableFuture<VersionCheckResult> checkVersion(String version, String jarHash) {
-		String url = "/version-check?version=" + encode(version) + (jarHash != null ? "&hash=" + encode(jarHash) : "");
-		return getJson(url).thenApply(root -> new VersionCheckResult(
-				root.has("compatible") && root.get("compatible").getAsBoolean(),
-				root.has("minVersion") && !root.get("minVersion").isJsonNull() ? root.get("minVersion").getAsString() : null,
-				root.has("message") && !root.get("message").isJsonNull() ? root.get("message").getAsString() : null,
-				!root.has("upToDate") || root.get("upToDate").getAsBoolean(),
-				root.has("updateAvailableMessage") && !root.get("updateAvailableMessage").isJsonNull() ? root.get("updateAvailableMessage").getAsString() : null,
-				!root.has("integrityOk") || root.get("integrityOk").getAsBoolean(),
-				root.has("buildKind") && !root.get("buildKind").isJsonNull() ? root.get("buildKind").getAsString() : "unknown",
-				root.has("latestVersion") && !root.get("latestVersion").isJsonNull() ? root.get("latestVersion").getAsString() : null,
-				root.has("latestPublicVersion") && !root.get("latestPublicVersion").isJsonNull() ? root.get("latestPublicVersion").getAsString() : null,
-				root.has("maintainerUsername") && !root.get("maintainerUsername").isJsonNull() ? root.get("maintainerUsername").getAsString() : null
-		));
-	}
-
 	public record LegalInfo(String imprint, String privacy, String terms) {
 	}
 
