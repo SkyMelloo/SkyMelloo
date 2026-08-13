@@ -26,7 +26,7 @@ Hypixel Inc.
   3D preview.
 - **Party tools** - per-member stats, auto-kick rules, join watcher.
 - **Highlighting** - party members, SkyMelloo staff, and current-room dungeon mobs each get their
-  own color. No general-purpose Highlighting.
+  own color. No general-purpose highlighting of every player/mob on the server.
 - **Sync** - live status and (opt-in) dungeon-run data shared with sky.melloo.me for the
   live/replay dungeon map.
 - **Cloud Saves** - your settings follow you to a new device/reinstall automatically, using only

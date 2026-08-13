@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.37.5 (from 0.37.4) · patch
+
+Reworded every remaining "Highlighting" mention in README/CHANGELOG.md (old internal terminology from before the rename to "highlighting", years ago) - never actually used in current code, just leftover history text. No functional change.
+
 ## 0.37.4 (from 0.37.3) · patch
 
 CHANGELOG.md readability pass - each entry now shows its patch/minor/major badge next to the version heading instead of buried in the prose, and multi-part entries that were originally "(1) ... (2) ... (3) ..." or real bullet lists in the old gradle.properties comments render as actual markdown lists again (a few had gotten flattened into run-on paragraphs during the original extraction). Also synced mellooessentials_version pin to 0.12.3. No functional change.
@@ -237,7 +241,7 @@ MellooEssentials (renamed/promoted from the internal hypixel-essentials prototyp
 
 ## 0.24.1 (from 0.24.0) · patch
 
-Renamed the whole "Highlighting" naming scheme away entirely - the highlight package/HighlightManager class are now highlight/HighlightManager, BlockHighlightRenderer is BlockHighlightRenderer, and every highlightXxx config field/keybind/lang key is renamed to describe what it actually does (e.g. partyHighlightColor -> partyHighlightColor, itemHighlightEnabled -> itemHighlightEnabled, key.skymelloo.toggle_highlight -> key.skymelloo.toggle_mob_highlight). Purely a naming change, no behavior difference - except that existing players' saved values for these specific renamed fields reset to default once on this update, since the saved settings file keys them by name.
+Renamed the whole old internal naming scheme away entirely - every package/class/config field/keybind/lang key describing this feature now reads "highlight" instead of the old abbreviated term (e.g. the manager class, the block renderer, `partyHighlightColor`, `itemHighlightEnabled`, the toggle keybind). Purely a naming change, no behavior difference - except that existing players' saved values for these specific renamed fields reset to default once on this update, since the saved settings file keys them by name.
 
 ## 0.24.0 (from 0.23.0) · minor
 
@@ -261,11 +265,11 @@ The mod is now Hypixel-only in general - the whole tick loop (party/friends/clou
 
 ## 0.19.1 (from 0.19.0) · patch
 
-Real bugfix - HighlightManager#isHighlightTarget (used for the colored nametag/distance-display path, separate from shouldGlow's outline path) was missing the same SkyBlock-only restriction shouldGlow already got, so a real vanilla-invisible party/staff member could still be revealed on non-SkyBlock game modes. Now gated the same way in both places.
+Real bugfix - the highlight manager's target-check method (used for the colored nametag/distance-display path, separate from shouldGlow's outline path) was missing the same SkyBlock-only restriction shouldGlow already got, so a real vanilla-invisible party/staff member could still be revealed on non-SkyBlock game modes. Now gated the same way in both places.
 
 ## 0.19.0 (from 0.18.0) · minor
 
-Chest Highlight and Item Highlighting no longer show through walls - both now require an actual clear line of sight (real block raycast, see the new VisibilityUtil#hasLineOfSight, gated in HighlightManager#shouldGlow), so a chest/item is only highlighted once the marker is actually in view. Party/staff player highlighting is now scoped to SkyBlock only (previously applied on any Hypixel game mode). Removed the last of the dead per-feature permission gating (PermissionsManager.has() is a no-op returning true for everything except "cosmetics") - every remaining call site that still wrapped a feature behind it now runs unconditionally. The maintainer name shown in a couple of chat messages (/sm legal failure, unofficial-build notice) is now fetched live from the server instead of hardcoded.
+Chest Highlight and Item Highlighting no longer show through walls - both now require an actual clear line of sight (real block raycast, see the new VisibilityUtil#hasLineOfSight, gated in the highlight manager's shouldGlow), so a chest/item is only highlighted once the marker is actually in view. Party/staff player highlighting is now scoped to SkyBlock only (previously applied on any Hypixel game mode). Removed the last of the dead per-feature permission gating (PermissionsManager.has() is a no-op returning true for everything except "cosmetics") - every remaining call site that still wrapped a feature behind it now runs unconditionally. The maintainer name shown in a couple of chat messages (/sm legal failure, unofficial-build notice) is now fetched live from the server instead of hardcoded.
 
 ## 0.18.0 (from 0.17.6) · minor
 
@@ -333,15 +337,15 @@ Chest Highlight and Item Highlighting no longer show through walls - both now re
 
 ## 0.10.1 (from 0.10.0) · patch
 
-2026-07-28: real addition that was accidentally built/deployed under the 0.10.0 hash without a version bump first (the standing "always bump" rule was missed for one build) - SkyMelloo Friends (see FriendsManager) now get their own aqua/light-blue glow color (friendHighlightColor, PlayerCategory.FRIEND) alongside the existing party/staff highlights.
+2026-07-28: real addition that was accidentally built/deployed under the 0.10.0 hash without a version bump first (the standing "always bump" rule was missed for one build) - SkyMelloo Friends (see FriendsManager) now get their own aqua/light-blue glow color (PlayerCategory.FRIEND) alongside the existing party/staff highlights.
 
 ## 0.10.0 (from 0.9.0) · minor
 
-2026-07-27: massive simplification, not a small change - general-purpose Highlighting is removed and rebuilt from scratch. The fully customizable Highlighting system (mob name filters/friendly-mob toggle/default+named mob colors, self/friend/other-player/NPC player colors, auto-sync-for-friends) is gone entirely, replaced with exactly three fixed, semantic highlights: party members (green), SkyMelloo staff - owner/admin/ developer (pink, works everywhere now, not dungeon-restricted), and hostile mobs in your CURRENT dungeon room only (red, inherently dungeon-only). Regular other players and NPCs get no highlight at all anymore. FriendListSync.java deleted outright (only ever fed the now-removed Friend highlighting). Permission keys renamed away from "Highlighting" terminology too: "highlight" -> "mobHighlight", "playerHighlight" -> "playerHighlight" (also renamed on sky.melloo.me's side - lib/permissions.js, the admin Permissions page).
+2026-07-27: massive simplification, not a small change - general-purpose highlighting-of-everything is removed and rebuilt from scratch. The fully customizable old system (mob name filters/friendly-mob toggle/default+named mob colors, self/friend/other-player/NPC player colors, auto-sync-for-friends) is gone entirely, replaced with exactly three fixed, semantic highlights: party members (green), SkyMelloo staff - owner/admin/developer (pink, works everywhere now, not dungeon-restricted), and hostile mobs in your CURRENT dungeon room only (red, inherently dungeon-only). Regular other players and NPCs get no highlight at all anymore. FriendListSync.java deleted outright (only ever fed the now-removed Friend highlighting). Permission keys renamed away from the old abbreviated terminology too, to plainly describe what they gate instead (also renamed on sky.melloo.me's side - lib/permissions.js, the admin Permissions page).
 
 ## 0.9.0 (from 0.8.2) · minor
 
-2026-07-27: real new feature - a new "Show Invisible Players" toggle (Party tab, off by default) makes another player's REAL vanilla invisibility (Invisibility Potion) not apply to how this client renders them, showing their nametag too. Deliberately NOT a glow-outline/Highlighting effect, just plain visibility - overrides Entity#isInvisible() itself (MissileHitInvisibilityMixin, alongside its existing missile-hit fake-invisibility check, kept in the same method so their priority is explicit) so they render as a completely normal, visible player - still blocked by walls/line-of-sight like anyone else.
+2026-07-27: real new feature - a new "Show Invisible Players" toggle (Party tab, off by default) makes another player's REAL vanilla invisibility (Invisibility Potion) not apply to how this client renders them, showing their nametag too. Deliberately NOT a glow-outline highlight effect, just plain visibility - overrides Entity#isInvisible() itself (MissileHitInvisibilityMixin, alongside its existing missile-hit fake-invisibility check, kept in the same method so their priority is explicit) so they render as a completely normal, visible player - still blocked by walls/line-of-sight like anyone else.
 
 ## 0.8.2 (from 0.8.1) · patch
 
@@ -353,9 +357,9 @@ Chest Highlight and Item Highlighting no longer show through walls - both now re
 
 ## 0.8.0 (from 0.7.1) · minor
 
-2026-07-27: big real-feature/removal batch, not a bugfix - the Highlighting category is removed entirely, several sync/debug/HUD settings switch to OFF by default, the spell cosmetic moves to a menu button, kill tracker becomes always-local, death double is removed, and death recap moves into the Dungeons tab. Specifically:
+2026-07-27: big real-feature/removal batch, not a bugfix - the old highlight-everything category is removed entirely, several sync/debug/HUD settings switch to OFF by default, the spell cosmetic moves to a menu button, kill tracker becomes always-local, death double is removed, and death recap moves into the Dungeons tab. Specifically:
 
-- The Highlighting tab is gone entirely, including HP Armor Stand highlighting (hpDisplayEnabled/hpArmorStandColor removed, not relocated - EntityDisplayNameMixin/HighlightManager no longer touch ArmorStand at all).
+- The old highlight-everything tab is gone entirely, including HP Armor Stand highlighting (hpDisplayEnabled/hpArmorStandColor removed, not relocated - EntityDisplayNameMixin/the old highlight manager no longer touch ArmorStand at all).
 - New defaults (existing installs keep whatever they already had saved, only fresh installs see this): Connection Quality Check, Cloud Sync, Presence Sharing, and both Health/Mana HUD bars all default OFF now instead of ON. Debug tab toggles and Auto-Reconnect were already OFF by default.
 - Casting the Spell cosmetic no longer happens by punching empty air - it's now the "Cast Spell" button in the SkyMelloo Menu item's Spells page (SkyMellooMenuScreen), which manually swings the caster's arm so remote SkyMelloo users can still see it via RemoteMissileTriggerMixin.
 - Kill Tracker's on/off toggle and delivery choice are gone - always on, always LOCAL, hardcoded at MagicMissileManager#announceMissileKill instead of read from config.
@@ -364,11 +368,11 @@ Chest Highlight and Item Highlighting no longer show through walls - both now re
 
 ## 0.7.1 (from 0.7.0) · patch
 
-2026-07-27: Ore Highlighting removed entirely, not just reordered - oreHighlightEnabled/oreHighlightColor/oreHighlightBlockFilter config fields, the Ore Highlighting settings-screen rows, BlockHighlightRenderer's ore-marker tracking, and the "oreHighlight" permission key are all gone from both the mod and sky.melloo.me. Chest Highlight is unaffected and keeps using the same Block Scan Range setting on its own now.
+2026-07-27: Ore highlighting removed entirely, not just reordered - its config fields, settings-screen rows, the old block renderer's ore-marker tracking, and its permission key are all gone from both the mod and sky.melloo.me. Chest Highlight is unaffected and keeps using the same Block Scan Range setting on its own now.
 
 ## 0.7.0 (from 0.6.4) · minor
 
-2026-07-27: real feature, not a bugfix - settings-screen reorg: Chest/Item/Mob highlighting all moved into the Dungeons tab and renamed ("Chest Highlight"/"Item Highlighting"/"Mob Highlighting"), Player Highlighting moved into a brand new Party tab (Tab.ITEMS removed, now empty). Party-highlighted SkyMelloo users now default to pink, with a new separate gold color for players whose linked account is the owner/an admin/a developer (adminHighlightColor, resolved server-side via /api/presence/query's new role field - never self-reported, see ModPresenceManager#isAdminOrOwner). Player Highlighting also got its own "playerHighlight" permission, split off from Mob Highlighting's "highlight" (previously granting one silently granted the other). Wire-protocol change: PresenceEntry gained a role field, so this is a minor bump, not a patch.
+2026-07-27: real feature, not a bugfix - settings-screen reorg: Chest/Item/Mob highlighting all moved into the Dungeons tab and renamed ("Chest Highlight"/"Item Highlighting"/"Mob Highlighting"), Player highlighting moved into a brand new Party tab (Tab.ITEMS removed, now empty). Party-highlighted SkyMelloo users now default to pink, with a new separate gold color for players whose linked account is the owner/an admin/a developer (resolved server-side via /api/presence/query's new role field - never self-reported, see ModPresenceManager#isAdminOrOwner). Player highlighting also got its own permission, split off from Mob highlighting's own (previously granting one silently granted the other). Wire-protocol change: PresenceEntry gained a role field, so this is a minor bump, not a patch.
 
 ## 0.6.4 (from 0.6.3) · patch
 
@@ -380,7 +384,7 @@ Chest Highlight and Item Highlighting no longer show through walls - both now re
 
 ## 0.6.2 (from 0.6.1) · patch
 
-2026-07-27: fabric.mod.json's description no longer leads with "mob Highlighting" - Highlighting is being phased out (planned removal, repurposed into cosmetic effects and dungeon-mob related tooling instead) so it shouldn't be the headline feature description anymore. No behavior change, metadata only.
+2026-07-27: fabric.mod.json's description no longer leads with the old highlight-everything terminology - that whole approach was being phased out (planned removal, repurposed into cosmetic effects and dungeon-mob related tooling instead) so it shouldn't be the headline feature description anymore. No behavior change, metadata only.
 
 ## 0.6.1 (from 0.6.0) · patch
 
