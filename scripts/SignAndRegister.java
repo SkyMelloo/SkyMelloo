@@ -13,21 +13,15 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Fully automates what sign-release.js used to require a manual run for - signs and registers a
- * build's release entry without needing anyone to hold the private key or manually run a script by
- * hand each time. Run by Gradle's "reportBuild" task right after every build:
- *   1. Hashes ONLY this build's own compiled classes (com/melloo/skymelloo/*.class), opening the jar
- *      as its own zip filesystem - same scoped-hash approach as ModVersionManager's own runtime
- *      check, so what gets registered here is actually comparable to what the mod reports at
- *      runtime, not an unrelated whole-jar hash.
+ * Signs and registers a build's release entry, run by Gradle's "signAndRegisterBuild" task right
+ * after every build:
+ *   1. Hashes ONLY this build's own compiled classes (com/melloo/skymelloo/*.class), same
+ *      scoped-hash approach as ModVersionManager's own runtime check.
  *   2. Signs {version}:{hash} with the Ed25519 private key that lives ONLY on this machine
- *      (~/.skymelloo-signing/private_key.pem) - never in either repo, never deployed.
- *      This is the actual security boundary: the server independently verifies this signature
- *      against the matching public key (see lib/modReleases.js) before trusting anything, so even
- *      someone who fully decompiles the mod and recompiles it byte-for-byte identical still has no
- *      way to produce a valid signature without this file.
+ *      (~/.skymelloo-signing/private_key.pem), never in either repo. The server independently
+ *      verifies the signature against the matching public key before trusting anything.
  *   3. POSTs {version, hash, signature} to sky.melloo.me, authenticated with a separate shared
- *      token (not the private key) since a build script has no browser session cookie.
+ *      token (not the private key).
  * Never fails the actual Gradle build - every real error here is caught and logged, not thrown.
  */
 public class SignAndRegister {
@@ -39,13 +33,9 @@ public class SignAndRegister {
             }
             String version = args[0];
             Path jarPath = Paths.get(args[1]);
-            // Required by build.gradle's requireChangelog task before this even runs - still
-            // defensively defaulted to "" here rather than crashing, since this script's own
-            // philosophy is "never fail the build over something in here" (see class doc comment).
-            // A FILE PATH, not the raw changelog text as a CLI arg - gradlew.bat's own cmd.exe
-            // re-invocation genuinely mangled a real multi-line value containing "&", so
-            // build.gradle now always writes the text to a temp file first and passes just the path
-            // here, which has no special characters left for anything to mangle.
+            // Required by build.gradle's requireChangelog task before this even runs - defaulted to
+            // "" defensively rather than crashing. Read from a file path, not a raw CLI arg, since
+            // gradlew.bat's cmd.exe re-invocation mangles special characters in multi-line values.
             String changelog = "";
             if (args.length >= 3) {
                 try {
@@ -139,9 +129,7 @@ public class SignAndRegister {
         return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(der));
     }
 
-    /** Was only escaping backslash/quote - fine for a plain hash/signature, but a real multi-line
-     * changelog needs newlines/control characters escaped too or the JSON body itself would be
-     * malformed the moment someone wrote more than one line. */
+    /** Escapes backslash/quote/newline/control characters for embedding in a JSON string body. */
     private static String escapeJson(String s) {
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")

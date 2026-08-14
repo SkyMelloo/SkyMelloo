@@ -1,12 +1,10 @@
 #!/usr/bin/env node
-// Uploads this build's actual jar file to sky.melloo.me right after every build - a Dev build
-// already passes the integrity check, it's just not a public release,
-// it just isn't the one everyone's required to run, so there was no reason its jar shouldn't also be
-// sitting on the server for the admin to grab and test without a manual pscp step every time).
+// Uploads this build's actual jar file to sky.melloo.me right after every build, so a dev build
+// (already passing the integrity check, just not a public release) has a jar sitting on the
+// server for the admin to grab and test without a manual step every time.
 //
-// Same shared build-report token as report-build.js/SignAndRegister.java, read from the same
-// outside-the-repo file. Never fails the build itself - a network hiccup or missing token file here
-// is logged and swallowed, not fatal.
+// Never fails the build itself - a network hiccup or missing token file here is logged and
+// swallowed, not fatal.
 const fs = require('fs');
 const https = require('https');
 const os = require('os');

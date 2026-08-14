@@ -1,14 +1,11 @@
 #!/usr/bin/env node
 // Reports this build's version + jar hash to sky.melloo.me for admin-visible build tracking - run
-// automatically by Gradle's "reportBuild" task right after every build, so builds and
-// their versions can be managed from the admin panel.
+// automatically by Gradle's "reportBuild" task right after every build.
 //
 // Purely informational/for admin visibility - does NOT grant runtime trust by itself. The hash
-// computed here is a plain SHA-256 of the built jar file, which is NOT necessarily what Lunar
-// Client's own loader reports at runtime (see ModVersionManager's own doc comment on that mismatch,
-// confirmed directly from a live report). Actually trusting a build for the integrity check still
-// needs the mod's own real runtime-reported hash, registered separately via /api/mod/dev-whitelist
-// or /api/mod/releases.
+// here is a plain SHA-256 of the whole jar, which is NOT the same scoped class-hash
+// SignAndRegister.java signs and registers for the actual integrity check (see its own doc
+// comment).
 //
 // Never fails the build itself - a network hiccup or a missing local token file here is logged and
 // swallowed, not fatal.
@@ -24,9 +21,7 @@ if (!version || !jarPath) {
   process.exit(0); // non-fatal even here - never block the actual build over this script's own usage
 }
 
-// Lives OUTSIDE this repo on purpose, alongside the release-signing private key - never checked into
-// or deployed with either the mod or website repo. See sign-release.js's own doc comment for the
-// same convention.
+// Lives outside this repo on purpose, alongside the signing key - never checked in or deployed.
 const TOKEN_FILE = path.join(os.homedir(), '.skymelloo-signing', 'build_report_token.txt');
 
 let token;

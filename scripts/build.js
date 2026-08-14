@@ -1,16 +1,10 @@
 #!/usr/bin/env node
-// Friendly wrapper around gradlew - asks what kind of build this is instead of
-// expecting -Pchangelog/-Ptest Gradle property syntax to already be known. Run with:
-//   node scripts/build.js
+// Interactive wrapper around gradlew - asks what kind of build instead of requiring
+// -Pchangelog/-PtestBuild flags to already be known. Run with: node scripts/build.js
 //
-// Three tiers - dev/public builds need a signing key and verification only the maintainer has,
-// while anyone else can only produce a test build:
-//   - test: anyone, zero requirements, never signed/registered, always shows as unofficial.
-//   - dev:  a real signed+registered build - requires the maintainer's own private key. If you
-//           don't have it, this script (and the Gradle build itself) refuses outright rather than
-//           silently completing a build that never actually registered.
-//   - public/official release: not something built here at all - an existing "dev" build gets
-//           manually promoted via the sky.melloo.me admin panel, never via this script.
+// test: anyone, no key needed, never signed/registered. dev: requires the maintainer's signing
+// key, gets signed+registered on sky.melloo.me. Public releases are never built here - an
+// existing dev build gets promoted via the website admin panel.
 const { spawnSync } = require('child_process');
 const readline = require('readline');
 const fs = require('fs');
@@ -42,7 +36,7 @@ const ask = (question) => new Promise((resolve) => rl.question(question, resolve
     console.log('\nQuestions about SkyMelloo? Reach hexedmaya:');
     console.log('  Discord: hexedmaya');
     console.log('  Email:   maja@melloo.me');
-    console.log('  GitHub:  https://github.com/hexedmaya/SkyMelloo\n');
+    console.log('  GitHub:  https://github.com/SkyMelloo/SkyMelloo\n');
   } else {
     if (!fs.existsSync(SIGNING_KEY_PATH)) {
       console.error("\nCan't build \"dev\" - that requires the maintainer's own signing key, which isn't on this machine.");
