@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.39.1 (from 0.39.0) · patch
+
+`cloudSyncEnabled` now defaults to off instead of on (T53). Previously, cloud settings sync started automatically the moment an account was linked, with no separate explicit step - now it needs its own opt-in in Settings, same privacy-first bar `presenceSharingEnabled` already had. Existing users who already had it on keep their current setting. Synced `mellooessentials_version` pin to 0.13.1 (same fix, MellooEssentials side).
+
 ## 0.39.0 (from 0.38.5) · minor
 
 New "look clipboard": Ctrl+X saves the current look direction (yaw/pitch), Ctrl+F turns the player smoothly back to face it - one slot, overwritten on every save, not persisted across restarts. Both keys default to X/F (unbound in vanilla), gated on `Screen.hasControlDown()` since Fabric's `KeyMapping` has no native modifier-combo support - a bare press without Ctrl held is a no-op. The turn itself is a short eased lerp over a handful of ticks rather than an instant snap, both to feel like a real camera movement and to avoid an aim-bot-style instant snap on Hypixel. Only active with no screen open.

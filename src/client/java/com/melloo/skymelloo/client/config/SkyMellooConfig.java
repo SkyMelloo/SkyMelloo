@@ -522,8 +522,8 @@ public final class SkyMellooConfig {
 	// On joining a server, show a "Connecting..." title and check connection quality (ping stability, packet rate) for the first 5 seconds.
 	public boolean connectionQualityCheckEnabled = false;
 
-	// Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults, and multiple installs under the same account stay in sync with each other. On by default once linked - cloud is always authoritative on join, and local edits are pushed up the moment the settings screen closes.
-	public boolean cloudSyncEnabled = true;
+	// Sync your SkyMelloo settings to sky.melloo.me while your account is linked, so a new device/reinstall under the same account can start from your existing settings instead of all defaults, and multiple installs under the same account stay in sync with each other. Off by default now, same privacy-first bar as presenceSharingEnabled - linking an account is no longer enough on its own to start syncing, this needs its own explicit opt-in too. Once turned on, cloud is authoritative on join and local edits are pushed up the moment the settings screen closes.
+	public boolean cloudSyncEnabled = false;
 
 	// A fake "SkyMelloo Menu" item in hotbar slot 8 (not 9 - that's Hypixel's own real SkyBlock Menu slot) whenever that slot is empty - right-click it to open a chest-style menu for SkyMelloo's own settings, the same way Hypixel's own menu item works. Client-side only, never overwrites a real item actually in that slot.
 	public boolean skyMellooMenuItemEnabled = true;
