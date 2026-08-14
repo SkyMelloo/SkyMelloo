@@ -17,7 +17,7 @@ aspiration.
 - Harassment, insults, or discriminatory remarks directed at anyone, in any project space.
 - Deliberately excluding, mocking, or piling on someone because of who they are.
 - Sharing someone else's private information without their consent.
-- Political discussions or content, anywhere in project spaces.
+- Political discussions or content, in general.
 - Sustained disruption of Issues, Discussions, or any other shared space.
 
 ## Enforcement
