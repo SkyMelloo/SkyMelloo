@@ -25,6 +25,13 @@ Please include:
 - Steps to reproduce, or a proof of concept if you have one.
 - The potential impact, as best you understand it.
 
+### Not in scope
+
+Testing how rate limits behave, or intentionally trying to overload an endpoint, is not in scope for
+responsible disclosure under this policy - it's ordinary abuse, not a vulnerability report. A genuine
+bypass (the rate limit doesn't actually work) is a real security issue and should be reported here as
+normal.
+
 ## What happens next
 
 Reports are acknowledged as soon as possible and treated as priority. Once a fix is confirmed, it's
