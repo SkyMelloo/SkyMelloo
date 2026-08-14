@@ -59,10 +59,18 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static KeyMapping toggleMobHighlightKey;
 	private static KeyMapping openConfigKey;
 	private static KeyMapping mainMenuKey;
+	private static KeyMapping saveLookKey;
+	private static KeyMapping loadLookKey;
 
 	/** So the settings screen itself can offer a "rebind" row without going out to vanilla's separate Controls screen. */
 	public static KeyMapping getOpenConfigKey() {
 		return openConfigKey;
+	}
+
+	/** No Screen.hasControlDown()-equivalent left on this version's input API - reads the raw GLFW modifier state instead, for the saveLookKey/loadLookKey combo. */
+	private static boolean isControlDown(Minecraft client) {
+		return InputConstants.isKeyDown(client.getWindow(), InputConstants.KEY_LCONTROL)
+				|| InputConstants.isKeyDown(client.getWindow(), InputConstants.KEY_RCONTROL);
 	}
 
 	@Override
@@ -158,6 +166,23 @@ public class SkyMellooClient implements ClientModInitializer {
 				CATEGORY
 		));
 
+		// Ctrl+X/Ctrl+F "look clipboard" - fabric's KeyMapping has no native modifier-combo support,
+		// so these bind the bare key and LookClipboardManager's callers check
+		// Screen.hasControlDown() themselves before acting. X/F are both unbound in vanilla, so a
+		// bare press without Ctrl held is a harmless no-op, not a conflict with anything else.
+		saveLookKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.skymelloo.save_look",
+				InputConstants.Type.KEYSYM,
+				GLFW.GLFW_KEY_X,
+				CATEGORY
+		));
+		loadLookKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.skymelloo.load_look",
+				InputConstants.Type.KEYSYM,
+				GLFW.GLFW_KEY_F,
+				CATEGORY
+		));
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			// Runs regardless of sky.melloo.me whitelist status - this is about the actual Minecraft
 			// server connection, unrelated to any of the Hypixel-only SkyBlock features gated
@@ -178,6 +203,22 @@ public class SkyMellooClient implements ClientModInitializer {
 				if (client.screen == null) {
 					com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL);
 				}
+			}
+			while (saveLookKey.consumeClick()) {
+				if (client.screen == null && client.player != null && isControlDown(client)) {
+					com.melloo.skymelloo.client.util.LookClipboardManager.save(client.player);
+					client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.chat.look_clipboard.saved")));
+				}
+			}
+			while (loadLookKey.consumeClick()) {
+				if (client.screen == null && client.player != null && isControlDown(client)) {
+					boolean restored = com.melloo.skymelloo.client.util.LookClipboardManager.startRestore(client.player);
+					client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable(
+							restored ? "skymelloo.chat.look_clipboard.loaded" : "skymelloo.chat.look_clipboard.empty")));
+				}
+			}
+			if (client.player != null) {
+				com.melloo.skymelloo.client.util.LookClipboardManager.tick(client.player);
 			}
 
 			// Everything else is Hypixel-only - the whole rest of the mod (SkyBlock features, party,
