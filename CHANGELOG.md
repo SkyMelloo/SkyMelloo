@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.38.5 (from 0.38.4) · patch
+
+`CODE_OF_CONDUCT.md` - added a no-politics rule to "Not okay", and made permanent ban the fixed, non-discretionary penalty specifically for political content and for sharing someone else's private information without consent (T49) - every other violation stays under the existing general "restriction at the maintainers' discretion" wording. Docs only, no code change.
+
 ## 0.38.4 (from 0.38.3) · patch
 
 Added `.github/workflows/sync-shared-docs.yml` - SkyMelloo is now the canonical source for `SECURITY.md`/`CODE_OF_CONDUCT.md`, auto-pushed out to MellooEssentials, developer-api, and api-client on every change here (needs a `SYNC_TARGET_TOKEN` repo secret to actually run, not yet configured). Also genericized `CODE_OF_CONDUCT.md`'s wording - dropped the few SkyMelloo-specific illustrative examples (in-game block, friend's status message) so one canonical version reads correctly in the docs/library repos too, matching what developer-api's copy already independently said. No functional/code change.

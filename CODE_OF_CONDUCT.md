@@ -17,6 +17,7 @@ aspiration.
 - Harassment, insults, or discriminatory remarks directed at anyone, in any project space.
 - Deliberately excluding, mocking, or piling on someone because of who they are.
 - Sharing someone else's private information without their consent.
+- Political discussions or content, anywhere in project spaces.
 - Sustained disruption of Issues, Discussions, or any other shared space.
 
 ## Enforcement
@@ -25,6 +26,9 @@ There is zero tolerance for the behavior above. A confirmed violation results in
 restriction - this can mean losing access to GitHub Issues/Discussions, a website account
 suspension, or any combination, at the maintainers' discretion. There's no escalation ladder
 required before that happens; a single serious incident is enough.
+
+Political content and sharing someone else's private information without consent are zero-discretion:
+a confirmed violation of either always results in a permanent ban, no exceptions.
 
 ## Reporting
 
