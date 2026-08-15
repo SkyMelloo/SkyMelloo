@@ -1,8 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Report a Bug (website form)
-    url: https://sky.melloo.me/report-bug
-    about: Alternative to a GitHub issue - also supports private security reports.
-  - name: Security vulnerability
-    url: https://github.com/SkyMelloo/SkyMelloo/blob/main/SECURITY.md
-    about: Please don't open a public issue for a security vulnerability - see SECURITY.md instead.
+  - name: Report a Bug / Security Issue (website form)
+    url: https://sky.melloo.me/report-bug?security=1
+    about: Private by default - uncheck "This is a security issue" for a regular public bug report instead.
