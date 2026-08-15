@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Report a Bug / Security Issue (website form)
-    url: https://sky.melloo.me/report-bug?security=1
-    about: Private by default - uncheck "This is a security issue" for a regular public bug report instead.
+    url: https://sky.melloo.me/report-bug
+    about: Alternative to a GitHub issue - check "This is a security issue" there for a private report.
