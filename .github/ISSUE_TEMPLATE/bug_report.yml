@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Mod version
-      description: "/sm version" in-game, or the jar filename
+      description: Shown by "/sm version" in-game, or check the jar filename
       placeholder: e.g. 0.37.6
     validations:
       required: true
