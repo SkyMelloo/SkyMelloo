@@ -14,11 +14,12 @@ Instead, report it privately through one of these:
 
 - Preferred: the website's [Report a Bug](https://sky.melloo.me/report-bug) form, with the "This is
   a security issue" box checked - these reports are private (visible only to admins/moderators) and
-  are prioritized over regular bug reports. Doesn't fit that form? See
-  [Contact](https://sky.melloo.me/contact) for other ways to reach the developer.
-- Urgent: Discord DM **HexedMaya** - the fastest way to reach me directly.
-- Email also works - see [Contact](https://sky.melloo.me/contact) for the address - but can take
-  longer to get a reply than Discord.
+  are prioritized over regular bug reports.
+- Urgent: Discord DM, or email - see [Contact](https://sky.melloo.me/contact) for both. Discord is
+  the fastest way to reach me directly.
+
+(Discord handle and email aren't listed directly on this page - kept off of automated scraping
+targets like this one. Use Contact above instead.)
 
 Please include:
 
