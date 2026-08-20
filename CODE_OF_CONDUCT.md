@@ -34,7 +34,7 @@ a confirmed violation of either always results in a permanent ban, no exceptions
 
 If you experience or witness behavior like this, please report it rather than letting it slide:
 
-- Email **maja@melloo.me**
+- [Contact](https://sky.melloo.me/contact) page on the website (email)
 - Discord: **HexedMaya**
 - [Report a Bug](https://sky.melloo.me/report-bug) form for anything else that needs the team's
   attention.

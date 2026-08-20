@@ -17,7 +17,8 @@ Instead, report it privately through one of these:
   are prioritized over regular bug reports. Doesn't fit that form? See
   [Contact](https://sky.melloo.me/contact) for other ways to reach the developer.
 - Urgent: Discord DM **HexedMaya** - the fastest way to reach me directly.
-- Email also works (**maja@melloo.me**), but can take longer to get a reply than Discord.
+- Email also works - see [Contact](https://sky.melloo.me/contact) for the address - but can take
+  longer to get a reply than Discord.
 
 Please include:
 
