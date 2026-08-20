@@ -36,7 +36,8 @@ If you experience or witness behavior like this, please report it rather than le
 
 - [Contact](https://sky.melloo.me/contact) page on the website for Discord or email
 - [Report a Bug](https://sky.melloo.me/report-bug) form specifically for bugs
-- [Tickets](https://sky.melloo.me/tickets) for anything else that needs the team's attention
+- [Contact / Ask a Question](https://sky.melloo.me/contact/ask) for anything else that needs the
+  team's attention
 
 Reports are handled by the project's admins and moderators and kept confidential from the person
 being reported.
