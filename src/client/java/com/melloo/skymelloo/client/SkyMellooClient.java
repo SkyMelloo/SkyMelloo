@@ -666,14 +666,8 @@ public class SkyMellooClient implements ClientModInitializer {
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.session")));
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.partyjoin")));
 
-		// Every feature is unlocked for everyone now except Spell (Magic Missile), which genuinely
-		// still needs a linked sky.melloo.me account (the server has to know who's who to broadcast a
-		// cast to nearby players). Particle cosmetics themselves moved to the separately-required
-		// MellooEssentials mod and aren't account-gated at all anymore.
-		java.util.List<String> unlockedFeatures = new java.util.ArrayList<>(java.util.List.of("Party", "Fishing", "Dungeons"));
-		if (PermissionsManager.has("spell")) {
-			unlockedFeatures.add("Spell");
-		}
+		// Every feature is unlocked for everyone, no account link required.
+		java.util.List<String> unlockedFeatures = java.util.List.of("Party", "Fishing", "Dungeons", "Spell");
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.help.more_settings", String.join(", ", unlockedFeatures))));
 	}
 
