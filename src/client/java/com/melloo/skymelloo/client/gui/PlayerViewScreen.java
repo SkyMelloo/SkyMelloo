@@ -708,6 +708,11 @@ public class PlayerViewScreen extends Screen {
 		} catch (Throwable t) {
 			gg.fill(0, 0, this.width, this.height, 0xE0000000);
 			gg.text(this.font, "SkyMelloo view error: " + t, 10, 10, 0xFFFF5555);
+			// The type alone isn't enough to locate a render fault - show where it actually threw.
+			StackTraceElement[] trace = t.getStackTrace();
+			for (int i = 0; i < Math.min(6, trace.length); i++) {
+				gg.text(this.font, "  at " + trace[i], 10, 22 + i * 10, 0xFFAA5555);
+			}
 		}
 	}
 

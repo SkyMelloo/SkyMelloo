@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.41.1 (from 0.41.0) · patch
+
+Fixed the Gear, Accessories and Inventory tabs failing outright with `UnsupportedOperationException`. Rebuilding a player head's texture put into the profile's `PropertyMap`, but the two-argument `GameProfile` constructor hands out the shared immutable `PropertyMap.EMPTY` - the map is now built first and passed in. Since most SkyBlock items are heads, this hit every tab that shows items. A failed item now falls back to a named placeholder instead of taking its whole tab down with it, and the error screen prints the top stack frames rather than just the exception type.
+
 ## 0.41.0 (from 0.40.0) · minor
 
 `/sm view` items are now rebuilt from Hypixel's own item NBT instead of being guessed from the SkyBlock id, so each one draws exactly as it does in game: real icon (1.8 id plus damage variant), real coloured name and lore, leather dye colours, and the actual skull texture - 126 of 273 items on a test profile are player heads that all rendered as Steve before. Tooltips are the real item tooltips now, with the market value appended. Verified against a live profile: every legacy id present resolves, nothing falls through to a placeholder.

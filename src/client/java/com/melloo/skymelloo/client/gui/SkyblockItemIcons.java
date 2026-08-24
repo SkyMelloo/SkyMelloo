@@ -3,8 +3,10 @@ package com.melloo.skymelloo.client.gui;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.common.collect.ArrayListMultimap;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -16,6 +18,7 @@ import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.component.ResolvableProfile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -370,7 +373,14 @@ public final class SkyblockItemIcons {
 		if (cached != null) {
 			return cached;
 		}
-		ItemStack stack = build(raw, skyblockId, legacyId, tier, fallbackName);
+		ItemStack stack;
+		try {
+			stack = build(raw, skyblockId, legacyId, tier, fallbackName);
+		} catch (Throwable t) {
+			// One malformed item must not take down the whole tab it appears in.
+			stack = new ItemStack(Items.PAPER);
+			stack.set(DataComponents.CUSTOM_NAME, Component.literal(fallbackName != null ? fallbackName : "?"));
+		}
 		CACHE.put(key, stack);
 		return stack;
 	}
@@ -428,9 +438,12 @@ public final class SkyblockItemIcons {
 			return null;
 		}
 		UUID id = parseUuid(string(skullOwner, "Id"));
-		GameProfile gameProfile = new GameProfile(id != null ? id : UUID.nameUUIDFromBytes(value.getBytes()), "");
-		gameProfile.properties().put("textures", new Property("textures", value, string(texture, "Signature")));
-		return ResolvableProfile.createResolved(gameProfile);
+		// Built up front and handed to the constructor - the two-arg one uses the shared immutable
+		// PropertyMap.EMPTY, so putting into it throws.
+		PropertyMap profileProperties = new PropertyMap(ArrayListMultimap.create());
+		profileProperties.put("textures", new Property("textures", value, string(texture, "Signature")));
+		return ResolvableProfile.createResolved(
+				new GameProfile(id != null ? id : UUID.nameUUIDFromBytes(value.getBytes(StandardCharsets.UTF_8)), "", profileProperties));
 	}
 
 	private static UUID parseUuid(String raw) {
