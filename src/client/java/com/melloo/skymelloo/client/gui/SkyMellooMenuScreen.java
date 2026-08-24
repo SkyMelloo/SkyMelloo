@@ -175,7 +175,7 @@ public class SkyMellooMenuScreen extends Screen {
 	}
 
 	static void openReportBug() {
-		net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://sky.melloo.me/report-bug"));
+		net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(com.melloo.skymelloo.client.api.SiteConfig.url("/report-bug")));
 	}
 
 	@Override

@@ -64,15 +64,21 @@ dependencies {
 // SignAndRegister.java's actual signature, not this flag.
 def buildType = project.hasProperty('testBuild') ? 'test' : 'dev'
 
+// Target deployment for both the built jar and the scripts that register it - see site_url in
+// gradle.properties. -PsiteUrl wins over the committed default so a dev target is never committed.
+def siteUrl = (project.findProperty('siteUrl') ?: project.site_url).toString().replaceAll('/+$', '')
+def productionUrl = 'https://sky.melloo.me'
+
 processResources {
 	def version = project.version
 	def publicVersion = project.public_version
 	inputs.property "version", version
 	inputs.property "publicVersion", publicVersion
 	inputs.property "buildType", buildType
+	inputs.property "siteUrl", siteUrl
 
 	filesMatching("fabric.mod.json") {
-		expand "version": version, "publicVersion": publicVersion, "buildType": buildType
+		expand "version": version, "publicVersion": publicVersion, "buildType": buildType, "siteUrl": siteUrl
 	}
 }
 
@@ -105,6 +111,7 @@ tasks.register('reportBuild', Exec) {
 	description = 'Reports this build\'s version + jar hash to sky.melloo.me (informational, never fails the build).'
 	dependsOn tasks.named('jar')
 	ignoreExitValue = true
+	environment 'SKYMELLOO_SITE_URL', siteUrl
 	commandLine 'node', "${projectDir}/scripts/report-build.js", project.version.toString(), tasks.named('jar').get().archiveFile.get().asFile.absolutePath
 }
 
@@ -168,6 +175,7 @@ tasks.register('signAndRegisterBuild', Exec) {
 	dependsOn tasks.named('jar'), tasks.named('requireChangelog')
 	ignoreExitValue = true
 	onlyIf { !project.hasProperty('testBuild') }
+	environment 'SKYMELLOO_SITE_URL', siteUrl
 	doFirst {
 		def text = resolveChangelogText()
 		def tmpFile = new File("${buildDir}/changelog-arg.txt")
@@ -185,7 +193,35 @@ tasks.register('uploadJar', Exec) {
 	description = 'Uploads this build\'s jar to sky.melloo.me for admin download (never fails the build).'
 	dependsOn tasks.named('jar')
 	ignoreExitValue = true
+	environment 'SKYMELLOO_SITE_URL', siteUrl
 	commandLine 'node', "${projectDir}/scripts/upload-jar.js", project.version.toString(), tasks.named('jar').get().archiveFile.get().asFile.absolutePath
+}
+
+// gradle.properties is committed, so whatever site_url says there is what everyone who downloads a
+// release gets - it has to stay production. Per-build targets belong on the command line
+// (-PsiteUrl=...) or in ~/.gradle/gradle.properties, neither of which is in this repo.
+tasks.register('requireProductionSiteInRepo') {
+	group = 'skymelloo'
+	description = 'Fails the build if the committed site_url has been pointed away from production.'
+	doLast {
+		def committed = project.site_url.toString().replaceAll('/+$', '')
+		if (committed != productionUrl) {
+			throw new GradleException(
+				"site_url in gradle.properties is \"${committed}\", but that file is committed and decides where " +
+				"everyone else's download points. Set it back to ${productionUrl} and pass your own target per " +
+				"build instead: ./gradlew build -PsiteUrl=${committed}"
+			)
+		}
+	}
+}
+
+tasks.named('processResources') {
+	dependsOn tasks.named('requireProductionSiteInRepo')
+	doLast {
+		if (siteUrl != productionUrl) {
+			logger.lifecycle("[site] This build targets ${siteUrl}, not production - it registers there and must not be shared.")
+		}
+	}
 }
 
 tasks.named('build') {

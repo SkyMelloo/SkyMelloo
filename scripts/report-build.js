@@ -43,8 +43,11 @@ try {
 const hash = crypto.createHash('sha256').update(jarBytes).digest('hex');
 const body = JSON.stringify({ version, hash, builtAt: Date.now() });
 
+// Set by Gradle from the site_url property, so a build reports to whichever deployment it targets.
+const SITE_URL = (process.env.SKYMELLOO_SITE_URL || 'https://sky.melloo.me').replace(/\/+$/, '');
+
 const req = https.request(
-  'https://sky.melloo.me/api/mod/build-report',
+  `${SITE_URL}/api/mod/build-report`,
   {
     method: 'POST',
     headers: {

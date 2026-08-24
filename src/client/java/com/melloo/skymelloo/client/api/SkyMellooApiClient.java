@@ -30,10 +30,10 @@ import java.util.concurrent.TimeUnit;
  * touching any game state.
  */
 public final class SkyMellooApiClient {
-	private static final String BASE_URL = "https://sky.melloo.me/api/public/mod/v1";
+	private static final String BASE_URL = SiteConfig.url("/api/public/mod/v1");
 	// /credits has no v1 equivalent (shared with the website's own credits page, not mod-specific) -
 	// the one remaining call still against the old base URL, see getJsonLegacy/fetchCredits.
-	private static final String LEGACY_BASE_URL = "https://sky.melloo.me/api";
+	private static final String LEGACY_BASE_URL = SiteConfig.url("/api");
 	private static final HttpClient HTTP = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();

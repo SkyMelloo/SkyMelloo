@@ -275,6 +275,7 @@
 	"skymelloo.command.version.jarhash_unknown": "unknown (dev/exploded classpath)",
 	"skymelloo.command.version.latest_published": "§dLatest published: §fv%1$s",
 	"skymelloo.command.version.outdated": "§eYou're NOT on the latest version - make sure to get it from our official site: §fsky.melloo.me",
+	"skymelloo.command.version.custom_site": "§eThis build talks to §f%s§e, not the official site.",
 	"skymelloo.command.version.running": "§dRunning: §fv%1$s §7(dev %2$s)§7  ·  §djarHash: §f%3$s",
 	"skymelloo.command.version.unreachable": "§cCouldn't reach sky.melloo.me to check for updates - try again shortly.",
 	"skymelloo.command.version.up_to_date": "§aYou're on the latest version.",

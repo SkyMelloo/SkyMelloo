@@ -41,6 +41,7 @@
 	},
 	"custom": {
 		"skymelloo:publicVersion": "${publicVersion}",
-		"skymelloo:buildType": "${buildType}"
+		"skymelloo:buildType": "${buildType}",
+		"skymelloo:siteUrl": "${siteUrl}"
 	}
 }

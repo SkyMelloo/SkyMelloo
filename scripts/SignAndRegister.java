@@ -74,7 +74,7 @@ public class SignAndRegister {
             String body = "{\"version\":\"" + escapeJson(version) + "\",\"hash\":\"" + escapeJson(hash) + "\",\"signature\":\"" + escapeJson(signature) + "\",\"changelog\":\"" + escapeJson(changelog) + "\"}";
             HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://sky.melloo.me/api/mod/releases"))
+                    .uri(URI.create(siteUrl() + "/api/mod/releases"))
                     .header("Content-Type", "application/json")
                     .header("X-Build-Report-Token", token)
                     .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -130,6 +130,15 @@ public class SignAndRegister {
     }
 
     /** Escapes backslash/quote/newline/control characters for embedding in a JSON string body. */
+    /** Set by Gradle from the site_url property, so a build registers against whichever deployment it targets. */
+    private static String siteUrl() {
+        String value = System.getenv("SKYMELLOO_SITE_URL");
+        if (value == null || value.isBlank()) {
+            return "https://sky.melloo.me";
+        }
+        return value.replaceAll("/+$", "");
+    }
+
     private static String escapeJson(String s) {
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")

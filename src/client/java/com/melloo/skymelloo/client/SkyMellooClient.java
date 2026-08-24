@@ -488,6 +488,9 @@ public class SkyMellooClient implements ClientModInitializer {
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.header")));
 							Component jarHashText = jarHash != null ? Component.literal(jarHash) : Component.translatable("skymelloo.command.version.jarhash_unknown");
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.running", publicVersion, version, jarHashText)));
+							if (com.melloo.skymelloo.client.api.SiteConfig.isCustomSite()) {
+								ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.custom_site", com.melloo.skymelloo.client.api.SiteConfig.root())));
+							}
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.checking")));
 							com.melloo.mellooessentials.client.util.ModVersionManager.checkSkyMellooNow(
 									result -> {
@@ -507,7 +510,7 @@ public class SkyMellooClient implements ClientModInitializer {
 										} else {
 											c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.outdated")));
 										}
-										c.player.sendSystemMessage(legalLink(Component.translatable("skymelloo.command.version.get_from_official"), "https://sky.melloo.me/download"));
+										c.player.sendSystemMessage(legalLink(Component.translatable("skymelloo.command.version.get_from_official"), com.melloo.skymelloo.client.api.SiteConfig.PRODUCTION + "/download"));
 									},
 									cooldownSeconds -> {
 										Minecraft c = Minecraft.getInstance();
@@ -515,7 +518,7 @@ public class SkyMellooClient implements ClientModInitializer {
 											return;
 										}
 										c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.version.cooldown", cooldownSeconds)));
-										c.player.sendSystemMessage(legalLink(Component.translatable("skymelloo.command.version.get_from_official"), "https://sky.melloo.me/download"));
+										c.player.sendSystemMessage(legalLink(Component.translatable("skymelloo.command.version.get_from_official"), com.melloo.skymelloo.client.api.SiteConfig.PRODUCTION + "/download"));
 									}
 							);
 							return 1;
@@ -601,7 +604,7 @@ public class SkyMellooClient implements ClientModInitializer {
 												if (error != null) {
 													c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", ChatUtil.friendlyError(error))));
 												} else if (result.ok()) {
-													net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://sky.melloo.me/link/" + result.token()));
+													net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(com.melloo.skymelloo.client.api.SiteConfig.url("/link/") + result.token()));
 												} else {
 													c.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", result.error())));
 												}
@@ -610,7 +613,7 @@ public class SkyMellooClient implements ClientModInitializer {
 							return 1;
 						}))
 						.then(ClientCommands.literal("contact").executes(ctx -> {
-							ctx.getSource().sendFeedback(legalLink(Component.translatable("skymelloo.command.contact.label"), "https://sky.melloo.me/contact"));
+							ctx.getSource().sendFeedback(legalLink(Component.translatable("skymelloo.command.contact.label"), com.melloo.skymelloo.client.api.SiteConfig.url("/contact")));
 							return 1;
 						}))
 						.then(ClientCommands.literal("view")

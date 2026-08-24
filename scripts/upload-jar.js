@@ -34,8 +34,11 @@ try {
   process.exit(0);
 }
 
+// Set by Gradle from the site_url property, so a build uploads to whichever deployment it targets.
+const SITE_URL = (process.env.SKYMELLOO_SITE_URL || 'https://sky.melloo.me').replace(/\/+$/, '');
+
 const req = https.request(
-  `https://sky.melloo.me/api/mod/releases/${encodeURIComponent(version)}/jar`,
+  `${SITE_URL}/api/mod/releases/${encodeURIComponent(version)}/jar`,
   {
     method: 'POST',
     headers: {
