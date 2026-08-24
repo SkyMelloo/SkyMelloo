@@ -617,7 +617,12 @@ public class SkyMellooClient implements ClientModInitializer {
 								.then(ClientCommands.argument("name", StringArgumentType.word())
 										.suggests(SkyMellooClient::suggestOnlinePlayers)
 										.executes(ctx -> {
-											com.melloo.skymelloo.client.gui.PlayerViewScreen.open(StringArgumentType.getString(ctx, "name"));
+											// Reports failure to chat instead of silently doing nothing.
+											try {
+												com.melloo.skymelloo.client.gui.PlayerViewScreen.open(StringArgumentType.getString(ctx, "name"));
+											} catch (Exception e) {
+												ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", ChatUtil.friendlyError(e))));
+											}
 											return 1;
 										})))
 						// Fallback for anything that doesn't match a known subcommand above - Brigadier tries
