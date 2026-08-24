@@ -147,10 +147,11 @@ public class SkyMellooSettingsScreen extends Screen {
 		screen.activeTab = initialTab;
 		Minecraft client = Minecraft.getInstance();
 		// Re-sync whitelist/admin/permissions right now instead of trusting the once-per-join
-		// check - a link made moments ago (e.g. /skymelloo verify) shouldn't need a reconnect to show.
+		// check - a link made moments ago (e.g. /skymelloo link) shouldn't need a reconnect to show.
 		WhitelistManager.forceRecheck(client);
 		PermissionsManager.forceRefetch(client);
-		Minecraft.getInstance().setScreen(screen);
+		// Deferred a tick: Minecraft closes the chat screen right after a command runs, which would wipe this one.
+		com.melloo.skymelloo.client.util.TickDelay.schedule(1, () -> Minecraft.getInstance().setScreen(screen));
 	}
 
 	@Override

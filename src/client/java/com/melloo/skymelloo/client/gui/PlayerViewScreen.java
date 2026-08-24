@@ -3,6 +3,7 @@ package com.melloo.skymelloo.client.gui;
 import com.melloo.skymelloo.client.api.ModAuthManager;
 import com.melloo.skymelloo.client.api.SkyMellooApiClient;
 import com.melloo.skymelloo.client.util.ChatUtil;
+import com.melloo.skymelloo.client.util.TickDelay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -75,7 +76,8 @@ public class PlayerViewScreen extends Screen {
 	}
 
 	public static void open(String username) {
-		Minecraft.getInstance().setScreen(new PlayerViewScreen(username));
+		// Deferred a tick: Minecraft closes the chat screen right after a command runs, which would wipe this one.
+		TickDelay.schedule(1, () -> Minecraft.getInstance().setScreen(new PlayerViewScreen(username)));
 	}
 
 	@Override
