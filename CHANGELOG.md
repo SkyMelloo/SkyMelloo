@@ -4,6 +4,12 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.40.0 (from 0.39.9) · minor
+
+`/sm view` rebuilt to match the website's profile page. Six new tabs (Net Worth, Gear, Accessories, Pets, Inventory, Sacks) alongside the existing seven, on a horizontally scrollable tab bar. Gear/accessories/inventory/ender chest/vault render as real item grids - vanilla item icons resolved from the SkyBlock id, rarity-coloured slot borders, stack counts, and a hover tooltip carrying the item's own lore and market value. Skills, slayers, classes, pets, collections and the net worth breakdown now draw as progress bars instead of plain numbers, and the screen has a proper header with rank, guild, level and net worth. Items come from the inventory endpoint, fetched only when a tab that needs it is opened.
+
+Also fixed: `collectionsStarted` counted categories rather than collections, and three German strings (`Keine Profile gefunden`, `aktiv`) in the API client's summary parsing.
+
 ## 0.39.9 (from 0.39.8) · patch
 
 Fixed `/sm view <name>` and `/sm config` opening nothing at all. Minecraft closes the chat screen right after a command runs, which immediately wiped the screen the command had just opened - both now defer the open by one tick. The `H` keybind was unaffected and always worked, which is why this only ever showed up through the commands.

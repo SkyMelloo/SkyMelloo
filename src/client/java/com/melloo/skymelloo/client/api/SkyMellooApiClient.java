@@ -52,7 +52,36 @@ public final class SkyMellooApiClient {
 			Map<String, Integer> skillLevels, Map<String, Integer> slayerLevels, Map<String, Integer> classLevels,
 			int minionSlots, int petCount, String bestPetLabel, int collectionsStarted,
 			String profilesLabel, int dungeonCompletions, String guildTag, int guildMemberCount,
-			long dataFetchedAt
+			long dataFetchedAt,
+			String gameMode, double netWorthNonCosmetic, Map<String, Double> netWorthCategories,
+			List<PetEntry> pets, List<FloorEntry> floors, List<FloorEntry> masterFloors,
+			List<CollectionGroup> collections, Map<String, Double> combatStats
+	) {
+	}
+
+	/** One SkyBlock item out of any inventory section - lore is plain text, already stripped of colour codes server-side. */
+	public record SkyblockItem(int slot, String skyblockId, String name, List<String> lore, String tier, int count, Double value, int legacyId) {
+	}
+
+	public record PetEntry(String type, String tier, int level, int maxLevel, boolean active, String heldItem) {
+	}
+
+	public record FloorEntry(String floor, int completions, int timesPlayed, Integer bestScore, Long fastestTimeMs) {
+	}
+
+	public record CollectionEntry(String name, int tier, int maxTier, long amount) {
+	}
+
+	public record CollectionGroup(String category, List<CollectionEntry> items) {
+	}
+
+	public record SackEntry(String id, long amount, String category) {
+	}
+
+	public record InventoryResult(
+			List<SkyblockItem> armor, List<SkyblockItem> equipment, List<SkyblockItem> accessories,
+			List<SkyblockItem> inventory, List<SkyblockItem> enderChest, List<SkyblockItem> vault,
+			List<SackEntry> sacks, int accessoryPower, String selectedPower
 	) {
 	}
 
@@ -70,6 +99,82 @@ public final class SkyMellooApiClient {
 			return null;
 		}
 		return parent.getAsJsonObject(key);
+	}
+
+	private static String str(JsonObject o, String key) {
+		return o != null && o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsString() : null;
+	}
+
+	private static double dbl(JsonObject o, String key) {
+		return o != null && o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsDouble() : 0;
+	}
+
+	private static long lng(JsonObject o, String key) {
+		return o != null && o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsLong() : 0;
+	}
+
+	private static int integer(JsonObject o, String key) {
+		return o != null && o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsInt() : 0;
+	}
+
+	private static boolean bool(JsonObject o, String key) {
+		return o != null && o.has(key) && !o.get(key).isJsonNull() && o.get(key).getAsBoolean();
+	}
+
+	private static JsonArray safeArray(JsonObject parent, String key) {
+		if (parent == null || !parent.has(key) || !parent.get(key).isJsonArray()) {
+			return new JsonArray();
+		}
+		return parent.getAsJsonArray(key);
+	}
+
+	/** Reads an item-list section ({size, items}) or a bare array into the mod's own item model. */
+	private static List<SkyblockItem> parseItems(JsonObject parent, String key) {
+		List<SkyblockItem> out = new ArrayList<>();
+		if (parent == null || !parent.has(key) || parent.get(key).isJsonNull()) {
+			return out;
+		}
+		JsonElement raw = parent.get(key);
+		JsonArray arr = raw.isJsonArray() ? raw.getAsJsonArray() : safeArray(raw.getAsJsonObject(), "items");
+		for (JsonElement el : arr) {
+			if (!el.isJsonObject()) {
+				continue;
+			}
+			JsonObject it = el.getAsJsonObject();
+			List<String> lore = new ArrayList<>();
+			for (JsonElement line : safeArray(it, "lorePlain")) {
+				if (!line.isJsonNull()) {
+					lore.add(line.getAsString());
+				}
+			}
+			Double value = it.has("value") && !it.get("value").isJsonNull() ? it.get("value").getAsDouble() : null;
+			out.add(new SkyblockItem(
+					integer(it, "slot"), str(it, "skyblockId"), str(it, "namePlain"), lore,
+					str(it, "tier"), Math.max(1, integer(it, "count")), value, integer(it, "legacyId")));
+		}
+		return out;
+	}
+
+	/** From /player/:username/inventory - gear, accessories, storage and sacks in one call. */
+	public static CompletableFuture<InventoryResult> fetchInventory(String username, String profile, ModAuthManager.ModIdentity identity) {
+		return getJson("/player/" + encode(username) + "/inventory" + profileQuery(profile), identity).thenApply(root -> {
+			List<SackEntry> sacks = new ArrayList<>();
+			for (JsonElement el : safeArray(root, "sacks")) {
+				if (!el.isJsonObject()) {
+					continue;
+				}
+				JsonObject s = el.getAsJsonObject();
+				sacks.add(new SackEntry(str(s, "id"), lng(s, "amount"), str(s, "category")));
+			}
+			JsonObject ap = safeObject(root, "accessoryPower");
+			if (ap == null) {
+				ap = safeObject(root, "magicalPower");
+			}
+			return new InventoryResult(
+					parseItems(root, "armor"), parseItems(root, "equipment"), parseItems(root, "accessories"),
+					parseItems(root, "contents"), parseItems(root, "enderChest"), parseItems(root, "vault"),
+					sacks, ap != null ? integer(ap, "current") : -1, ap != null ? str(ap, "selectedPower") : null);
+		});
 	}
 
 	private static Map<String, Integer> extractLevels(JsonObject parent, String[] keys) {
@@ -223,12 +328,14 @@ public final class SkyMellooApiClient {
 
 			int minionSlots = root.has("minionSlots") && !root.get("minionSlots").isJsonNull() ? root.get("minionSlots").getAsInt() : 0;
 
+			List<PetEntry> pets = new ArrayList<>();
 			int petCount = 0;
 			String bestPetLabel = null;
 			if (root.has("pets") && root.get("pets").isJsonArray()) {
 				JsonArray petsArr = root.getAsJsonArray("pets");
 				petCount = petsArr.size();
 				double bestXp = -1;
+				boolean activeFound = false;
 				for (JsonElement el : petsArr) {
 					if (!el.isJsonObject()) {
 						continue;
@@ -238,14 +345,16 @@ public final class SkyMellooApiClient {
 					if (type == null) {
 						continue;
 					}
-					String tier = pet.has("tier") && !pet.get("tier").isJsonNull() ? pet.get("tier").getAsString() : null;
-					boolean active = pet.has("active") && !pet.get("active").isJsonNull() && pet.get("active").getAsBoolean();
+					String tier = str(pet, "tier");
+					boolean active = bool(pet, "active");
+					pets.add(new PetEntry(type, tier, integer(pet, "level"), integer(pet, "maxLevel"), active, str(pet, "heldItem")));
 					if (active) {
-						bestPetLabel = type + (tier != null ? " (" + tier + ")" : "") + " [aktiv]";
-						break;
+						bestPetLabel = type + (tier != null ? " (" + tier + ")" : "") + " [active]";
+						activeFound = true;
+						continue;
 					}
-					double xp = pet.has("xp") && !pet.get("xp").isJsonNull() ? pet.get("xp").getAsDouble() : 0;
-					if (xp > bestXp) {
+					double xp = dbl(pet, "xp");
+					if (!activeFound && xp > bestXp) {
 						bestXp = xp;
 						bestPetLabel = type + (tier != null ? " (" + tier + ")" : "");
 					}
@@ -255,7 +364,7 @@ public final class SkyMellooApiClient {
 			int collectionsStarted = root.has("collections") && root.get("collections").isJsonArray()
 					? root.getAsJsonArray("collections").size() : 0;
 
-			String profilesLabel = "§7Keine Profile gefunden";
+			String profilesLabel = "§7No profiles found";
 			if (root.has("profiles") && root.get("profiles").isJsonArray()) {
 				StringBuilder sb = new StringBuilder();
 				for (JsonElement el : root.getAsJsonArray("profiles")) {
@@ -269,7 +378,7 @@ public final class SkyMellooApiClient {
 					if (sb.length() > 0) {
 						sb.append("§r, ");
 					}
-					sb.append(pname).append(" §7(").append(mode).append(selected ? ", aktiv" : "").append(")§r");
+					sb.append(pname).append(" §7(").append(mode).append(selected ? ", active" : "").append(")§r");
 				}
 				if (sb.length() > 0) {
 					profilesLabel = sb.toString();
@@ -284,14 +393,73 @@ public final class SkyMellooApiClient {
 
 			long dataFetchedAt = root.has("dataFetchedAt") && !root.get("dataFetchedAt").isJsonNull() ? root.get("dataFetchedAt").getAsLong() : 0;
 
+			double netWorthNonCosmetic = netWorthObj != null ? dbl(netWorthObj, "nonCosmetic") : 0;
+			Map<String, Double> netWorthCategories = new LinkedHashMap<>();
+			JsonObject catsObj = netWorthObj != null ? safeObject(netWorthObj, "categories") : null;
+			if (catsObj != null) {
+				for (String key : catsObj.keySet()) {
+					if (!catsObj.get(key).isJsonNull()) {
+						netWorthCategories.put(key, catsObj.get(key).getAsDouble());
+					}
+				}
+			}
+
+			List<FloorEntry> floors = parseFloors(dungeons, "floors");
+			List<FloorEntry> masterFloors = parseFloors(dungeons, "masterFloors");
+
+			List<CollectionGroup> collections = new ArrayList<>();
+			for (JsonElement el : safeArray(root, "collections")) {
+				if (!el.isJsonObject()) {
+					continue;
+				}
+				JsonObject group = el.getAsJsonObject();
+				List<CollectionEntry> entries = new ArrayList<>();
+				for (JsonElement itemEl : safeArray(group, "items")) {
+					if (!itemEl.isJsonObject()) {
+						continue;
+					}
+					JsonObject item = itemEl.getAsJsonObject();
+					entries.add(new CollectionEntry(str(item, "name"), integer(item, "tier"), integer(item, "maxTier"), lng(item, "amount")));
+				}
+				collections.add(new CollectionGroup(str(group, "category"), entries));
+			}
+			// The raw array is one entry per category, so its size is a category count, not a collection count.
+			collectionsStarted = collections.stream().mapToInt(g -> g.items().size()).sum();
+
+			Map<String, Double> combatStats = new LinkedHashMap<>();
+			JsonObject statsObj = safeObject(root, "combatStats");
+			if (statsObj != null) {
+				for (String key : statsObj.keySet()) {
+					if (statsObj.get(key).isJsonPrimitive() && statsObj.get(key).getAsJsonPrimitive().isNumber()) {
+						combatStats.put(key, statsObj.get(key).getAsDouble());
+					}
+				}
+			}
+
 			return new SummaryResult(
 					sbLevel, avgSkill, catacombs, selectedClass, purse, bank, netWorth, fairySouls, guildName,
 					rankLabel, highestFloor, minionUniqueCount, minionUpgrades, bestiaryKills, firstJoin,
 					skillLevels, slayerLevels, classLevels,
 					minionSlots, petCount, bestPetLabel, collectionsStarted, profilesLabel, dungeonCompletions,
-					guildTag, guildMemberCount, dataFetchedAt
+					guildTag, guildMemberCount, dataFetchedAt,
+					str(root, "gameMode"), netWorthNonCosmetic, netWorthCategories,
+					pets, floors, masterFloors, collections, combatStats
 			);
 		});
+	}
+
+	private static List<FloorEntry> parseFloors(JsonObject dungeons, String key) {
+		List<FloorEntry> out = new ArrayList<>();
+		for (JsonElement el : safeArray(dungeons, key)) {
+			if (!el.isJsonObject()) {
+				continue;
+			}
+			JsonObject f = el.getAsJsonObject();
+			Integer bestScore = f.has("bestScore") && !f.get("bestScore").isJsonNull() ? f.get("bestScore").getAsInt() : null;
+			Long fastest = f.has("fastestTimeMs") && !f.get("fastestTimeMs").isJsonNull() ? f.get("fastestTimeMs").getAsLong() : null;
+			out.add(new FloorEntry(str(f, "floor"), integer(f, "completions"), integer(f, "timesPlayed"), bestScore, fastest));
+		}
+		return out;
 	}
 
 	private static int sumCompletions(JsonObject dungeons, String arrayKey) {
