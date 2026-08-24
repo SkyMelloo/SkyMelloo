@@ -352,7 +352,8 @@ public class SkyMellooMenuScreen extends Screen {
 			if (creditsCache == null) {
 				if (!creditsLoading) {
 					creditsLoading = true;
-					SkyMellooApiClient.fetchCredits()
+					com.melloo.skymelloo.client.api.ModAuthManager.getIdentity(Minecraft.getInstance())
+							.thenCompose(SkyMellooApiClient::fetchCredits)
 							.thenAccept(result -> Minecraft.getInstance().execute(() -> onCreditsLoaded(result)))
 							.exceptionally(error -> {
 								Minecraft.getInstance().execute(() -> onCreditsLoaded(List.of()));
@@ -415,7 +416,8 @@ public class SkyMellooMenuScreen extends Screen {
 					creditsRefreshRunning = false;
 					return;
 				}
-				SkyMellooApiClient.fetchCredits()
+				com.melloo.skymelloo.client.api.ModAuthManager.getIdentity(Minecraft.getInstance())
+						.thenCompose(SkyMellooApiClient::fetchCredits)
 						.thenAccept(result -> Minecraft.getInstance().execute(() -> onCreditsLoaded(result)))
 						.exceptionally(error -> null);
 				scheduleCreditsRefresh();

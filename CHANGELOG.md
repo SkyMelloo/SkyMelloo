@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.43.1 (from 0.43.0) · patch
+
+Credits now go through the mod API like every other call - `/api/public/mod/v1/credits`, signed, instead of the website's own `/api/credits`. The last request that reached outside the mod API is gone, and with it the helper that made it. Server side the route moved into a router the public-api process actually mounts; the website still reaches it on the internal unauthenticated path.
+
 ## 0.43.0 (from 0.42.0) · minor
 
 `/sm view` sections are separated properly now instead of running together as one long grid: each container is its own titled block with a gap after it. Sacks are item icons grouped by category rather than a written-out list, with the stored amount on the slot. Minions are icons too, split into upgradable and maxed. Bestiary is grouped by zone the way the in-game one is.

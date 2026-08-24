@@ -580,16 +580,6 @@ public final class SkyMellooApiClient {
 		return sendJson(builder.build());
 	}
 
-	/** Unsigned GET against a full URL, for the handful of site routes that live outside the mod API. */
-	private static CompletableFuture<JsonObject> getJsonAt(String url) {
-		return sendJson(HttpRequest.newBuilder()
-				.uri(URI.create(url))
-				.timeout(Duration.ofSeconds(8))
-				.header("X-SkyMelloo-Client", "mod")
-				.GET()
-				.build());
-	}
-
 	private static CompletableFuture<JsonObject> sendJson(HttpRequest request) {
 		return sendWithRetry(request)
 				.thenApply(response -> {
@@ -825,9 +815,9 @@ public final class SkyMellooApiClient {
 	public record CreditEntry(String username, String role, boolean online) {
 	}
 
-	/** Who's credited for the mod/website - pulled live from sky.melloo.me rather than hardcoded in the mod, so it stays current without a mod update. See the website's own home page for the same data. */
-	public static CompletableFuture<List<CreditEntry>> fetchCredits() {
-		return getJsonAt(SiteConfig.url("/api/credits")).thenApply(root -> {
+	/** Who's credited for the mod/website - pulled live rather than hardcoded, so it stays current without a mod update. */
+	public static CompletableFuture<List<CreditEntry>> fetchCredits(ModAuthManager.ModIdentity identity) {
+		return getJson("/credits", identity).thenApply(root -> {
 			List<CreditEntry> result = new ArrayList<>();
 			if (root.has("credits") && root.get("credits").isJsonArray()) {
 				for (JsonElement el : root.getAsJsonArray("credits")) {
