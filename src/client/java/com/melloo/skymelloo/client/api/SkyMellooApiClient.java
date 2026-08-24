@@ -55,12 +55,30 @@ public final class SkyMellooApiClient {
 			long dataFetchedAt,
 			String gameMode, double netWorthNonCosmetic, Map<String, Double> netWorthCategories,
 			List<PetEntry> pets, List<FloorEntry> floors, List<FloorEntry> masterFloors,
-			List<CollectionGroup> collections, Map<String, Double> combatStats
+			List<CollectionGroup> collections, Map<String, Double> combatStats,
+			String uuid, int rankColor, boolean modUser, boolean modUserAfk, boolean everModUser,
+			String role, List<String> badges, int accessoryPower,
+			List<MinionEntry> minions, List<BestiaryEntry> bestiary,
+			List<LevelEntry> skills, List<LevelEntry> slayers
 	) {
 	}
 
-	/** One SkyBlock item out of any inventory section - lore is plain text, already stripped of colour codes server-side. */
-	public record SkyblockItem(int slot, String skyblockId, String name, List<String> lore, String tier, int count, Double value, int legacyId) {
+	/**
+	 * One SkyBlock item out of any inventory section. {@code raw} is Hypixel's own item NBT, kept so
+	 * the GUI can rebuild the real stack (icon, colours, skull texture) rather than approximate it.
+	 */
+	public record SkyblockItem(int slot, String skyblockId, String uuid, String name, List<String> lore, String tier,
+			int count, Double value, int legacyId, JsonObject raw) {
+	}
+
+	/** A skill or slayer with the server's own level curve, so a bar shows real progress rather than level/max. */
+	public record LevelEntry(String name, int level, int maxLevel, double progress, double xp) {
+	}
+
+	public record MinionEntry(String type, String displayName, int tier, int maxTier) {
+	}
+
+	public record BestiaryEntry(String type, long kills, String zone) {
 	}
 
 	public record PetEntry(String type, String tier, int level, int maxLevel, boolean active, String heldItem) {
@@ -149,8 +167,9 @@ public final class SkyMellooApiClient {
 			}
 			Double value = it.has("value") && !it.get("value").isJsonNull() ? it.get("value").getAsDouble() : null;
 			out.add(new SkyblockItem(
-					integer(it, "slot"), str(it, "skyblockId"), str(it, "namePlain"), lore,
-					str(it, "tier"), Math.max(1, integer(it, "count")), value, integer(it, "legacyId")));
+					integer(it, "slot"), str(it, "skyblockId"), str(it, "uuid"), str(it, "namePlain"), lore,
+					str(it, "tier"), Math.max(1, integer(it, "count")), value, integer(it, "legacyId"),
+					safeObject(it, "raw")));
 		}
 		return out;
 	}
@@ -426,8 +445,10 @@ public final class SkyMellooApiClient {
 			// The raw array is one entry per category, so its size is a category count, not a collection count.
 			collectionsStarted = collections.stream().mapToInt(g -> g.items().size()).sum();
 
+			// The real numbers sit one level down in .stats; the wrapper itself only adds accessoryPower.
+			JsonObject combatObj = safeObject(root, "combatStats");
+			JsonObject statsObj = safeObject(combatObj, "stats");
 			Map<String, Double> combatStats = new LinkedHashMap<>();
-			JsonObject statsObj = safeObject(root, "combatStats");
 			if (statsObj != null) {
 				for (String key : statsObj.keySet()) {
 					if (statsObj.get(key).isJsonPrimitive() && statsObj.get(key).getAsJsonPrimitive().isNumber()) {
@@ -435,6 +456,40 @@ public final class SkyMellooApiClient {
 					}
 				}
 			}
+			int accessoryPower = combatObj != null ? integer(combatObj, "accessoryPower") : 0;
+
+			int rankColor = rankObj != null ? parseHexColor(str(rankObj, "color")) : 0xFFAAAAAA;
+
+			List<String> badges = new ArrayList<>();
+			for (JsonElement el : safeArray(root, "badges")) {
+				if (!el.isJsonNull()) {
+					badges.add(el.getAsString());
+				}
+			}
+
+			List<MinionEntry> minions = new ArrayList<>();
+			if (minionsObj != null) {
+				for (JsonElement el : safeArray(minionsObj, "minions")) {
+					if (!el.isJsonObject()) {
+						continue;
+					}
+					JsonObject minion = el.getAsJsonObject();
+					minions.add(new MinionEntry(str(minion, "type"), str(minion, "displayName"),
+							integer(minion, "tier"), integer(minion, "maxTier")));
+				}
+			}
+
+			List<BestiaryEntry> bestiary = new ArrayList<>();
+			for (JsonElement el : safeArray(root, "bestiary")) {
+				if (!el.isJsonObject()) {
+					continue;
+				}
+				JsonObject mob = el.getAsJsonObject();
+				bestiary.add(new BestiaryEntry(str(mob, "type"), lng(mob, "kills"), str(mob, "zone")));
+			}
+
+			List<LevelEntry> skills = parseLevels(safeObject(root, "skills"));
+			List<LevelEntry> slayers = parseLevels(safeObject(root, "slayers"));
 
 			return new SummaryResult(
 					sbLevel, avgSkill, catacombs, selectedClass, purse, bank, netWorth, fairySouls, guildName,
@@ -443,9 +498,41 @@ public final class SkyMellooApiClient {
 					minionSlots, petCount, bestPetLabel, collectionsStarted, profilesLabel, dungeonCompletions,
 					guildTag, guildMemberCount, dataFetchedAt,
 					str(root, "gameMode"), netWorthNonCosmetic, netWorthCategories,
-					pets, floors, masterFloors, collections, combatStats
+					pets, floors, masterFloors, collections, combatStats,
+					str(root, "uuid"), rankColor, bool(root, "modUser"), bool(root, "modUserAfk"),
+					bool(root, "isModUser"), str(root, "role"), badges, accessoryPower,
+					minions, bestiary, skills, slayers
 			);
 		});
+	}
+
+	/** Reads a {@code {name: {level, maxLevel, progress, xp}}} map, keeping the server's own curve. */
+	private static List<LevelEntry> parseLevels(JsonObject parent) {
+		List<LevelEntry> out = new ArrayList<>();
+		if (parent == null) {
+			return out;
+		}
+		for (String key : parent.keySet()) {
+			JsonObject entry = safeObject(parent, key);
+			if (entry == null || !entry.has("level") || entry.get("level").isJsonNull()) {
+				continue;
+			}
+			out.add(new LevelEntry(key, integer(entry, "level"), integer(entry, "maxLevel"),
+					dbl(entry, "progress"), dbl(entry, "xp")));
+		}
+		return out;
+	}
+
+	/** The API sends a rank colour as a CSS hex string; the GUI needs it as an ARGB int. */
+	private static int parseHexColor(String hex) {
+		if (hex == null || !hex.startsWith("#") || hex.length() != 7) {
+			return 0xFFAAAAAA;
+		}
+		try {
+			return 0xFF000000 | Integer.parseInt(hex.substring(1), 16);
+		} catch (NumberFormatException e) {
+			return 0xFFAAAAAA;
+		}
 	}
 
 	private static List<FloorEntry> parseFloors(JsonObject dungeons, String key) {

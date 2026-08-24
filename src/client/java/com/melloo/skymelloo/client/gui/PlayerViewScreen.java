@@ -39,7 +39,9 @@ public class PlayerViewScreen extends Screen {
 	private static final int SLOT_PITCH = 20;
 	private static final int TAB_WIDTH = 74;
 	private static final int TAB_H = 18;
-	private static final int HEADER_H = 34;
+	private static final int SKIN_SCALE = 2;
+	private static final int HEADER_H = PlayerSkinPanel.HEIGHT * SKIN_SCALE + 4;
+	private static final int TEXT_X_OFFSET = PlayerSkinPanel.WIDTH * SKIN_SCALE + 10;
 
 	private enum Tab {
 		OVERVIEW("skymelloo.gui.player_view.tab.overview"), NETWORTH("skymelloo.gui.player_view.tab.networth"),
@@ -72,6 +74,7 @@ public class PlayerViewScreen extends Screen {
 	}
 
 	private final String username;
+	private final PlayerSkinPanel skin;
 	private String profile; // null = the player's currently-selected profile
 	private Tab activeTab = Tab.OVERVIEW;
 
@@ -95,6 +98,7 @@ public class PlayerViewScreen extends Screen {
 	public PlayerViewScreen(String username) {
 		super(Component.translatable("skymelloo.gui.player_view.title"));
 		this.username = username;
+		this.skin = new PlayerSkinPanel(username);
 	}
 
 	/** Resolves a translation key to its display string, for row labels rendered as raw text. */
@@ -159,6 +163,7 @@ public class PlayerViewScreen extends Screen {
 							} else {
 								data = summary;
 								errorMessage = null;
+								skin.request(summary.uuid());
 							}
 							buildRows();
 						})
@@ -357,9 +362,9 @@ public class PlayerViewScreen extends Screen {
 				if (!inventoryReady(rows)) {
 					break;
 				}
-				addItemSection(rows, tr("skymelloo.gui.player_view.section.inventory"), inventory.inventory());
-				addItemSection(rows, tr("skymelloo.gui.player_view.section.ender_chest"), inventory.enderChest());
-				addItemSection(rows, tr("skymelloo.gui.player_view.section.vault"), inventory.vault());
+				addContainerSection(rows, tr("skymelloo.gui.player_view.section.inventory"), inventory.inventory(), 36);
+				addContainerSection(rows, tr("skymelloo.gui.player_view.section.ender_chest"), inventory.enderChest(), 45);
+				addContainerSection(rows, tr("skymelloo.gui.player_view.section.vault"), inventory.vault(), 27);
 			}
 			case SACKS -> {
 				if (!inventoryReady(rows)) {
@@ -388,7 +393,7 @@ public class PlayerViewScreen extends Screen {
 			case SKILLS -> {
 				rows.add(infoRow(tr("skymelloo.gui.player_view.row.average_level"), String.format(Locale.ROOT, "%.1f", d.averageSkillLevel())));
 				rows.add(sectionRow(tr("skymelloo.gui.player_view.tab.skills")));
-				addLevelBars(rows, d.skillLevels(), 60);
+				addProgressBars(rows, d.skills(), d.skillLevels(), 60);
 			}
 			case DUNGEONS -> {
 				rows.add(infoRow(tr("skymelloo.gui.player_view.row.catacombs"), String.valueOf(d.catacombsLevel())));
@@ -400,13 +405,32 @@ public class PlayerViewScreen extends Screen {
 				addFloorSection(rows, tr("skymelloo.gui.player_view.section.floors"), d.floors());
 				addFloorSection(rows, tr("skymelloo.gui.player_view.section.master_floors"), d.masterFloors());
 			}
-			case SLAYERS -> addLevelBars(rows, d.slayerLevels(), 9);
+			case SLAYERS -> addProgressBars(rows, d.slayers(), d.slayerLevels(), 9);
 			case MINIONS -> {
 				rows.add(infoRow(tr("skymelloo.gui.player_view.row.unique_minions"), String.valueOf(d.minionUniqueCount())));
 				rows.add(infoRow(tr("skymelloo.gui.player_view.row.total_upgrades"), String.valueOf(d.minionUpgrades())));
 				rows.add(infoRow(tr("skymelloo.gui.player_view.row.minion_slots"), String.valueOf(d.minionSlots())));
+				if (d.minions().isEmpty()) {
+					break;
+				}
+				rows.add(sectionRow(tr("skymelloo.gui.player_view.tab.minions")));
+				for (SkyMellooApiClient.MinionEntry minion : d.minions()) {
+					int maxTier = minion.maxTier() > 0 ? minion.maxTier() : 12;
+					String label = minion.displayName() != null ? minion.displayName() : titleCase(minion.type());
+					rows.add(barRow(label, minion.tier() + "/" + maxTier, minion.tier() / (double) maxTier, ACCENT));
+				}
 			}
-			case BESTIARY -> rows.add(infoRow(tr("skymelloo.gui.player_view.row.total_kills"), formatCount(d.bestiaryKills())));
+			case BESTIARY -> {
+				rows.add(infoRow(tr("skymelloo.gui.player_view.row.total_kills"), formatCount(d.bestiaryKills())));
+				if (d.bestiary().isEmpty()) {
+					break;
+				}
+				rows.add(sectionRow(tr("skymelloo.gui.player_view.tab.bestiary")));
+				for (SkyMellooApiClient.BestiaryEntry mob : d.bestiary()) {
+					String label = titleCase(mob.type()) + (mob.zone() != null ? " §8- " + mob.zone() : "");
+					rows.add(infoRow(label.replace("§8- ", "- "), formatCount(mob.kills())));
+				}
+			}
 			case COLLECTIONS -> {
 				rows.add(infoRow(tr("skymelloo.gui.player_view.row.collections_started"), String.valueOf(d.collectionsStarted())));
 				if (d.collections().isEmpty()) {
@@ -438,16 +462,44 @@ public class PlayerViewScreen extends Screen {
 		return true;
 	}
 
+	/** Packed left to right - for gear and accessories, where the raw slot index carries no meaning. */
 	private void addItemSection(List<Row> rows, String title, List<SkyMellooApiClient.SkyblockItem> items) {
 		List<SkyMellooApiClient.SkyblockItem> present = items.stream().filter(i -> i.name() != null).toList();
 		if (present.isEmpty()) {
 			return;
 		}
 		rows.add(sectionRow(title + " (" + present.size() + ")"));
-		int cols = Math.max(1, (listX2 - listX1 - 4) / SLOT_PITCH);
+		int cols = Math.max(1, (listX2 - listX1 - 6) / SLOT_PITCH);
 		for (int i = 0; i < present.size(); i += cols) {
 			List<SkyMellooApiClient.SkyblockItem> chunk = present.subList(i, Math.min(present.size(), i + cols));
-			rows.add(new Row(SLOT_PITCH, (x, y, w, h) -> new ItemGridWidget(x, y, w, h, chunk)));
+			List<SkyMellooApiClient.SkyblockItem> padded = new ArrayList<>(chunk);
+			rows.add(new Row(SLOT_PITCH, (x, y, w, h) -> new ItemGridWidget(x, y, w, h, padded)));
+		}
+	}
+
+	/**
+	 * Laid out as the real container: nine slots per row at the item's own slot index, so empty
+	 * slots stay empty and everything sits where it does in game.
+	 */
+	private void addContainerSection(List<Row> rows, String title, List<SkyMellooApiClient.SkyblockItem> items, int size) {
+		List<SkyMellooApiClient.SkyblockItem> present = items.stream().filter(i -> i.name() != null).toList();
+		if (present.isEmpty()) {
+			return;
+		}
+		int highest = present.stream().mapToInt(SkyMellooApiClient.SkyblockItem::slot).max().orElse(0);
+		int slots = Math.max(size, highest + 1);
+		int rowCount = (slots + 8) / 9;
+		rows.add(sectionRow(title + " (" + present.size() + ")"));
+		for (int row = 0; row < rowCount; row++) {
+			List<SkyMellooApiClient.SkyblockItem> line = new ArrayList<>();
+			for (int col = 0; col < 9; col++) {
+				int slot = row * 9 + col;
+				line.add(present.stream().filter(i -> i.slot() == slot).findFirst().orElse(null));
+			}
+			if (line.stream().allMatch(java.util.Objects::isNull)) {
+				continue;
+			}
+			rows.add(new Row(SLOT_PITCH, (x, y, w, h) -> new ItemGridWidget(x, y, w, h, line)));
 		}
 	}
 
@@ -468,13 +520,27 @@ public class PlayerViewScreen extends Screen {
 		}
 	}
 
+	/** Prefers the server's own level curve; falls back to the flat level map when it isn't present. */
+	private void addProgressBars(List<Row> rows, List<SkyMellooApiClient.LevelEntry> entries, Map<String, Integer> fallback, int fallbackMax) {
+		if (!entries.isEmpty()) {
+			for (SkyMellooApiClient.LevelEntry entry : entries) {
+				int max = entry.maxLevel() > 0 ? entry.maxLevel() : fallbackMax;
+				// A maxed level reports no progress toward a next level, so show it as a full bar.
+				double fill = entry.level() >= max ? 1 : (entry.level() + entry.progress()) / max;
+				rows.add(barRow(titleCase(entry.name()), entry.level() + "/" + max, fill, ACCENT));
+			}
+			return;
+		}
+		addLevelBars(rows, fallback, fallbackMax);
+	}
+
 	private void addLevelBars(List<Row> rows, Map<String, Integer> levels, int maxLevel) {
 		if (levels.isEmpty()) {
 			rows.add(textRow(tr("skymelloo.gui.player_view.no_data")));
 			return;
 		}
 		for (Map.Entry<String, Integer> entry : levels.entrySet()) {
-			rows.add(barRow(titleCase(entry.getKey()), String.valueOf(entry.getValue()),
+			rows.add(barRow(titleCase(entry.getKey()), entry.getValue() + "/" + maxLevel,
 					entry.getValue() / (double) maxLevel, ACCENT));
 		}
 	}
@@ -529,6 +595,20 @@ public class PlayerViewScreen extends Screen {
 		return (totalSeconds / 60) + "m " + (totalSeconds % 60) + "s";
 	}
 
+	/** The cached stack carries the real name, lore, dye and skull texture; count and worth are per-item. */
+	private static ItemStack stackFor(SkyMellooApiClient.SkyblockItem item) {
+		ItemStack stack = SkyblockItemIcons.resolve(item.uuid(), item.raw(), item.skyblockId(), item.legacyId(), item.tier(), item.name())
+				.copyWithCount(item.count());
+		if (item.value() != null) {
+			net.minecraft.world.item.component.ItemLore lore = stack.get(net.minecraft.core.component.DataComponents.LORE);
+			List<Component> lines = new ArrayList<>(lore != null ? lore.lines() : List.of());
+			lines.add(Component.empty());
+			lines.add(Component.literal(tr("skymelloo.gui.player_view.value.worth") + " " + formatAmount(item.value())).withColor(0xFFAA00));
+			stack.set(net.minecraft.core.component.DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lines));
+		}
+		return stack;
+	}
+
 	private Row infoRow(String label, String value) {
 		return new Row(ROW_H, (x, y, w, h) -> new InfoRowWidget(x, y, w, h, label, value));
 	}
@@ -576,22 +656,35 @@ public class PlayerViewScreen extends Screen {
 			gg.fill(0, 0, this.width, MARGIN + HEADER_H - 4, CARD_BG);
 			gg.fill(0, MARGIN + HEADER_H - 4, this.width, MARGIN + HEADER_H - 3, 0x33FF6EC7);
 
-			gg.text(this.font, username, listX1, MARGIN + 4, TEXT_ON);
+			if (skin.isReady()) {
+				skin.render(gg, listX1, MARGIN, SKIN_SCALE);
+			}
+			int textX = listX1 + TEXT_X_OFFSET;
+			gg.text(this.font, username, textX, MARGIN + 2, TEXT_ON);
 			if (data != null) {
-				int x = listX1 + this.font.width(username) + 8;
+				int x = textX + this.font.width(username) + 6;
 				if (data.rankLabel() != null) {
-					gg.text(this.font, data.rankLabel(), x, MARGIN + 4, ACCENT);
-					x += this.font.width(data.rankLabel()) + 8;
+					String rank = "[" + data.rankLabel() + "]";
+					gg.text(this.font, rank, x, MARGIN + 2, data.rankColor());
+					x += this.font.width(rank) + 6;
 				}
+				if (data.modUser() || data.everModUser()) {
+					String badge = tr(data.modUser()
+							? (data.modUserAfk() ? "skymelloo.gui.player_view.badge.mod_user_afk" : "skymelloo.gui.player_view.badge.mod_user_online")
+							: "skymelloo.gui.player_view.badge.mod_user");
+					gg.text(this.font, badge, x, MARGIN + 2, data.modUser() ? 0xFF55FF55 : ACCENT);
+				}
+				int line = MARGIN + 14;
 				if (data.guildName() != null) {
 					String guild = data.guildTag() != null ? data.guildName() + " [" + data.guildTag() + "]" : data.guildName();
-					gg.text(this.font, guild, x, MARGIN + 4, TEXT_OFF);
+					gg.text(this.font, guild, textX, line, TEXT_OFF);
+					line += 11;
 				}
-				String subtitle = tr("skymelloo.gui.player_view.row.skyblock_level") + " " + data.skyblockLevel()
-						+ "   " + tr("skymelloo.gui.player_view.row.networth") + " " + formatAmount(data.netWorth());
-				gg.text(this.font, subtitle, listX1, MARGIN + 16, TEXT_DIM);
+				gg.text(this.font, tr("skymelloo.gui.player_view.row.skyblock_level") + " " + data.skyblockLevel()
+						+ "   " + tr("skymelloo.gui.player_view.row.networth") + " " + formatAmount(data.netWorth()), textX, line, TEXT_DIM);
+				line += 11;
+				gg.text(this.font, tr("skymelloo.gui.player_view.hint"), textX, line, TEXT_DIM);
 			}
-			gg.text(this.font, tr("skymelloo.gui.player_view.hint"), listX1, MARGIN + 26, TEXT_DIM);
 
 			if (maxScroll > 0) {
 				int trackX = listX2 - 3;
@@ -702,23 +795,17 @@ public class PlayerViewScreen extends Screen {
 				int x = getX() + i * SLOT_PITCH;
 				int y = getY();
 				boolean hovered = mouseX >= x && mouseX < x + SLOT && mouseY >= y && mouseY < y + SLOT;
+				if (item == null) {
+					gg.fill(x, y, x + SLOT, y + SLOT, 0x10FFFFFF);
+					continue;
+				}
 				gg.fill(x, y, x + SLOT, y + SLOT, hovered ? 0x40FFFFFF : SLOT_BG);
 				gg.outline(x, y, SLOT, SLOT, SkyblockItemIcons.tierColor(item.tier()) & 0x66FFFFFF);
-				ItemStack stack = SkyblockItemIcons.resolve(item.skyblockId(), item.legacyId(), item.tier(), item.name())
-						.copyWithCount(item.count());
+				ItemStack stack = stackFor(item);
 				gg.item(stack, x + 1, y + 1);
 				gg.itemDecorations(font, stack, x + 1, y + 1);
 				if (hovered) {
-					List<Component> tooltip = new ArrayList<>();
-					tooltip.add(Component.literal(item.name() != null ? item.name() : "?")
-							.withColor(SkyblockItemIcons.tierColor(item.tier()) & 0xFFFFFF));
-					for (String line : item.lore()) {
-						tooltip.add(Component.literal(line).withColor(0xAAAAAA));
-					}
-					if (item.value() != null) {
-						tooltip.add(Component.literal(tr("skymelloo.gui.player_view.value.worth") + " " + formatAmount(item.value())).withColor(0xFFAA00));
-					}
-					gg.setComponentTooltipForNextFrame(font, tooltip, mouseX, mouseY);
+					gg.setTooltipForNextFrame(font, stack, mouseX, mouseY);
 				}
 			}
 		}

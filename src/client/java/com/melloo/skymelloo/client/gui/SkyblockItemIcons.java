@@ -1,56 +1,79 @@
 package com.melloo.skymelloo.client.gui;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.item.component.ResolvableProfile;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * Turns a SkyBlock item id into a vanilla {@link ItemStack} to draw as its icon. Resolution order:
- * an explicit override, then the id read as a vanilla item id, then the legacy numeric id Hypixel
- * still sends, then a rarity-coloured placeholder.
+ * Rebuilds a SkyBlock item as a real {@link ItemStack} from the raw NBT the API passes through -
+ * Hypixel's own 1.8 item id and damage, its display name and lore, leather dye colour and skull
+ * texture - so an item draws exactly as it does in game rather than as a guessed stand-in.
  */
 public final class SkyblockItemIcons {
 	private static final Map<String, ItemStack> CACHE = new HashMap<>();
-
-	// SkyBlock items whose id doesn't name a vanilla item but which have an obvious vanilla stand-in.
-	private static final Map<String, Item> OVERRIDES = Map.ofEntries(
-			Map.entry("HYPERION", Items.NETHERITE_SWORD),
-			Map.entry("VALKYRIE", Items.NETHERITE_SWORD),
-			Map.entry("SCYLLA", Items.NETHERITE_SWORD),
-			Map.entry("ASTRAEA", Items.NETHERITE_SWORD),
-			Map.entry("TERMINATOR", Items.BOW),
-			Map.entry("JUJU_SHORTBOW", Items.BOW),
-			Map.entry("ENCHANTED_BOOK", Items.ENCHANTED_BOOK),
-			Map.entry("RECOMBOBULATOR_3000", Items.PINK_DYE),
-			Map.entry("SKYBLOCK_MENU", Items.NETHER_STAR),
-			Map.entry("ASPECT_OF_THE_END", Items.DIAMOND_SWORD),
-			Map.entry("ASPECT_OF_THE_DRAGON", Items.GOLDEN_SWORD),
-			Map.entry("ROGUE_SWORD", Items.GOLDEN_SWORD),
-			Map.entry("GRAPPLING_HOOK", Items.FISHING_ROD),
-			Map.entry("TREECAPITATOR_AXE", Items.GOLDEN_AXE),
-			Map.entry("DIAMOND_PICKAXE", Items.DIAMOND_PICKAXE),
-			Map.entry("STONK_PICKAXE", Items.GOLDEN_PICKAXE),
-			Map.entry("BONE_BOOMERANG", Items.BOW),
-			Map.entry("SPIRIT_SCEPTRE", Items.BLAZE_ROD),
-			Map.entry("MIDAS_STAFF", Items.BLAZE_ROD),
-			Map.entry("MIDAS_SWORD", Items.GOLDEN_SWORD),
-			Map.entry("GIANTS_SWORD", Items.DIAMOND_SWORD),
-			Map.entry("LIVID_DAGGER", Items.IRON_SWORD),
-			Map.entry("SHADOW_FURY", Items.IRON_SWORD),
-			Map.entry("FLOWER_OF_TRUTH", Items.POPPY),
-			Map.entry("PET", Items.BONE)
-	);
-
-	// The 1.8 numeric ids Hypixel's inventory NBT still uses, for ids that aren't vanilla names.
 	private static final Map<Integer, Item> LEGACY = buildLegacy();
+
+	// Legacy ids whose damage value picks a different item entirely (colour variants and skulls).
+	private static final Item[] WOOL = {
+			Items.WHITE_WOOL, Items.ORANGE_WOOL, Items.MAGENTA_WOOL, Items.LIGHT_BLUE_WOOL,
+			Items.YELLOW_WOOL, Items.LIME_WOOL, Items.PINK_WOOL, Items.GRAY_WOOL,
+			Items.LIGHT_GRAY_WOOL, Items.CYAN_WOOL, Items.PURPLE_WOOL, Items.BLUE_WOOL,
+			Items.BROWN_WOOL, Items.GREEN_WOOL, Items.RED_WOOL, Items.BLACK_WOOL};
+	// 1.8 dye damage runs the opposite way round to the wool order above.
+	private static final Item[] DYE = {
+			Items.INK_SAC, Items.RED_DYE, Items.GREEN_DYE, Items.COCOA_BEANS,
+			Items.LAPIS_LAZULI, Items.PURPLE_DYE, Items.CYAN_DYE, Items.LIGHT_GRAY_DYE,
+			Items.GRAY_DYE, Items.PINK_DYE, Items.LIME_DYE, Items.YELLOW_DYE,
+			Items.LIGHT_BLUE_DYE, Items.MAGENTA_DYE, Items.ORANGE_DYE, Items.WHITE_DYE};
+	private static final Item[] STAINED_GLASS = {
+			Items.WHITE_STAINED_GLASS, Items.ORANGE_STAINED_GLASS, Items.MAGENTA_STAINED_GLASS, Items.LIGHT_BLUE_STAINED_GLASS,
+			Items.YELLOW_STAINED_GLASS, Items.LIME_STAINED_GLASS, Items.PINK_STAINED_GLASS, Items.GRAY_STAINED_GLASS,
+			Items.LIGHT_GRAY_STAINED_GLASS, Items.CYAN_STAINED_GLASS, Items.PURPLE_STAINED_GLASS, Items.BLUE_STAINED_GLASS,
+			Items.BROWN_STAINED_GLASS, Items.GREEN_STAINED_GLASS, Items.RED_STAINED_GLASS, Items.BLACK_STAINED_GLASS};
+	private static final Item[] STAINED_PANE = {
+			Items.WHITE_STAINED_GLASS_PANE, Items.ORANGE_STAINED_GLASS_PANE, Items.MAGENTA_STAINED_GLASS_PANE, Items.LIGHT_BLUE_STAINED_GLASS_PANE,
+			Items.YELLOW_STAINED_GLASS_PANE, Items.LIME_STAINED_GLASS_PANE, Items.PINK_STAINED_GLASS_PANE, Items.GRAY_STAINED_GLASS_PANE,
+			Items.LIGHT_GRAY_STAINED_GLASS_PANE, Items.CYAN_STAINED_GLASS_PANE, Items.PURPLE_STAINED_GLASS_PANE, Items.BLUE_STAINED_GLASS_PANE,
+			Items.BROWN_STAINED_GLASS_PANE, Items.GREEN_STAINED_GLASS_PANE, Items.RED_STAINED_GLASS_PANE, Items.BLACK_STAINED_GLASS_PANE};
+	private static final Item[] SKULL = {
+			Items.SKELETON_SKULL, Items.WITHER_SKELETON_SKULL, Items.ZOMBIE_HEAD, Items.PLAYER_HEAD,
+			Items.CREEPER_HEAD, Items.DRAGON_HEAD};
+	private static final Item[] LOG = {Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG};
+	private static final Item[] LOG2 = {Items.ACACIA_LOG, Items.DARK_OAK_LOG};
+	private static final Item[] PLANKS = {
+			Items.OAK_PLANKS, Items.SPRUCE_PLANKS, Items.BIRCH_PLANKS, Items.JUNGLE_PLANKS,
+			Items.ACACIA_PLANKS, Items.DARK_OAK_PLANKS};
+	private static final Item[] SANDSTONE = {Items.SANDSTONE, Items.CHISELED_SANDSTONE, Items.CUT_SANDSTONE};
+	private static final Item[] STONE = {
+			Items.STONE, Items.GRANITE, Items.POLISHED_GRANITE, Items.DIORITE,
+			Items.POLISHED_DIORITE, Items.ANDESITE, Items.POLISHED_ANDESITE};
+	private static final Item[] QUARTZ_BLOCK = {Items.QUARTZ_BLOCK, Items.CHISELED_QUARTZ_BLOCK, Items.QUARTZ_PILLAR};
+	private static final Item[] PRISMARINE = {Items.PRISMARINE, Items.PRISMARINE_BRICKS, Items.DARK_PRISMARINE};
+	private static final Item[] COAL = {Items.COAL, Items.CHARCOAL};
+	private static final Item[] FISH = {Items.COD, Items.SALMON, Items.TROPICAL_FISH, Items.PUFFERFISH};
+	private static final Item[] COOKED_FISH = {Items.COOKED_COD, Items.COOKED_SALMON};
+	private static final Item[] GOLDEN_APPLE = {Items.GOLDEN_APPLE, Items.ENCHANTED_GOLDEN_APPLE};
+	private static final Item[] SPONGE = {Items.SPONGE, Items.WET_SPONGE};
+	private static final Item[] DIRT = {Items.DIRT, Items.COARSE_DIRT, Items.PODZOL};
 
 	private SkyblockItemIcons() {
 	}
@@ -62,14 +85,20 @@ public final class SkyblockItemIcons {
 		m.put(3, Items.DIRT);
 		m.put(4, Items.COBBLESTONE);
 		m.put(5, Items.OAK_PLANKS);
+		m.put(6, Items.OAK_SAPLING);
+		m.put(7, Items.BEDROCK);
 		m.put(12, Items.SAND);
+		m.put(13, Items.GRAVEL);
 		m.put(14, Items.GOLD_ORE);
 		m.put(15, Items.IRON_ORE);
 		m.put(16, Items.COAL_ORE);
 		m.put(17, Items.OAK_LOG);
 		m.put(18, Items.OAK_LEAVES);
+		m.put(19, Items.SPONGE);
 		m.put(20, Items.GLASS);
 		m.put(21, Items.LAPIS_ORE);
+		m.put(22, Items.LAPIS_BLOCK);
+		m.put(23, Items.DISPENSER);
 		m.put(24, Items.SANDSTONE);
 		m.put(35, Items.WHITE_WOOL);
 		m.put(41, Items.GOLD_BLOCK);
@@ -77,35 +106,53 @@ public final class SkyblockItemIcons {
 		m.put(45, Items.BRICKS);
 		m.put(46, Items.TNT);
 		m.put(47, Items.BOOKSHELF);
+		m.put(48, Items.MOSSY_COBBLESTONE);
 		m.put(49, Items.OBSIDIAN);
+		m.put(50, Items.TORCH);
+		m.put(52, Items.SPAWNER);
 		m.put(54, Items.CHEST);
 		m.put(56, Items.DIAMOND_ORE);
 		m.put(57, Items.DIAMOND_BLOCK);
 		m.put(58, Items.CRAFTING_TABLE);
+		m.put(61, Items.FURNACE);
 		m.put(73, Items.REDSTONE_ORE);
 		m.put(79, Items.ICE);
 		m.put(80, Items.SNOW_BLOCK);
 		m.put(81, Items.CACTUS);
 		m.put(82, Items.CLAY);
+		m.put(84, Items.JUKEBOX);
 		m.put(86, Items.CARVED_PUMPKIN);
 		m.put(87, Items.NETHERRACK);
+		m.put(88, Items.SOUL_SAND);
 		m.put(89, Items.GLOWSTONE);
+		m.put(91, Items.JACK_O_LANTERN);
+		m.put(95, Items.WHITE_STAINED_GLASS);
 		m.put(97, Items.INFESTED_STONE);
+		m.put(98, Items.STONE_BRICKS);
 		m.put(103, Items.MELON);
 		m.put(110, Items.MYCELIUM);
 		m.put(112, Items.NETHER_BRICKS);
+		m.put(116, Items.ENCHANTING_TABLE);
+		m.put(120, Items.END_PORTAL_FRAME);
 		m.put(121, Items.END_STONE);
 		m.put(129, Items.EMERALD_ORE);
+		m.put(130, Items.ENDER_CHEST);
 		m.put(133, Items.EMERALD_BLOCK);
 		m.put(152, Items.REDSTONE_BLOCK);
 		m.put(153, Items.NETHER_QUARTZ_ORE);
 		m.put(155, Items.QUARTZ_BLOCK);
+		m.put(158, Items.DROPPER);
 		m.put(159, Items.WHITE_TERRACOTTA);
+		m.put(160, Items.WHITE_STAINED_GLASS_PANE);
 		m.put(162, Items.ACACIA_LOG);
 		m.put(165, Items.SLIME_BLOCK);
+		m.put(168, Items.PRISMARINE);
+		m.put(169, Items.SEA_LANTERN);
+		m.put(170, Items.HAY_BLOCK);
 		m.put(172, Items.TERRACOTTA);
 		m.put(173, Items.COAL_BLOCK);
 		m.put(174, Items.PACKED_ICE);
+		m.put(175, Items.SUNFLOWER);
 		m.put(179, Items.RED_SANDSTONE);
 		m.put(256, Items.IRON_SHOVEL);
 		m.put(257, Items.IRON_PICKAXE);
@@ -174,10 +221,16 @@ public final class SkyblockItemIcons {
 		m.put(320, Items.COOKED_PORKCHOP);
 		m.put(321, Items.PAINTING);
 		m.put(322, Items.GOLDEN_APPLE);
+		m.put(323, Items.OAK_SIGN);
+		m.put(324, Items.OAK_DOOR);
 		m.put(325, Items.BUCKET);
+		m.put(326, Items.WATER_BUCKET);
+		m.put(327, Items.LAVA_BUCKET);
 		m.put(328, Items.MINECART);
+		m.put(329, Items.SADDLE);
 		m.put(331, Items.REDSTONE);
 		m.put(332, Items.SNOWBALL);
+		m.put(333, Items.OAK_BOAT);
 		m.put(334, Items.LEATHER);
 		m.put(336, Items.BRICK);
 		m.put(337, Items.CLAY_BALL);
@@ -191,12 +244,18 @@ public final class SkyblockItemIcons {
 		m.put(347, Items.CLOCK);
 		m.put(348, Items.GLOWSTONE_DUST);
 		m.put(349, Items.COD);
+		m.put(350, Items.COOKED_COD);
 		m.put(351, Items.INK_SAC);
 		m.put(352, Items.BONE);
 		m.put(353, Items.SUGAR);
 		m.put(354, Items.CAKE);
+		m.put(355, Items.WHITE_BED);
 		m.put(357, Items.COOKIE);
+		m.put(358, Items.FILLED_MAP);
+		m.put(359, Items.SHEARS);
 		m.put(360, Items.MELON_SLICE);
+		m.put(361, Items.PUMPKIN_SEEDS);
+		m.put(362, Items.MELON_SEEDS);
 		m.put(363, Items.BEEF);
 		m.put(364, Items.COOKED_BEEF);
 		m.put(365, Items.CHICKEN);
@@ -207,102 +266,210 @@ public final class SkyblockItemIcons {
 		m.put(370, Items.GHAST_TEAR);
 		m.put(371, Items.GOLD_NUGGET);
 		m.put(372, Items.NETHER_WART);
+		m.put(373, Items.POTION);
 		m.put(374, Items.GLASS_BOTTLE);
 		m.put(375, Items.SPIDER_EYE);
 		m.put(376, Items.FERMENTED_SPIDER_EYE);
 		m.put(377, Items.BLAZE_POWDER);
 		m.put(378, Items.MAGMA_CREAM);
+		m.put(379, Items.BREWING_STAND);
+		m.put(380, Items.CAULDRON);
 		m.put(381, Items.ENDER_EYE);
 		m.put(382, Items.GLISTERING_MELON_SLICE);
+		m.put(383, Items.PIG_SPAWN_EGG);
 		m.put(384, Items.EXPERIENCE_BOTTLE);
+		m.put(385, Items.FIRE_CHARGE);
+		m.put(386, Items.WRITABLE_BOOK);
+		m.put(387, Items.WRITTEN_BOOK);
 		m.put(388, Items.EMERALD);
-		m.put(392, Items.POTATO);
+		m.put(389, Items.ITEM_FRAME);
+		m.put(390, Items.FLOWER_POT);
 		m.put(391, Items.CARROT);
+		m.put(392, Items.POTATO);
 		m.put(393, Items.BAKED_POTATO);
+		m.put(394, Items.POISONOUS_POTATO);
+		m.put(395, Items.MAP);
 		m.put(396, Items.GOLDEN_CARROT);
 		m.put(397, Items.PLAYER_HEAD);
+		m.put(398, Items.CARROT_ON_A_STICK);
 		m.put(399, Items.NETHER_STAR);
 		m.put(400, Items.PUMPKIN_PIE);
+		m.put(401, Items.FIREWORK_ROCKET);
+		m.put(402, Items.FIREWORK_STAR);
 		m.put(403, Items.ENCHANTED_BOOK);
 		m.put(405, Items.NETHER_BRICK);
 		m.put(406, Items.QUARTZ);
+		m.put(407, Items.TNT_MINECART);
+		m.put(408, Items.HOPPER_MINECART);
 		m.put(409, Items.PRISMARINE_SHARD);
 		m.put(410, Items.PRISMARINE_CRYSTALS);
 		m.put(411, Items.RABBIT);
+		m.put(412, Items.COOKED_RABBIT);
+		m.put(413, Items.RABBIT_STEW);
 		m.put(414, Items.RABBIT_FOOT);
 		m.put(415, Items.RABBIT_HIDE);
+		m.put(416, Items.ARMOR_STAND);
+		m.put(417, Items.IRON_HORSE_ARMOR);
+		m.put(418, Items.GOLDEN_HORSE_ARMOR);
+		m.put(419, Items.DIAMOND_HORSE_ARMOR);
+		m.put(420, Items.LEAD);
+		m.put(421, Items.NAME_TAG);
+		m.put(422, Items.COMMAND_BLOCK_MINECART);
 		m.put(423, Items.MUTTON);
 		m.put(424, Items.COOKED_MUTTON);
+		m.put(425, Items.WHITE_BANNER);
+		m.put(426, Items.END_CRYSTAL);
+		m.put(427, Items.SPRUCE_DOOR);
 		m.put(434, Items.BEETROOT);
+		m.put(435, Items.BEETROOT_SEEDS);
+		m.put(436, Items.BEETROOT_SOUP);
 		return m;
 	}
 
-	/** Cached per id - a full inventory tab re-resolves the same handful of ids on every frame otherwise. */
-	public static ItemStack resolve(String skyblockId, int legacyId, String tier, String displayName) {
-		String key = (skyblockId != null ? skyblockId : "?") + "/" + legacyId;
+	private static Item variant(Item[] table, int damage) {
+		return damage >= 0 && damage < table.length ? table[damage] : table[0];
+	}
+
+	/** Hypixel still sends 1.8 ids, where the damage value selects the colour/wood/skull variant. */
+	private static Item itemFor(int legacyId, int damage) {
+		Item byDamage = switch (legacyId) {
+			case 35 -> variant(WOOL, damage);
+			case 351 -> variant(DYE, damage);
+			case 95 -> variant(STAINED_GLASS, damage);
+			case 160 -> variant(STAINED_PANE, damage);
+			case 397 -> variant(SKULL, damage);
+			case 17 -> variant(LOG, damage % 4);
+			case 162 -> variant(LOG2, damage % 2);
+			case 5 -> variant(PLANKS, damage);
+			case 24 -> variant(SANDSTONE, damage);
+			case 1 -> variant(STONE, damage);
+			case 155 -> variant(QUARTZ_BLOCK, damage);
+			case 168 -> variant(PRISMARINE, damage);
+			case 263 -> variant(COAL, damage);
+			case 349 -> variant(FISH, damage);
+			case 350 -> variant(COOKED_FISH, damage);
+			case 322 -> variant(GOLDEN_APPLE, damage);
+			case 19 -> variant(SPONGE, damage);
+			case 3 -> variant(DIRT, damage);
+			default -> null;
+		};
+		if (byDamage != null) {
+			return byDamage;
+		}
+		Item mapped = LEGACY.get(legacyId);
+		return mapped != null ? mapped : Items.PAPER;
+	}
+
+	/**
+	 * Builds the stack from Hypixel's own NBT, cached per item uuid (or id) - a full inventory tab
+	 * would otherwise rebuild every stack, and re-parse every lore line, on every frame.
+	 */
+	public static ItemStack resolve(String cacheKey, JsonObject raw, String skyblockId, int legacyId, String tier, String fallbackName) {
+		String key = cacheKey != null ? cacheKey : (skyblockId != null ? skyblockId : "?") + "/" + legacyId;
 		ItemStack cached = CACHE.get(key);
 		if (cached != null) {
 			return cached;
 		}
-		ItemStack stack = new ItemStack(resolveItem(skyblockId, legacyId, tier));
-		if (displayName != null && !displayName.isBlank()) {
-			stack.set(DataComponents.CUSTOM_NAME, Component.literal(displayName));
-		}
+		ItemStack stack = build(raw, skyblockId, legacyId, tier, fallbackName);
 		CACHE.put(key, stack);
 		return stack;
 	}
 
-	private static Item resolveItem(String skyblockId, int legacyId, String tier) {
+	private static ItemStack build(JsonObject raw, String skyblockId, int legacyId, String tier, String fallbackName) {
+		int id = raw != null && raw.has("id") && raw.get("id").isJsonPrimitive() ? raw.get("id").getAsInt() : legacyId;
+		int damage = raw != null && raw.has("Damage") && raw.get("Damage").isJsonPrimitive() ? raw.get("Damage").getAsInt() : 0;
+		Item item = id > 0 ? itemFor(id, damage) : vanillaOrPlaceholder(skyblockId);
+		ItemStack stack = new ItemStack(item);
+
+		JsonObject tag = obj(raw, "tag");
+		JsonObject display = obj(tag, "display");
+
+		String name = display != null ? string(display, "Name") : null;
+		stack.set(DataComponents.CUSTOM_NAME, name != null ? LegacyText.parse(name)
+				: Component.literal(fallbackName != null ? fallbackName : "?"));
+
+		if (display != null && display.has("Lore") && display.get("Lore").isJsonArray()) {
+			List<Component> lore = new ArrayList<>();
+			for (JsonElement line : display.getAsJsonArray("Lore")) {
+				if (!line.isJsonNull()) {
+					lore.add(LegacyText.parse(line.getAsString()));
+				}
+			}
+			stack.set(DataComponents.LORE, new ItemLore(lore));
+		}
+
+		if (display != null && display.has("color") && display.get("color").isJsonPrimitive()) {
+			stack.set(DataComponents.DYED_COLOR, new DyedItemColor(display.get("color").getAsInt()));
+		}
+
+		ResolvableProfile profile = skullProfile(obj(tag, "SkullOwner"));
+		if (profile != null) {
+			stack.set(DataComponents.PROFILE, profile);
+		}
+		return stack;
+	}
+
+	/** Rebuilds the head's own texture from its SkullOwner tag - without it every SkyBlock head draws as Steve. */
+	private static ResolvableProfile skullProfile(JsonObject skullOwner) {
+		if (skullOwner == null) {
+			return null;
+		}
+		JsonObject properties = obj(skullOwner, "Properties");
+		if (properties == null || !properties.has("textures") || !properties.get("textures").isJsonArray()) {
+			return null;
+		}
+		JsonArray textures = properties.getAsJsonArray("textures");
+		if (textures.isEmpty() || !textures.get(0).isJsonObject()) {
+			return null;
+		}
+		JsonObject texture = textures.get(0).getAsJsonObject();
+		String value = string(texture, "Value");
+		if (value == null) {
+			return null;
+		}
+		UUID id = parseUuid(string(skullOwner, "Id"));
+		GameProfile gameProfile = new GameProfile(id != null ? id : UUID.nameUUIDFromBytes(value.getBytes()), "");
+		gameProfile.properties().put("textures", new Property("textures", value, string(texture, "Signature")));
+		return ResolvableProfile.createResolved(gameProfile);
+	}
+
+	private static UUID parseUuid(String raw) {
+		if (raw == null) {
+			return null;
+		}
+		try {
+			return raw.contains("-") ? UUID.fromString(raw)
+					: UUID.fromString(raw.replaceFirst("(.{8})(.{4})(.{4})(.{4})(.{12})", "$1-$2-$3-$4-$5"));
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	private static Item vanillaOrPlaceholder(String skyblockId) {
 		if (skyblockId != null) {
-			Item override = OVERRIDES.get(skyblockId);
-			if (override != null) {
-				return override;
-			}
-			Item vanilla = vanillaById(skyblockId);
-			if (vanilla != null) {
-				return vanilla;
-			}
-			// Most SkyBlock ids are a vanilla item with a prefix, e.g. ENCHANTED_DIAMOND -> DIAMOND.
-			for (String prefix : new String[]{"ENCHANTED_", "SUPER_ENCHANTED_", "REFINED_"}) {
-				if (skyblockId.startsWith(prefix)) {
-					Item base = vanillaById(skyblockId.substring(prefix.length()));
-					if (base != null) {
-						return base;
-					}
+			Identifier location = Identifier.tryParse("minecraft:" + skyblockId.toLowerCase(Locale.ROOT));
+			if (location != null) {
+				Item found = BuiltInRegistries.ITEM.getOptional(location).filter(i -> i != Items.AIR).orElse(null);
+				if (found != null) {
+					return found;
 				}
 			}
 		}
-		Item legacy = LEGACY.get(legacyId);
-		if (legacy != null) {
-			return legacy;
-		}
-		return placeholderFor(tier);
+		return Items.PAPER;
 	}
 
-	private static Item vanillaById(String id) {
-		Identifier location = Identifier.tryParse("minecraft:" + id.toLowerCase(Locale.ROOT));
-		if (location == null) {
+	private static JsonObject obj(JsonObject parent, String key) {
+		if (parent == null || !parent.has(key) || !parent.get(key).isJsonObject()) {
 			return null;
 		}
-		return BuiltInRegistries.ITEM.getOptional(location).filter(item -> item != Items.AIR).orElse(null);
+		return parent.getAsJsonObject(key);
 	}
 
-	/** No usable id at all - a dye in roughly the rarity's own colour still reads better than a blank slot. */
-	private static Item placeholderFor(String tier) {
-		if (tier == null) {
-			return Items.GRAY_DYE;
+	private static String string(JsonObject parent, String key) {
+		if (parent == null || !parent.has(key) || parent.get(key).isJsonNull()) {
+			return null;
 		}
-		return switch (tier.toUpperCase(Locale.ROOT)) {
-			case "COMMON" -> Items.WHITE_DYE;
-			case "UNCOMMON" -> Items.LIME_DYE;
-			case "RARE" -> Items.BLUE_DYE;
-			case "EPIC" -> Items.PURPLE_DYE;
-			case "LEGENDARY" -> Items.ORANGE_DYE;
-			case "MYTHIC" -> Items.PINK_DYE;
-			case "DIVINE" -> Items.LIGHT_BLUE_DYE;
-			case "SPECIAL", "VERY_SPECIAL" -> Items.RED_DYE;
-			default -> Items.GRAY_DYE;
-		};
+		return parent.get(key).getAsString();
 	}
 
 	/** The in-game rarity colour, as an ARGB value for text and slot tinting. */

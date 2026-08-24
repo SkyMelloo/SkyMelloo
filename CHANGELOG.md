@@ -4,6 +4,14 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.41.0 (from 0.40.0) · minor
+
+`/sm view` items are now rebuilt from Hypixel's own item NBT instead of being guessed from the SkyBlock id, so each one draws exactly as it does in game: real icon (1.8 id plus damage variant), real coloured name and lore, leather dye colours, and the actual skull texture - 126 of 273 items on a test profile are player heads that all rendered as Steve before. Tooltips are the real item tooltips now, with the market value appended. Verified against a live profile: every legacy id present resolves, nothing falls through to a placeholder.
+
+The header gained the player's skin rendered on the left, the Hypixel rank in its own colour, and a SkyMelloo badge showing whether they run the mod. Inventory, Ender Chest and Personal Vault lay out as real nine-wide containers at each item's own slot index, so gaps stay where they are. Minions and Bestiary list their real entries rather than only totals, and skills/slayers use the server's own level curve for partial progress.
+
+Also fixed: combat stats never appeared, because they sit one level down under `combatStats.stats` and were being read from the wrapper.
+
 ## 0.40.0 (from 0.39.9) · minor
 
 `/sm view` rebuilt to match the website's profile page. Six new tabs (Net Worth, Gear, Accessories, Pets, Inventory, Sacks) alongside the existing seven, on a horizontally scrollable tab bar. Gear/accessories/inventory/ender chest/vault render as real item grids - vanilla item icons resolved from the SkyBlock id, rarity-coloured slot borders, stack counts, and a hover tooltip carrying the item's own lore and market value. Skills, slayers, classes, pets, collections and the net worth breakdown now draw as progress bars instead of plain numbers, and the screen has a proper header with rank, guild, level and net worth. Items come from the inventory endpoint, fetched only when a tab that needs it is opened.
