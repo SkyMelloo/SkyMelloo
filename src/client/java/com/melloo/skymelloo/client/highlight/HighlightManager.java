@@ -98,8 +98,8 @@ public final class HighlightManager {
 		}
 
 		if (living instanceof Player player) {
-			// /sm search - a deliberate one-off command action, lobby-only (see LobbySearchManager) -
-			// the ONLY player-highlighting SkyMelloo still decides on its own. Party/staff/friend
+			// /sm search - a deliberate one-off command action (see LobbySearchManager) - the ONLY
+			// player-highlighting SkyMelloo still decides on its own. Party/staff/friend
 			// highlighting are entirely MellooEssentials' job now (see its own highlight.HighlightManager)
 			// - this mod's own PlayerCategory/classifyPlayer, and the config fields that used to drive
 			// them, are gone.
