@@ -2,6 +2,7 @@ package com.melloo.skymelloo.client.gui;
 
 import com.melloo.skymelloo.client.api.ModAuthManager;
 import com.melloo.skymelloo.client.api.SkyMellooApiClient;
+import com.melloo.skymelloo.client.util.ChatUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -79,21 +80,25 @@ public class PlayerViewScreen extends Screen {
 
 	@Override
 	protected void init() {
-		listX1 = MARGIN;
-		listX2 = this.width - MARGIN;
-		int y = MARGIN + 40;
-
-		// Profile pills row (rebuilt whenever profileNames arrives) and the tab bar sit above the
-		// scrollable list - both rebuilt by rebuildChrome()/rebuildRows() rather than being fixed
-		// widgets, since the profile list only becomes known after the first fetch completes.
-		rebuildChrome();
-		listTop = y + 24 + 6;
-		listBottom = this.height - MARGIN;
-
-		if (data == null && errorMessage == null) {
-			loadData();
-		} else {
-			buildRows();
+		// setScreen() runs init() outside the command's own try/catch, so failures here need their own reporting.
+		try {
+			listX1 = MARGIN;
+			listX2 = this.width - MARGIN;
+			int y = MARGIN + 40;
+			rebuildChrome();
+			listTop = y + 24 + 6;
+			listBottom = this.height - MARGIN;
+			if (data == null && errorMessage == null) {
+				loadData();
+			} else {
+				buildRows();
+			}
+		} catch (Throwable t) {
+			Minecraft client = Minecraft.getInstance();
+			client.setScreen(null);
+			if (client.player != null) {
+				client.player.sendSystemMessage(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", ChatUtil.friendlyError(t))));
+			}
 		}
 	}
 
@@ -313,10 +318,16 @@ public class PlayerViewScreen extends Screen {
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
-		gg.fill(0, 0, this.width, this.height, PANEL_BG);
-		gg.centeredText(this.font, username, this.width / 2, MARGIN + 6, TEXT_ON);
-		gg.centeredText(this.font, tr("skymelloo.gui.player_view.hint"), this.width / 2, MARGIN + 20, TEXT_OFF);
-		super.extractRenderState(gg, mouseX, mouseY, partialTick);
+		// A render-time throw would otherwise fail this frame silently with nothing visible at all.
+		try {
+			gg.fill(0, 0, this.width, this.height, PANEL_BG);
+			gg.centeredText(this.font, username, this.width / 2, MARGIN + 6, TEXT_ON);
+			gg.centeredText(this.font, tr("skymelloo.gui.player_view.hint"), this.width / 2, MARGIN + 20, TEXT_OFF);
+			super.extractRenderState(gg, mouseX, mouseY, partialTick);
+		} catch (Throwable t) {
+			gg.fill(0, 0, this.width, this.height, 0xE0000000);
+			gg.text(this.font, "SkyMelloo view error: " + t, 10, 10, 0xFFFF5555);
+		}
 	}
 
 	private final class TabButtonWidget extends AbstractWidget {
