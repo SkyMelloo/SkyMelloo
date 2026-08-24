@@ -63,7 +63,7 @@ const req = https.request(
     });
     res.on('end', () => {
       if (res.statusCode === 200) {
-        console.log(`[report-build] Reported build ${version} (${hash}) to sky.melloo.me.`);
+        console.log(`[report-build] Reported build ${version} (${hash}) to ${SITE_URL}.`);
       } else {
         console.warn(`[report-build] Server rejected the report (${res.statusCode}): ${data}`);
       }

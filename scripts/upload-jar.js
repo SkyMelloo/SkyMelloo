@@ -54,7 +54,7 @@ const req = https.request(
     });
     res.on('end', () => {
       if (res.statusCode === 200) {
-        console.log(`[upload-jar] Uploaded ${version}'s jar (${jarBytes.length} bytes) to sky.melloo.me.`);
+        console.log(`[upload-jar] Uploaded ${version}'s jar (${jarBytes.length} bytes) to ${SITE_URL}.`);
       } else {
         console.warn(`[upload-jar] Server rejected the upload (${res.statusCode}): ${data}`);
       }
