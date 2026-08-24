@@ -620,8 +620,8 @@ public class SkyMellooClient implements ClientModInitializer {
 											// Reports failure to chat instead of silently doing nothing.
 											try {
 												com.melloo.skymelloo.client.gui.PlayerViewScreen.open(StringArgumentType.getString(ctx, "name"));
-											} catch (Exception e) {
-												ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", ChatUtil.friendlyError(e))));
+											} catch (Throwable t) {
+												ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.failed", ChatUtil.friendlyError(t))));
 											}
 											return 1;
 										})))
