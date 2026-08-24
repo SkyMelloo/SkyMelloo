@@ -10,10 +10,7 @@ import net.minecraft.world.entity.player.PlayerSkin;
 
 import java.util.UUID;
 
-/**
- * Draws a player's skin as a flat front-facing figure, head to feet, with the overlay layers on top.
- * The skin is looked up once per screen through Minecraft's own skin manager and cached here.
- */
+/** Draws a player's skin as a flat front-facing figure, overlay layers included. */
 public final class PlayerSkinPanel {
 	/** Unscaled figure size - 16 wide (arms either side of an 8-wide body) by 32 tall. */
 	public static final int WIDTH = 16;

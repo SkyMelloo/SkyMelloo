@@ -64,8 +64,7 @@ dependencies {
 // SignAndRegister.java's actual signature, not this flag.
 def buildType = project.hasProperty('testBuild') ? 'test' : 'dev'
 
-// Target deployment for both the built jar and the scripts that register it - see site_url in
-// gradle.properties. -PsiteUrl wins over the committed default so a dev target is never committed.
+// Target deployment for the jar and the scripts that register it - -PsiteUrl beats the committed default.
 def siteUrl = (project.findProperty('siteUrl') ?: project.site_url).toString().replaceAll('/+$', '')
 def productionUrl = 'https://sky.melloo.me'
 
@@ -197,9 +196,7 @@ tasks.register('uploadJar', Exec) {
 	commandLine 'node', "${projectDir}/scripts/upload-jar.js", project.version.toString(), tasks.named('jar').get().archiveFile.get().asFile.absolutePath
 }
 
-// gradle.properties is committed, so whatever site_url says there is what everyone who downloads a
-// release gets - it has to stay production. Per-build targets belong on the command line
-// (-PsiteUrl=...) or in ~/.gradle/gradle.properties, neither of which is in this repo.
+// gradle.properties is committed, so its site_url is what everyone else's download points at.
 tasks.register('requireProductionSiteInRepo') {
 	group = 'skymelloo'
 	description = 'Fails the build if the committed site_url has been pointed away from production.'

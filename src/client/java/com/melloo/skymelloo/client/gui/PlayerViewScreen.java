@@ -18,11 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * "/skymelloo view &lt;player&gt;" - an in-game recreation of the website's player-stats view:
- * a scrollable tab bar, item grids with real icons and lore tooltips, and progress bars, all
- * read-only. Backed by {@link SkyMellooApiClient#fetchSummary} and {@link SkyMellooApiClient#fetchInventory}.
- */
+/** "/skymelloo view &lt;player&gt;" - the website's player-stats view in game, read-only. */
 public class PlayerViewScreen extends Screen {
 	private static final int PANEL_BG = 0xE8101014;
 	private static final int CARD_BG = 0x18FFFFFF;
@@ -71,6 +67,10 @@ public class PlayerViewScreen extends Screen {
 	}
 
 	private record Row(int height, RowFactory factory) {
+	}
+
+	/** One slot in a grid. A null tooltip means draw the stack's own item tooltip. */
+	private record GridEntry(ItemStack stack, String countLabel, List<Component> tooltip, int tierColor) {
 	}
 
 	private final String username;
@@ -374,8 +374,23 @@ public class PlayerViewScreen extends Screen {
 					rows.add(textRow(tr("skymelloo.gui.player_view.no_data")));
 					break;
 				}
+				// One grid per sack category, so mining stock isn't mixed in with fishing stock.
+				Map<String, List<SkyMellooApiClient.SackEntry>> byCategory = new java.util.LinkedHashMap<>();
 				for (SkyMellooApiClient.SackEntry sack : inventory.sacks()) {
-					rows.add(infoRow(titleCase(sack.id()), formatCount(sack.amount())));
+					byCategory.computeIfAbsent(sack.category() != null ? sack.category() : "misc", k -> new ArrayList<>()).add(sack);
+				}
+				for (Map.Entry<String, List<SkyMellooApiClient.SackEntry>> group : byCategory.entrySet()) {
+					rows.add(sectionRow(titleCase(group.getKey()) + " (" + group.getValue().size() + ")"));
+					List<GridEntry> entries = new ArrayList<>();
+					for (SkyMellooApiClient.SackEntry sack : group.getValue()) {
+						String name = titleCase(sack.id());
+						entries.add(new GridEntry(SkyblockItemIcons.byId(sack.id(), name), formatCount(sack.amount()),
+								List.of(Component.literal(name).withColor(0xFFFFFF),
+										Component.literal(formatCount(sack.amount())).withColor(0xFFAA00)),
+								0xFFAAAAAA));
+					}
+					addGridRows(rows, entries, gridColumns());
+					rows.add(spacerRow());
 				}
 			}
 			case PETS -> {
@@ -413,11 +428,27 @@ public class PlayerViewScreen extends Screen {
 				if (d.minions().isEmpty()) {
 					break;
 				}
-				rows.add(sectionRow(tr("skymelloo.gui.player_view.tab.minions")));
+				// Split maxed from still-upgradable, which is the only thing worth scanning this list for.
+				List<GridEntry> maxed = new ArrayList<>();
+				List<GridEntry> partial = new ArrayList<>();
 				for (SkyMellooApiClient.MinionEntry minion : d.minions()) {
 					int maxTier = minion.maxTier() > 0 ? minion.maxTier() : 12;
 					String label = minion.displayName() != null ? minion.displayName() : titleCase(minion.type());
-					rows.add(barRow(label, minion.tier() + "/" + maxTier, minion.tier() / (double) maxTier, ACCENT));
+					boolean isMaxed = minion.tier() >= maxTier;
+					GridEntry entry = new GridEntry(SkyblockItemIcons.byId(minion.type(), label), String.valueOf(minion.tier()),
+							List.of(Component.literal(label).withColor(isMaxed ? 0xFFAA00 : 0xFFFFFF),
+									Component.literal("Tier " + minion.tier() + "/" + maxTier).withColor(0xAAAAAA)),
+							isMaxed ? 0xFFFFAA00 : 0xFFAAAAAA);
+					(isMaxed ? maxed : partial).add(entry);
+				}
+				if (!partial.isEmpty()) {
+					rows.add(sectionRow(tr("skymelloo.gui.player_view.section.upgradable") + " (" + partial.size() + ")"));
+					addGridRows(rows, partial, gridColumns());
+					rows.add(spacerRow());
+				}
+				if (!maxed.isEmpty()) {
+					rows.add(sectionRow(tr("skymelloo.gui.player_view.section.maxed") + " (" + maxed.size() + ")"));
+					addGridRows(rows, maxed, gridColumns());
 				}
 			}
 			case BESTIARY -> {
@@ -425,10 +456,17 @@ public class PlayerViewScreen extends Screen {
 				if (d.bestiary().isEmpty()) {
 					break;
 				}
-				rows.add(sectionRow(tr("skymelloo.gui.player_view.tab.bestiary")));
+				// Grouped by zone, the same way the in-game Bestiary splits it up.
+				Map<String, List<SkyMellooApiClient.BestiaryEntry>> byZone = new java.util.LinkedHashMap<>();
 				for (SkyMellooApiClient.BestiaryEntry mob : d.bestiary()) {
-					String label = titleCase(mob.type()) + (mob.zone() != null ? " §8- " + mob.zone() : "");
-					rows.add(infoRow(label.replace("§8- ", "- "), formatCount(mob.kills())));
+					byZone.computeIfAbsent(mob.zone() != null ? mob.zone() : "Other", k -> new ArrayList<>()).add(mob);
+				}
+				for (Map.Entry<String, List<SkyMellooApiClient.BestiaryEntry>> zone : byZone.entrySet()) {
+					rows.add(sectionRow(zone.getKey() + " (" + zone.getValue().size() + ")"));
+					for (SkyMellooApiClient.BestiaryEntry mob : zone.getValue()) {
+						rows.add(infoRow(titleCase(mob.type()), formatCount(mob.kills())));
+					}
+					rows.add(spacerRow());
 				}
 			}
 			case COLLECTIONS -> {
@@ -462,6 +500,23 @@ public class PlayerViewScreen extends Screen {
 		return true;
 	}
 
+	private static GridEntry entryFor(SkyMellooApiClient.SkyblockItem item) {
+		return new GridEntry(stackFor(item), item.count() > 1 ? String.valueOf(item.count()) : null,
+				null, SkyblockItemIcons.tierColor(item.tier()));
+	}
+
+	/** Chunks entries into rows of {@code cols} and appends them as grid rows. */
+	private void addGridRows(List<Row> rows, List<GridEntry> entries, int cols) {
+		for (int i = 0; i < entries.size(); i += cols) {
+			List<GridEntry> line = new ArrayList<>(entries.subList(i, Math.min(entries.size(), i + cols)));
+			rows.add(new Row(SLOT_PITCH, (x, y, w, h) -> new ItemGridWidget(x, y, w, h, line)));
+		}
+	}
+
+	private int gridColumns() {
+		return Math.max(1, (listX2 - listX1 - 6) / SLOT_PITCH);
+	}
+
 	/** Packed left to right - for gear and accessories, where the raw slot index carries no meaning. */
 	private void addItemSection(List<Row> rows, String title, List<SkyMellooApiClient.SkyblockItem> items) {
 		List<SkyMellooApiClient.SkyblockItem> present = items.stream().filter(i -> i.name() != null).toList();
@@ -469,38 +524,28 @@ public class PlayerViewScreen extends Screen {
 			return;
 		}
 		rows.add(sectionRow(title + " (" + present.size() + ")"));
-		int cols = Math.max(1, (listX2 - listX1 - 6) / SLOT_PITCH);
-		for (int i = 0; i < present.size(); i += cols) {
-			List<SkyMellooApiClient.SkyblockItem> chunk = present.subList(i, Math.min(present.size(), i + cols));
-			List<SkyMellooApiClient.SkyblockItem> padded = new ArrayList<>(chunk);
-			rows.add(new Row(SLOT_PITCH, (x, y, w, h) -> new ItemGridWidget(x, y, w, h, padded)));
-		}
+		addGridRows(rows, present.stream().map(PlayerViewScreen::entryFor).toList(), gridColumns());
+		rows.add(spacerRow());
 	}
 
-	/**
-	 * Laid out as the real container: nine slots per row at the item's own slot index, so empty
-	 * slots stay empty and everything sits where it does in game.
-	 */
+	/** Nine slots per row at the item's own slot index, so gaps stay where they are in game. */
 	private void addContainerSection(List<Row> rows, String title, List<SkyMellooApiClient.SkyblockItem> items, int size) {
 		List<SkyMellooApiClient.SkyblockItem> present = items.stream().filter(i -> i.name() != null).toList();
 		if (present.isEmpty()) {
 			return;
 		}
 		int highest = present.stream().mapToInt(SkyMellooApiClient.SkyblockItem::slot).max().orElse(0);
-		int slots = Math.max(size, highest + 1);
-		int rowCount = (slots + 8) / 9;
+		int rowCount = (Math.max(size, highest + 1) + 8) / 9;
 		rows.add(sectionRow(title + " (" + present.size() + ")"));
 		for (int row = 0; row < rowCount; row++) {
-			List<SkyMellooApiClient.SkyblockItem> line = new ArrayList<>();
+			List<GridEntry> line = new ArrayList<>();
 			for (int col = 0; col < 9; col++) {
 				int slot = row * 9 + col;
-				line.add(present.stream().filter(i -> i.slot() == slot).findFirst().orElse(null));
-			}
-			if (line.stream().allMatch(java.util.Objects::isNull)) {
-				continue;
+				line.add(present.stream().filter(i -> i.slot() == slot).findFirst().map(PlayerViewScreen::entryFor).orElse(null));
 			}
 			rows.add(new Row(SLOT_PITCH, (x, y, w, h) -> new ItemGridWidget(x, y, w, h, line)));
 		}
+		rows.add(spacerRow());
 	}
 
 	private void addFloorSection(List<Row> rows, String title, List<SkyMellooApiClient.FloorEntry> floors) {
@@ -615,6 +660,11 @@ public class PlayerViewScreen extends Screen {
 
 	private Row textRow(String text) {
 		return new Row(ROW_H, (x, y, w, h) -> new InfoRowWidget(x, y, w, h, text, ""));
+	}
+
+	/** Blank gap so consecutive sections read as separate blocks rather than one long grid. */
+	private Row spacerRow() {
+		return new Row(6, (x, y, w, h) -> new SectionRowWidget(x, y, w, h, ""));
 	}
 
 	private Row sectionRow(String title) {
@@ -785,32 +835,35 @@ public class PlayerViewScreen extends Screen {
 
 	/** One row of item slots, with a real icon, count and the item's own lore as a hover tooltip. */
 	private final class ItemGridWidget extends AbstractWidget {
-		private final List<SkyMellooApiClient.SkyblockItem> items;
+		private final List<GridEntry> entries;
 
-		ItemGridWidget(int x, int y, int width, int height, List<SkyMellooApiClient.SkyblockItem> items) {
+		ItemGridWidget(int x, int y, int width, int height, List<GridEntry> entries) {
 			super(x, y, width, height, Component.empty());
-			this.items = items;
+			this.entries = entries;
 		}
 
 		@Override
 		protected void extractWidgetRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
 			var font = Minecraft.getInstance().font;
-			for (int i = 0; i < items.size(); i++) {
-				SkyMellooApiClient.SkyblockItem item = items.get(i);
+			for (int i = 0; i < entries.size(); i++) {
+				GridEntry entry = entries.get(i);
 				int x = getX() + i * SLOT_PITCH;
 				int y = getY();
 				boolean hovered = mouseX >= x && mouseX < x + SLOT && mouseY >= y && mouseY < y + SLOT;
-				if (item == null) {
+				if (entry == null) {
 					gg.fill(x, y, x + SLOT, y + SLOT, 0x10FFFFFF);
 					continue;
 				}
 				gg.fill(x, y, x + SLOT, y + SLOT, hovered ? 0x40FFFFFF : SLOT_BG);
-				gg.outline(x, y, SLOT, SLOT, SkyblockItemIcons.tierColor(item.tier()) & 0x66FFFFFF);
-				ItemStack stack = stackFor(item);
-				gg.item(stack, x + 1, y + 1);
-				gg.itemDecorations(font, stack, x + 1, y + 1);
+				gg.outline(x, y, SLOT, SLOT, entry.tierColor() & 0x66FFFFFF);
+				gg.item(entry.stack(), x + 1, y + 1);
+				gg.itemDecorations(font, entry.stack(), x + 1, y + 1, entry.countLabel());
 				if (hovered) {
-					gg.setTooltipForNextFrame(font, stack, mouseX, mouseY);
+					if (entry.tooltip() != null) {
+						gg.setComponentTooltipForNextFrame(font, entry.tooltip(), mouseX, mouseY);
+					} else {
+						gg.setTooltipForNextFrame(font, entry.stack(), mouseX, mouseY);
+					}
 				}
 			}
 		}
@@ -836,6 +889,9 @@ public class PlayerViewScreen extends Screen {
 
 		@Override
 		protected void extractWidgetRenderState(GuiGraphicsExtractor gg, int mouseX, int mouseY, float partialTick) {
+			if (title.isEmpty()) {
+				return;
+			}
 			var font = Minecraft.getInstance().font;
 			int textY = getY() + getHeight() - 10;
 			gg.text(font, title, getX() + 2, textY, ACCENT);

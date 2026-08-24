@@ -2,12 +2,7 @@ package com.melloo.skymelloo.client.api;
 
 import net.fabricmc.loader.api.FabricLoader;
 
-/**
- * Which sky.melloo.me deployment this jar talks to. Baked in at build time from the {@code site_url}
- * Gradle property, which defaults to production - a developer overrides it per build with
- * {@code -PsiteUrl=https://dev3-sky.melloo.me} without touching a committed file, so a downloaded
- * release always points at production.
- */
+/** Deployment this jar talks to, baked in at build time from the {@code site_url} Gradle property. */
 public final class SiteConfig {
 	public static final String PRODUCTION = "https://sky.melloo.me";
 

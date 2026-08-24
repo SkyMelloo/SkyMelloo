@@ -4,9 +4,15 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.43.0 (from 0.42.0) · minor
+
+`/sm view` sections are separated properly now instead of running together as one long grid: each container is its own titled block with a gap after it. Sacks are item icons grouped by category rather than a written-out list, with the stored amount on the slot. Minions are icons too, split into upgradable and maxed. Bestiary is grouped by zone the way the in-game one is.
+
+Removed the legacy API path - `LEGACY_BASE_URL` and `getJsonLegacy` are gone, and credits go through a shared request helper. Note `/api/credits` is only served by the main site, not the mod API, so the URL itself had to stay; what's gone is the duplicated request method and the second base-URL constant.
+
 ## 0.42.0 (from 0.41.1) · minor
 
-A build can now target a different deployment than production. `site_url` in gradle.properties is the committed default and must stay `https://sky.melloo.me` - a build fails outright if it doesn't, since that file decides where everyone else's download points. To aim a build somewhere else, pass `-PsiteUrl=https://dev3-sky.melloo.me` or set `siteUrl` in `~/.gradle/gradle.properties`; neither is in the repo, so a dev target can't be committed by accident.
+A build can now target a different deployment than production. `site_url` in gradle.properties is the committed default and must stay `https://sky.melloo.me` - a build fails outright if it doesn't, since that file decides where everyone else's download points. To aim a build somewhere else, pass `-PsiteUrl=...` or set `siteUrl` in `~/.gradle/gradle.properties`; neither is in the repo, so a dev target can't be committed by accident.
 
 The target is baked into fabric.mod.json as `skymelloo:siteUrl` and read back through the new `SiteConfig`, which every runtime URL now goes through - no prod host is hardcoded in client code any more. The upload/report/sign scripts follow the same target via `SKYMELLOO_SITE_URL`, so a dev-targeted build registers on that server and never on production, which is what keeps it from ever being promoted to a public release. `/sm version` names the site when it isn't production, and the download link stays pointed at production always, since that's the only place official builds exist.
 

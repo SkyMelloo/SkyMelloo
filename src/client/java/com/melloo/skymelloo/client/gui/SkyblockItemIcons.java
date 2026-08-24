@@ -26,11 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Rebuilds a SkyBlock item as a real {@link ItemStack} from the raw NBT the API passes through -
- * Hypixel's own 1.8 item id and damage, its display name and lore, leather dye colour and skull
- * texture - so an item draws exactly as it does in game rather than as a guessed stand-in.
- */
+/** Rebuilds a SkyBlock item as a real {@link ItemStack} from the raw NBT the API passes through. */
 public final class SkyblockItemIcons {
 	private static final Map<String, ItemStack> CACHE = new HashMap<>();
 	private static final Map<Integer, Item> LEGACY = buildLegacy();
@@ -363,10 +359,7 @@ public final class SkyblockItemIcons {
 		return mapped != null ? mapped : Items.PAPER;
 	}
 
-	/**
-	 * Builds the stack from Hypixel's own NBT, cached per item uuid (or id) - a full inventory tab
-	 * would otherwise rebuild every stack, and re-parse every lore line, on every frame.
-	 */
+	/** Cached per item uuid - a tab would otherwise re-parse every lore line on every frame. */
 	public static ItemStack resolve(String cacheKey, JsonObject raw, String skyblockId, int legacyId, String tier, String fallbackName) {
 		String key = cacheKey != null ? cacheKey : (skyblockId != null ? skyblockId : "?") + "/" + legacyId;
 		ItemStack cached = CACHE.get(key);
@@ -458,17 +451,49 @@ public final class SkyblockItemIcons {
 		}
 	}
 
-	private static Item vanillaOrPlaceholder(String skyblockId) {
-		if (skyblockId != null) {
-			Identifier location = Identifier.tryParse("minecraft:" + skyblockId.toLowerCase(Locale.ROOT));
-			if (location != null) {
-				Item found = BuiltInRegistries.ITEM.getOptional(location).filter(i -> i != Items.AIR).orElse(null);
-				if (found != null) {
-					return found;
-				}
+	/** Icon for something known only by its SkyBlock id - sacks and minions carry no NBT to rebuild from. */
+	public static ItemStack byId(String skyblockId, String displayName) {
+		String key = "id/" + skyblockId;
+		ItemStack cached = CACHE.get(key);
+		if (cached != null) {
+			return cached;
+		}
+		ItemStack stack = new ItemStack(itemForId(skyblockId));
+		stack.set(DataComponents.CUSTOM_NAME, Component.literal(displayName != null ? displayName : String.valueOf(skyblockId)));
+		CACHE.put(key, stack);
+		return stack;
+	}
+
+	private static Item itemForId(String rawId) {
+		if (rawId == null || rawId.isBlank()) {
+			return Items.PAPER;
+		}
+		String id = rawId.replace(':', '_');
+		for (String candidate : new String[]{id, id + "_LOG", id + "_WOOD", id.replace("_ITEM", "")}) {
+			Item found = vanillaById(candidate);
+			if (found != null) {
+				return found;
+			}
+		}
+		// Sack and minion ids are often a plain material with a tier prefix on the front.
+		for (String prefix : new String[]{"ENCHANTED_HUGE_", "ENCHANTED_", "SUPER_ENCHANTED_", "REFINED_"}) {
+			if (id.startsWith(prefix)) {
+				return itemForId(id.substring(prefix.length()));
 			}
 		}
 		return Items.PAPER;
+	}
+
+	private static Item vanillaById(String id) {
+		Identifier location = Identifier.tryParse("minecraft:" + id.toLowerCase(Locale.ROOT));
+		if (location == null) {
+			return null;
+		}
+		return BuiltInRegistries.ITEM.getOptional(location).filter(i -> i != Items.AIR).orElse(null);
+	}
+
+	private static Item vanillaOrPlaceholder(String skyblockId) {
+		return skyblockId == null ? Items.PAPER : itemForId(skyblockId);
 	}
 
 	private static JsonObject obj(JsonObject parent, String key) {
