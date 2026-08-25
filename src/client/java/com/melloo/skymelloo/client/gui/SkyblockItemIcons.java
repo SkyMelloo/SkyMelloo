@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
@@ -29,6 +30,15 @@ import java.util.UUID;
 /** Rebuilds a SkyBlock item as a real {@link ItemStack} from the raw NBT the API passes through. */
 public final class SkyblockItemIcons {
 	private static final Map<String, ItemStack> CACHE = new HashMap<>();
+	// Toggled by /sm debug items - off by default, since a debug lore line has no business showing to a normal user.
+	private static volatile boolean debugMode = false;
+
+	/** Flips the debug lore on player heads and clears the cache, so already-resolved items pick up the new state immediately. */
+	public static boolean toggleDebug() {
+		debugMode = !debugMode;
+		CACHE.clear();
+		return debugMode;
+	}
 	private static final Map<Integer, Item> LEGACY = buildLegacy();
 
 	// Legacy ids whose damage value picks a different item entirely (colour variants and skulls).
@@ -425,19 +435,21 @@ public final class SkyblockItemIcons {
 				ResolvableProfile profile = skullProfile(obj(tag, "SkullOwner"));
 				if (profile != null) {
 					stack.set(DataComponents.PROFILE, profile);
-					outcome = "profile set: " + profile.name().orElse("<no name>");
+					outcome = "profile set";
 				} else {
 					outcome = "skullProfile() returned null";
 				}
 			} catch (Throwable t) {
 				outcome = "threw: " + t;
 			}
-			appendDebugLore(stack, "[debug] " + outcome);
+			if (debugMode) {
+				appendDebugLore(stack, "[debug] " + outcome);
+			}
 		}
 		return stack;
 	}
 
-	// TEMPORARY: reveals why a head shows no custom skin, since that failure mode is otherwise silent.
+	// Only reached when debugMode is on - reveals why a head has no custom skin instead of failing silently.
 	private static void appendDebugLore(ItemStack stack, String line) {
 		ItemLore existing = stack.get(DataComponents.LORE);
 		ItemLore updated = (existing != null ? existing : ItemLore.EMPTY).withLineAdded(Component.literal(line));
@@ -463,10 +475,11 @@ public final class SkyblockItemIcons {
 			return null;
 		}
 		UUID id = parseUuid(string(skullOwner, "Id"));
-		// Built up front and handed to the constructor - the two-arg one uses the shared immutable
-		// PropertyMap.EMPTY, so putting into it throws.
-		PropertyMap profileProperties = new PropertyMap(ArrayListMultimap.create());
-		profileProperties.put("textures", new Property("textures", value, string(texture, "Signature")));
+		// PropertyMap's own constructor always copies its argument into an ImmutableMultimap, so the
+		// map has to be fully populated BEFORE construction - putting into the PropertyMap afterward throws.
+		Multimap<String, Property> multimap = ArrayListMultimap.create();
+		multimap.put("textures", new Property("textures", value, string(texture, "Signature")));
+		PropertyMap profileProperties = new PropertyMap(multimap);
 		return ResolvableProfile.createResolved(
 				new GameProfile(id != null ? id : UUID.nameUUIDFromBytes(value.getBytes(StandardCharsets.UTF_8)), "", profileProperties));
 	}

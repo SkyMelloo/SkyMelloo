@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.44.2 (from 0.44.1) · patch
+
+Fixed the real cause of player heads showing no custom skin: `PropertyMap`'s own constructor always copies its argument into an `ImmutableMultimap`, no matter what's passed in - putting into the map had to happen before construction, not after. The debug lore from 0.44.1 is no longer always on; `/sm debug items` toggles it, matching the existing `/sm debug hm-bar`/`bossroom`/`score` pattern instead of hardcoding a diagnostic into a release build.
+
 ## 0.44.1 (from 0.44.0) · patch
 
 Diagnostic only: heads still show the default Steve skin instead of the real texture, and there's no exception to explain why - code review found nothing wrong in the profile-building path. Every player head now carries a temporary `[debug]` lore line showing exactly what happened (profile set / returned null / threw) instead of guessing again. To be removed once the real cause is confirmed.

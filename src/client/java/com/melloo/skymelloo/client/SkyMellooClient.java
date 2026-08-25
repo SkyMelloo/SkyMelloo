@@ -472,6 +472,12 @@ public class SkyMellooClient implements ClientModInitializer {
 										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.not_found")));
 									}
 									return 1;
+								}))
+								.then(ClientCommands.literal("items").executes(ctx -> {
+									boolean on = com.melloo.skymelloo.client.gui.SkyblockItemIcons.toggleDebug();
+									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable(
+											on ? "skymelloo.command.debug.items.on" : "skymelloo.command.debug.items.off")));
+									return 1;
 								})))
 						// "/sm version" and "/sm info" merged into one command - always fires a FRESH check
 						// against the server (see ModVersionManager#checkNow) rather than just showing
