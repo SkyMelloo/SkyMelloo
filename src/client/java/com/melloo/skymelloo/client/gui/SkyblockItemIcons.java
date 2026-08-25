@@ -419,15 +419,29 @@ public final class SkyblockItemIcons {
 			stack.set(DataComponents.DYED_COLOR, new DyedItemColor(display.get("color").getAsInt()));
 		}
 
-		try {
-			ResolvableProfile profile = skullProfile(obj(tag, "SkullOwner"));
-			if (profile != null) {
-				stack.set(DataComponents.PROFILE, profile);
+		if (item == Items.PLAYER_HEAD) {
+			String outcome;
+			try {
+				ResolvableProfile profile = skullProfile(obj(tag, "SkullOwner"));
+				if (profile != null) {
+					stack.set(DataComponents.PROFILE, profile);
+					outcome = "profile set: " + profile.name().orElse("<no name>");
+				} else {
+					outcome = "skullProfile() returned null";
+				}
+			} catch (Throwable t) {
+				outcome = "threw: " + t;
 			}
-		} catch (Throwable t) {
-			// A texture-specific failure keeps the already-correct item type, name and lore rather than losing all of it.
+			appendDebugLore(stack, "[debug] " + outcome);
 		}
 		return stack;
+	}
+
+	// TEMPORARY: reveals why a head shows no custom skin, since that failure mode is otherwise silent.
+	private static void appendDebugLore(ItemStack stack, String line) {
+		ItemLore existing = stack.get(DataComponents.LORE);
+		ItemLore updated = (existing != null ? existing : ItemLore.EMPTY).withLineAdded(Component.literal(line));
+		stack.set(DataComponents.LORE, updated);
 	}
 
 	/** Rebuilds the head's own texture from its SkullOwner tag - without it every SkyBlock head draws as Steve. */

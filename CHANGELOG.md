@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.44.1 (from 0.44.0) · patch
+
+Diagnostic only: heads still show the default Steve skin instead of the real texture, and there's no exception to explain why - code review found nothing wrong in the profile-building path. Every player head now carries a temporary `[debug]` lore line showing exactly what happened (profile set / returned null / threw) instead of guessing again. To be removed once the real cause is confirmed.
+
 ## 0.44.0 (from 0.43.1) · minor
 
 Fixed player heads (126 of 273 items on a test profile) rendering as paper. Real bug: heads without a `uuid` fall back to a cache key built from id+tier, and multiple different unnamed heads can share that key - if even one of them failed to build, the resulting paper stack got cached under that shared key and served to every other head that collided with it. A failed build is no longer cached, and heads now key on their own skull texture value when no uuid is available, so different skins can't collide. Also isolated the skull-texture step inside item building so a texture-only failure keeps the item's already-correct type, name and lore instead of discarding the whole thing.
