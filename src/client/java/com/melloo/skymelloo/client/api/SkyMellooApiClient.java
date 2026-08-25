@@ -65,7 +65,14 @@ public final class SkyMellooApiClient {
 	 * the GUI can rebuild the real stack (icon, colours, skull texture) rather than approximate it.
 	 */
 	public record SkyblockItem(int slot, String skyblockId, String uuid, String name, List<String> lore, String tier,
-			int count, Double value, int legacyId, JsonObject raw) {
+			int count, Double value, int legacyId, JsonObject raw, boolean inactive) {
+	}
+
+	/** An accessory the account doesn't own at all yet - never has NBT to render from, just an id/name/tier. */
+	public record MissingAccessory(String skyblockId, String name, String tier) {
+	}
+
+	public record RarityCount(String rarity, int count, int accessoryPower) {
 	}
 
 	/** A skill or slayer with the server's own level curve, so a bar shows real progress rather than level/max. */
@@ -96,8 +103,12 @@ public final class SkyMellooApiClient {
 	public record InventoryResult(
 			List<SkyblockItem> armor, List<SkyblockItem> equipment, List<SkyblockItem> accessories,
 			List<SkyblockItem> inventory, List<SkyblockItem> enderChest, List<SkyblockItem> vault,
-			List<SackEntry> sacks, int accessoryPower, String selectedPower
+			List<SackEntry> sacks, int accessoryPower, String selectedPower, List<BackpackEntry> backpacks,
+			List<MissingAccessory> missingAccessories, List<RarityCount> rarityBreakdown
 	) {
+	}
+
+	public record BackpackEntry(int size, SkyblockItem icon, List<SkyblockItem> items) {
 	}
 
 	private static final String[] SKILL_KEYS = {"farming", "mining", "combat", "foraging", "fishing", "enchanting", "alchemy", "taming"};
@@ -152,23 +163,25 @@ public final class SkyMellooApiClient {
 		JsonElement raw = parent.get(key);
 		JsonArray arr = raw.isJsonArray() ? raw.getAsJsonArray() : safeArray(raw.getAsJsonObject(), "items");
 		for (JsonElement el : arr) {
-			if (!el.isJsonObject()) {
-				continue;
+			if (el.isJsonObject()) {
+				out.add(parseItem(el.getAsJsonObject()));
 			}
-			JsonObject it = el.getAsJsonObject();
-			List<String> lore = new ArrayList<>();
-			for (JsonElement line : safeArray(it, "lorePlain")) {
-				if (!line.isJsonNull()) {
-					lore.add(line.getAsString());
-				}
-			}
-			Double value = it.has("value") && !it.get("value").isJsonNull() ? it.get("value").getAsDouble() : null;
-			out.add(new SkyblockItem(
-					integer(it, "slot"), str(it, "skyblockId"), str(it, "uuid"), str(it, "namePlain"), lore,
-					str(it, "tier"), Math.max(1, integer(it, "count")), value, integer(it, "legacyId"),
-					safeObject(it, "raw")));
 		}
 		return out;
+	}
+
+	private static SkyblockItem parseItem(JsonObject it) {
+		List<String> lore = new ArrayList<>();
+		for (JsonElement line : safeArray(it, "lorePlain")) {
+			if (!line.isJsonNull()) {
+				lore.add(line.getAsString());
+			}
+		}
+		Double value = it.has("value") && !it.get("value").isJsonNull() ? it.get("value").getAsDouble() : null;
+		return new SkyblockItem(
+				integer(it, "slot"), str(it, "skyblockId"), str(it, "uuid"), str(it, "namePlain"), lore,
+				str(it, "tier"), Math.max(1, integer(it, "count")), value, integer(it, "legacyId"),
+				safeObject(it, "raw"), bool(it, "inactive"));
 	}
 
 	/** From /player/:username/inventory - gear, accessories, storage and sacks in one call. */
@@ -186,10 +199,47 @@ public final class SkyMellooApiClient {
 			if (ap == null) {
 				ap = safeObject(root, "magicalPower");
 			}
+
+			List<BackpackEntry> backpacks = new ArrayList<>();
+			for (JsonElement el : safeArray(root, "backpacks")) {
+				if (!el.isJsonObject()) {
+					continue;
+				}
+				JsonObject bp = el.getAsJsonObject();
+				List<SkyblockItem> items = new ArrayList<>();
+				for (JsonElement itemEl : safeArray(bp, "items")) {
+					if (itemEl.isJsonObject()) {
+						items.add(parseItem(itemEl.getAsJsonObject()));
+					}
+				}
+				JsonObject iconObj = safeObject(bp, "icon");
+				backpacks.add(new BackpackEntry(integer(bp, "size"), iconObj != null ? parseItem(iconObj) : null, items));
+			}
+
+			List<MissingAccessory> missing = new ArrayList<>();
+			for (JsonElement el : safeArray(root, "missingAccessories")) {
+				if (el.isJsonObject()) {
+					JsonObject m = el.getAsJsonObject();
+					missing.add(new MissingAccessory(str(m, "skyblockId"), str(m, "namePlain"), str(m, "tier")));
+				}
+			}
+
+			List<RarityCount> rarityBreakdown = new ArrayList<>();
+			JsonObject rarityObj = ap != null ? safeObject(ap, "rarityBreakdown") : null;
+			if (rarityObj != null) {
+				for (String rarity : rarityObj.keySet()) {
+					JsonObject r = safeObject(rarityObj, rarity);
+					if (r != null && integer(r, "count") > 0) {
+						rarityBreakdown.add(new RarityCount(rarity, integer(r, "count"), integer(r, "accessoryPower")));
+					}
+				}
+			}
+
 			return new InventoryResult(
 					parseItems(root, "armor"), parseItems(root, "equipment"), parseItems(root, "accessories"),
 					parseItems(root, "contents"), parseItems(root, "enderChest"), parseItems(root, "vault"),
-					sacks, ap != null ? integer(ap, "current") : -1, ap != null ? str(ap, "selectedPower") : null);
+					sacks, ap != null ? integer(ap, "current") : -1, ap != null ? str(ap, "selectedPower") : null, backpacks,
+					missing, rarityBreakdown);
 		});
 	}
 

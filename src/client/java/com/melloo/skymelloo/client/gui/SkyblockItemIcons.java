@@ -361,21 +361,35 @@ public final class SkyblockItemIcons {
 
 	/** Cached per item uuid - a tab would otherwise re-parse every lore line on every frame. */
 	public static ItemStack resolve(String cacheKey, JsonObject raw, String skyblockId, int legacyId, String tier, String fallbackName) {
-		String key = cacheKey != null ? cacheKey : (skyblockId != null ? skyblockId : "?") + "/" + legacyId;
+		String key = cacheKey != null ? cacheKey : fallbackKey(raw, skyblockId, legacyId);
 		ItemStack cached = CACHE.get(key);
 		if (cached != null) {
 			return cached;
 		}
-		ItemStack stack;
 		try {
-			stack = build(raw, skyblockId, legacyId, tier, fallbackName);
+			ItemStack stack = build(raw, skyblockId, legacyId, tier, fallbackName);
+			CACHE.put(key, stack);
+			return stack;
 		} catch (Throwable t) {
-			// One malformed item must not take down the whole tab it appears in.
-			stack = new ItemStack(Items.PAPER);
-			stack.set(DataComponents.CUSTOM_NAME, Component.literal(fallbackName != null ? fallbackName : "?"));
+			// Not cached - a transient failure shouldn't permanently poison this key for every other item that falls back to it.
+			ItemStack stack = new ItemStack(Items.PAPER);
+			stack.set(DataComponents.CUSTOM_NAME, Component.literal((fallbackName != null ? fallbackName : "?") + " (" + t + ")"));
+			return stack;
 		}
-		CACHE.put(key, stack);
-		return stack;
+	}
+
+	/** Without a uuid, two different unnamed heads can share id+tier - fold in the skull texture itself so they don't collide in the cache. */
+	private static String fallbackKey(JsonObject raw, String skyblockId, int legacyId) {
+		JsonObject skullOwner = obj(obj(raw, "tag"), "SkullOwner");
+		JsonObject properties = obj(skullOwner, "Properties");
+		if (properties != null && properties.has("textures") && properties.get("textures").isJsonArray() && !properties.getAsJsonArray("textures").isEmpty()) {
+			JsonElement first = properties.getAsJsonArray("textures").get(0);
+			String value = first.isJsonObject() ? string(first.getAsJsonObject(), "Value") : null;
+			if (value != null) {
+				return "tex/" + value;
+			}
+		}
+		return (skyblockId != null ? skyblockId : "?") + "/" + legacyId;
 	}
 
 	private static ItemStack build(JsonObject raw, String skyblockId, int legacyId, String tier, String fallbackName) {
@@ -405,9 +419,13 @@ public final class SkyblockItemIcons {
 			stack.set(DataComponents.DYED_COLOR, new DyedItemColor(display.get("color").getAsInt()));
 		}
 
-		ResolvableProfile profile = skullProfile(obj(tag, "SkullOwner"));
-		if (profile != null) {
-			stack.set(DataComponents.PROFILE, profile);
+		try {
+			ResolvableProfile profile = skullProfile(obj(tag, "SkullOwner"));
+			if (profile != null) {
+				stack.set(DataComponents.PROFILE, profile);
+			}
+		} catch (Throwable t) {
+			// A texture-specific failure keeps the already-correct item type, name and lore rather than losing all of it.
 		}
 		return stack;
 	}
@@ -481,8 +499,39 @@ public final class SkyblockItemIcons {
 				return itemForId(id.substring(prefix.length()));
 			}
 		}
-		return Items.PAPER;
+		if (ID_ALIAS.containsKey(id)) {
+			return ID_ALIAS.get(id);
+		}
+		// A mob-based minion (ZOMBIE, WOLF, ...) has no matching item at all - its own spawn egg reads far better than a blank slot.
+		Item egg = vanillaById(id + "_SPAWN_EGG");
+		return egg != null ? egg : Items.PAPER;
 	}
+
+	// Minion/sack ids with no matching vanilla item - a mob's own spawn egg, or the closest-looking material.
+	private static final Map<String, Item> ID_ALIAS = Map.ofEntries(
+			Map.entry("CAVESPIDER", Items.CAVE_SPIDER_SPAWN_EGG),
+			Map.entry("MUSHROOM_COW", Items.MOOSHROOM_SPAWN_EGG),
+			Map.entry("VOIDLING", Items.ENDERMITE_SPAWN_EGG),
+			Map.entry("TARANTULA", Items.SPIDER_SPAWN_EGG),
+			Map.entry("REVENANT", Items.ZOMBIE_SPAWN_EGG),
+			Map.entry("VAMPIRE", Items.ZOMBIE_VILLAGER_SPAWN_EGG),
+			Map.entry("SVEN", Items.WOLF_SPAWN_EGG),
+			Map.entry("BROODMOTHER", Items.SPIDER_SPAWN_EGG),
+			Map.entry("COCOA", Items.COCOA_BEANS),
+			Map.entry("ENDER_STONE", Items.END_STONE),
+			Map.entry("FISHING", Items.FISHING_ROD),
+			Map.entry("GOLD", Items.GOLD_INGOT),
+			Map.entry("IRON", Items.IRON_INGOT),
+			Map.entry("HARD_STONE", Items.STONE),
+			Map.entry("LAPIS", Items.LAPIS_LAZULI),
+			Map.entry("MITHRIL", Items.PRISMARINE_CRYSTALS),
+			Map.entry("MUSHROOM", Items.RED_MUSHROOM),
+			Map.entry("NETHER_WARTS", Items.NETHER_WART),
+			Map.entry("FLOWER", Items.POPPY),
+			Map.entry("DOUBLE_PLANT", Items.SUNFLOWER),
+			Map.entry("INFERNO", Items.MAGMA_BLOCK),
+			Map.entry("RED_SAND", Items.RED_SANDSTONE)
+	);
 
 	private static Item vanillaById(String id) {
 		Identifier location = Identifier.tryParse("minecraft:" + id.toLowerCase(Locale.ROOT));

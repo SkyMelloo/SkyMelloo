@@ -4,6 +4,14 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.44.0 (from 0.43.1) · minor
+
+Fixed player heads (126 of 273 items on a test profile) rendering as paper. Real bug: heads without a `uuid` fall back to a cache key built from id+tier, and multiple different unnamed heads can share that key - if even one of them failed to build, the resulting paper stack got cached under that shared key and served to every other head that collided with it. A failed build is no longer cached, and heads now key on their own skull texture value when no uuid is available, so different skins can't collide. Also isolated the skull-texture step inside item building so a texture-only failure keeps the item's already-correct type, name and lore instead of discarding the whole thing.
+
+Exact per-item counts (sack amounts, per-mob bestiary kills) now show full numbers with thousands separators instead of being abbreviated, matching the website's own distinction between exact counts and summary totals.
+
+Inventory tab was missing Backpacks entirely - each one now gets its own titled block with its contents. Accessories are now split into Active / Inactive / Missing, with an Accessory Power by Rarity breakdown above them, matching the website's layout instead of one flat grid. Minions with no matching item now show their mob's spawn egg (or the closest vanilla material for a SkyBlock-only one) instead of a blank placeholder.
+
 ## 0.43.1 (from 0.43.0) · patch
 
 Credits now go through the mod API like every other call - `/api/public/mod/v1/credits`, signed, instead of the website's own `/api/credits`. The last request that reached outside the mod API is gone, and with it the helper that made it. Server side the route moved into a router the public-api process actually mounts; the website still reaches it on the internal unauthenticated path.

@@ -351,12 +351,34 @@ public class PlayerViewScreen extends Screen {
 					break;
 				}
 				if (inventory.accessoryPower() >= 0) {
-					rows.add(infoRow(tr("skymelloo.gui.player_view.row.accessory_power"), String.valueOf(inventory.accessoryPower())));
+					rows.add(infoRow(tr("skymelloo.gui.player_view.row.accessory_power"), formatExact(inventory.accessoryPower())));
 				}
 				if (inventory.selectedPower() != null) {
 					rows.add(infoRow(tr("skymelloo.gui.player_view.row.selected_power"), titleCase(inventory.selectedPower())));
 				}
-				addItemSection(rows, tr("skymelloo.gui.player_view.section.accessories"), inventory.accessories());
+				if (!inventory.rarityBreakdown().isEmpty()) {
+					rows.add(sectionRow(tr("skymelloo.gui.player_view.section.power_by_rarity")));
+					for (SkyMellooApiClient.RarityCount r : inventory.rarityBreakdown()) {
+						rows.add(barRow(titleCase(r.rarity()), r.count() + " (+" + r.accessoryPower() + ")",
+								1.0, SkyblockItemIcons.tierColor(r.rarity())));
+					}
+					rows.add(spacerRow());
+				}
+				List<SkyMellooApiClient.SkyblockItem> allAccessories = inventory.accessories();
+				List<SkyMellooApiClient.SkyblockItem> activeAcc = allAccessories.stream().filter(i -> !i.inactive()).toList();
+				List<SkyMellooApiClient.SkyblockItem> inactiveAcc = allAccessories.stream().filter(SkyMellooApiClient.SkyblockItem::inactive).toList();
+				addItemSection(rows, tr("skymelloo.gui.player_view.section.accessories"), activeAcc);
+				addItemSection(rows, tr("skymelloo.gui.player_view.section.inactive"), inactiveAcc);
+				if (!inventory.missingAccessories().isEmpty()) {
+					rows.add(sectionRow(tr("skymelloo.gui.player_view.section.missing") + " (" + inventory.missingAccessories().size() + ")"));
+					List<GridEntry> entries = inventory.missingAccessories().stream()
+							.map(m -> new GridEntry(SkyblockItemIcons.byId(m.skyblockId(), m.name()), null,
+									List.of(Component.literal(m.name() != null ? m.name() : "?").withColor(0x777777),
+											Component.literal(tr("skymelloo.gui.player_view.value.not_obtained")).withColor(0x555555)),
+									0xFF555555))
+							.toList();
+					addGridRows(rows, entries, gridColumns());
+				}
 			}
 			case INVENTORY -> {
 				if (!inventoryReady(rows)) {
@@ -365,6 +387,7 @@ public class PlayerViewScreen extends Screen {
 				addContainerSection(rows, tr("skymelloo.gui.player_view.section.inventory"), inventory.inventory(), 36);
 				addContainerSection(rows, tr("skymelloo.gui.player_view.section.ender_chest"), inventory.enderChest(), 45);
 				addContainerSection(rows, tr("skymelloo.gui.player_view.section.vault"), inventory.vault(), 27);
+				addBackpacksSection(rows);
 			}
 			case SACKS -> {
 				if (!inventoryReady(rows)) {
@@ -384,9 +407,9 @@ public class PlayerViewScreen extends Screen {
 					List<GridEntry> entries = new ArrayList<>();
 					for (SkyMellooApiClient.SackEntry sack : group.getValue()) {
 						String name = titleCase(sack.id());
-						entries.add(new GridEntry(SkyblockItemIcons.byId(sack.id(), name), formatCount(sack.amount()),
+						entries.add(new GridEntry(SkyblockItemIcons.byId(sack.id(), name), formatExact(sack.amount()),
 								List.of(Component.literal(name).withColor(0xFFFFFF),
-										Component.literal(formatCount(sack.amount())).withColor(0xFFAA00)),
+										Component.literal(formatExact(sack.amount())).withColor(0xFFAA00)),
 								0xFFAAAAAA));
 					}
 					addGridRows(rows, entries, gridColumns());
@@ -464,7 +487,7 @@ public class PlayerViewScreen extends Screen {
 				for (Map.Entry<String, List<SkyMellooApiClient.BestiaryEntry>> zone : byZone.entrySet()) {
 					rows.add(sectionRow(zone.getKey() + " (" + zone.getValue().size() + ")"));
 					for (SkyMellooApiClient.BestiaryEntry mob : zone.getValue()) {
-						rows.add(infoRow(titleCase(mob.type()), formatCount(mob.kills())));
+						rows.add(infoRow(titleCase(mob.type()), formatExact(mob.kills())));
 					}
 					rows.add(spacerRow());
 				}
@@ -546,6 +569,22 @@ public class PlayerViewScreen extends Screen {
 			rows.add(new Row(SLOT_PITCH, (x, y, w, h) -> new ItemGridWidget(x, y, w, h, line)));
 		}
 		rows.add(spacerRow());
+	}
+
+	/** One block per backpack, titled with its own name/size - the part of Inventory the tab was missing entirely. */
+	private void addBackpacksSection(List<Row> rows) {
+		List<SkyMellooApiClient.BackpackEntry> backpacks = inventory.backpacks();
+		if (backpacks.isEmpty()) {
+			return;
+		}
+		rows.add(sectionRow(tr("skymelloo.gui.player_view.section.backpacks") + " (" + backpacks.size() + ")"));
+		for (SkyMellooApiClient.BackpackEntry backpack : backpacks) {
+			String label = backpack.icon() != null && backpack.icon().name() != null ? backpack.icon().name() : tr("skymelloo.gui.player_view.section.backpacks");
+			List<SkyMellooApiClient.SkyblockItem> present = backpack.items().stream().filter(i -> i.name() != null).toList();
+			rows.add(sectionRow(label + " (" + present.size() + "/" + backpack.size() + ")"));
+			addGridRows(rows, present.stream().map(PlayerViewScreen::entryFor).toList(), gridColumns());
+			rows.add(spacerRow());
+		}
 	}
 
 	private void addFloorSection(List<Row> rows, String title, List<SkyMellooApiClient.FloorEntry> floors) {
@@ -633,6 +672,11 @@ public class PlayerViewScreen extends Screen {
 			return String.format(Locale.ROOT, "%.1fK", count / 1_000.0);
 		}
 		return String.valueOf(count);
+	}
+
+	/** Full number with thousands separators - for exact per-item counts (sack amounts, per-mob kills), matching the website's non-abbreviated fmtNum. */
+	private static String formatExact(long count) {
+		return String.format(Locale.US, "%,d", count);
 	}
 
 	private static String formatDuration(long millis) {
