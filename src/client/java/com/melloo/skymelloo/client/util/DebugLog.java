@@ -13,6 +13,10 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Shared debug-message logging for background operations (syncs, permission/whitelist checks,
@@ -40,6 +44,15 @@ import java.time.format.DateTimeFormatter;
  * sidesteps whatever's swallowing it, rather than depending on a routing path proven unreliable here.
  * Truncated fresh at the start of each launch (see {@link #FILE_WRITER}) so it only ever holds the
  * current session, not an ever-growing history.
+ * <p>
+ * Writes are buffered and flushed at most every {@link #FLUSH_INTERVAL_SECONDS} rather than after
+ * every single line - presence reporting alone calls {@link #log} several times a second, and a
+ * real {@code flush()} is a disk sync, not just an in-memory append. {@link Writer#write} still
+ * happens immediately on every call (cheap, stays in the BufferedWriter's own in-memory buffer);
+ * only the disk sync is debounced. A JVM shutdown hook does one final flush so a normal game close
+ * doesn't lose whatever was written since the last periodic flush - this is a debug log, not
+ * critical data, so losing the last couple seconds of it to a hard crash is an acceptable tradeoff
+ * for not syncing to disk multiple times a second during normal play.
  */
 public final class DebugLog {
 	public enum Category {
@@ -54,7 +67,10 @@ public final class DebugLog {
 	// (presence reporting) for a whole play session. null if it couldn't be opened at all (read-only
 	// game dir, etc.) - every write silently no-ops rather than risking anything over a logging
 	// nice-to-have.
+	private static final int FLUSH_INTERVAL_SECONDS = 5;
 	private static final Writer FILE_WRITER = openFile();
+	private static final AtomicBoolean DIRTY = new AtomicBoolean(false);
+	private static final ScheduledExecutorService FLUSH_EXECUTOR = startFlushScheduler();
 
 	private DebugLog() {
 	}
@@ -69,13 +85,40 @@ public final class DebugLog {
 		}
 	}
 
+	private static ScheduledExecutorService startFlushScheduler() {
+		if (FILE_WRITER == null) {
+			return null;
+		}
+		ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+			Thread thread = new Thread(runnable, "skymelloo-debuglog-flush");
+			thread.setDaemon(true);
+			return thread;
+		});
+		executor.scheduleWithFixedDelay(DebugLog::flushIfDirty, FLUSH_INTERVAL_SECONDS, FLUSH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+		// Covers a normal game close (quit to title / process exit) between two periodic flushes -
+		// without this, whatever was written in the last few seconds before shutdown is silently lost.
+		Runtime.getRuntime().addShutdownHook(new Thread(DebugLog::flushIfDirty, "skymelloo-debuglog-shutdown-flush"));
+		return executor;
+	}
+
+	private static synchronized void flushIfDirty() {
+		if (FILE_WRITER == null || !DIRTY.compareAndSet(true, false)) {
+			return;
+		}
+		try {
+			FILE_WRITER.flush();
+		} catch (IOException ignored) {
+			// Best-effort - losing buffered debug lines to a transient IO error isn't worth handling further.
+		}
+	}
+
 	private static synchronized void writeToFile(Category category, String message) {
 		if (FILE_WRITER == null) {
 			return;
 		}
 		try {
 			FILE_WRITER.write("[" + TIME_FORMAT.format(LocalTime.now()) + "] [" + category + "] " + message + System.lineSeparator());
-			FILE_WRITER.flush();
+			DIRTY.set(true);
 		} catch (IOException ignored) {
 			// Best-effort - losing one debug line to a transient IO error isn't worth handling further.
 		}

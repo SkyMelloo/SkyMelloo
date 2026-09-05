@@ -14,6 +14,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Plain Gson-persisted settings (no YACL) - saved to {@code config/skymelloo.json5}, same file path
@@ -36,7 +40,11 @@ public final class SkyMellooConfig {
 
 	/** Mimics the tiny slice of YACL's own ConfigClassHandler API every existing call site already used (instance()/save()/load()) so none of the ~30 files calling SkyMellooConfig.HANDLER.* needed to change. */
 	public static final class ConfigHandler {
+		private static final int SAVE_DEBOUNCE_SECONDS = 5;
+
 		private SkyMellooConfig instance;
+		private final AtomicBoolean dirty = new AtomicBoolean(false);
+		private ScheduledExecutorService debounceExecutor;
 
 		private ConfigHandler() {
 		}
@@ -74,6 +82,41 @@ public final class SkyMellooConfig {
 				}
 			} catch (IOException e) {
 				throw new RuntimeException("Could not save SkyMelloo config", e);
+			}
+		}
+
+		/**
+		 * For hot-path callers (a value that changes on every game event - cast/kill/essence-collect,
+		 * not a one-off settings-screen toggle) that would otherwise write the whole config file to
+		 * disk on every single occurrence. Coalesces into at most one real {@link #save()} per
+		 * {@value #SAVE_DEBOUNCE_SECONDS}s, plus a final flush on JVM shutdown so a normal game close
+		 * doesn't lose whatever changed since the last periodic save. A settings screen making a
+		 * deliberate, rare change should keep calling {@link #save()} directly - immediate persistence
+		 * there is the correct behavior, not something to debounce away.
+		 */
+		public void saveDebounced() {
+			dirty.set(true);
+			if (debounceExecutor == null) {
+				startDebounceScheduler();
+			}
+		}
+
+		private synchronized void startDebounceScheduler() {
+			if (debounceExecutor != null) {
+				return;
+			}
+			debounceExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+				Thread thread = new Thread(runnable, "skymelloo-config-save-debounce");
+				thread.setDaemon(true);
+				return thread;
+			});
+			debounceExecutor.scheduleWithFixedDelay(this::saveIfDirty, SAVE_DEBOUNCE_SECONDS, SAVE_DEBOUNCE_SECONDS, TimeUnit.SECONDS);
+			Runtime.getRuntime().addShutdownHook(new Thread(this::saveIfDirty, "skymelloo-config-save-shutdown-flush"));
+		}
+
+		private void saveIfDirty() {
+			if (dirty.compareAndSet(true, false)) {
+				save();
 			}
 		}
 	}

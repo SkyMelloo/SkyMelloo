@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Syncs SkyMelloo settings to sky.melloo.me - requires BOTH an explicit opt-in toggle
- * ({@code cloudSyncEnabled}, on by default) AND a linked Minecraft account; account-linking alone
+ * ({@code cloudSyncEnabled}, off by default) AND a linked Minecraft account; account-linking alone
  * isn't treated as consent to sync settings data, only as the technical prerequisite for there being
  * a persistent identity to sync against at all.
  * <p>

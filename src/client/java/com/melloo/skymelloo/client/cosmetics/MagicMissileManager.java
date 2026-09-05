@@ -139,7 +139,7 @@ public final class MagicMissileManager {
 		// animation) and cheap insurance against ever needing a non-punch trigger path again.
 		player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 		config.totalSpellsCast++;
-		SkyMellooConfig.HANDLER.save();
+		SkyMellooConfig.HANDLER.saveDebounced();
 		String spellType = config.magicMissileSpellType;
 		if ("LIGHTNING".equalsIgnoreCase(spellType)) {
 			triggerLightning(client, player);
@@ -397,7 +397,7 @@ public final class MagicMissileManager {
 		// smaller and less interesting number for the Last Kills list to show.
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		config.totalMagicMissileKills++;
-		SkyMellooConfig.HANDLER.save();
+		SkyMellooConfig.HANDLER.saveDebounced();
 		recentKills.addFirst(new RecentKill(hitPlayer.getGameProfile(), System.currentTimeMillis(), config.totalMagicMissileKills));
 		while (recentKills.size() > MAX_RECENT_KILLS) {
 			recentKills.removeLast();
@@ -643,7 +643,7 @@ public final class MagicMissileManager {
 		}
 		killAnnounceCooldownUntil.put(uuid, currentTick + KILL_ANNOUNCE_COOLDOWN_TICKS);
 		config.totalPlayersKilled++;
-		SkyMellooConfig.HANDLER.save();
+		SkyMellooConfig.HANDLER.saveDebounced();
 		String key = pickKillMessageTemplate();
 		Component text = Component.translatable(key, hitPlayer.getName().getString(), config.totalPlayersKilled);
 		// Always LOCAL-only, never sent to party.
@@ -942,7 +942,7 @@ public final class MagicMissileManager {
 			if (entity.position().distanceToSqr(playerPos) <= ESSENCE_COLLECT_DISTANCE_SQ) {
 				SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 				config.totalSpellEssenceCollected++;
-				SkyMellooConfig.HANDLER.save();
+				SkyMellooConfig.HANDLER.saveDebounced();
 				// Just a counter tick + sound/particles, deliberately NOT the real inventory - that was
 				// a misunderstanding of an earlier report about a different (now-removed) fake-gear-drop
 				// feature, not essence. Essence is just "collected".

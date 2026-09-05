@@ -4,6 +4,10 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.44.3 (from 0.44.2) · patch
+
+Debounced disk I/O that was previously happening several times a second: DebugLog now flushes at most every 5s (writes still happen immediately, just the disk sync is batched) instead of syncing on every single log line, and Magic Missile's cast/kill/kill-announce/essence-collect counters now go through a new debounced config save instead of writing the whole config file on every single event. Both still do a final flush on JVM shutdown so a normal game close doesn't lose anything recent. Fixed a stale comment claiming cloud sync defaults to on - it's off by default and has been for a while.
+
 ## 0.44.2 (from 0.44.1) · patch
 
 Fixed the real cause of player heads showing no custom skin: `PropertyMap`'s own constructor always copies its argument into an `ImmutableMultimap`, no matter what's passed in - putting into the map had to happen before construction, not after. The debug lore from 0.44.1 is no longer always on; `/sm debug items` toggles it, matching the existing `/sm debug hm-bar`/`bossroom`/`score` pattern instead of hardcoding a diagnostic into a release build.
