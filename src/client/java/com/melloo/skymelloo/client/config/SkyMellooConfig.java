@@ -10,8 +10,10 @@ import java.awt.Color;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -64,11 +66,29 @@ public final class SkyMellooConfig {
 						instance = loaded;
 						return;
 					}
-				} catch (IOException ignored) {
-					// Falls through to a fresh default config below.
+					// Valid JSON but not a config object (e.g. a bare "null") - nothing to recover,
+					// falls through to fresh defaults below like any other unusable file.
+				} catch (IOException | com.google.gson.JsonParseException e) {
+					// Malformed JSON (JsonParseException - NOT an IOException, so the old
+					// `catch (IOException ignored)` here never actually caught it) used to propagate
+					// straight out of load() uncaught, which meant a corrupted config file crashed
+					// mod initialization outright instead of falling back to defaults like a real I/O
+					// error already did. Back up the broken file first - a config-eating bug should
+					// never silently vaporize someone's settings with zero trace of what happened.
+					backupBrokenConfig();
 				}
 			}
 			instance = new SkyMellooConfig();
+		}
+
+		private void backupBrokenConfig() {
+			try {
+				Path backup = FILE.resolveSibling(FILE.getFileName() + ".broken-" + System.currentTimeMillis());
+				Files.move(FILE, backup, StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException ignored) {
+				// Best-effort - a failed backup still isn't worth blocking startup over; the corrupt
+				// file is simply overwritten by the next real save() instead.
+			}
 		}
 
 		public void save() {
@@ -77,8 +97,19 @@ public final class SkyMellooConfig {
 			}
 			try {
 				Files.createDirectories(FILE.getParent());
-				try (Writer writer = Files.newBufferedWriter(FILE)) {
+				// Write-temp + atomic move instead of writing straight to the real file - a crash or
+				// power loss mid-write can now only ever leave the .tmp file behind, never a half-
+				// written/corrupt real config that load() above would otherwise have to recover from.
+				Path tempFile = FILE.resolveSibling(FILE.getFileName() + ".tmp");
+				try (Writer writer = Files.newBufferedWriter(tempFile)) {
 					GSON.toJson(instance, writer);
+				}
+				try {
+					Files.move(tempFile, FILE, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+				} catch (AtomicMoveNotSupportedException e) {
+					// Rare (some network drives) - falls back to a plain replace. Not perfectly
+					// crash-safe there, but no worse than this method's behavior before this fix.
+					Files.move(tempFile, FILE, StandardCopyOption.REPLACE_EXISTING);
 				}
 			} catch (IOException e) {
 				throw new RuntimeException("Could not save SkyMelloo config", e);
