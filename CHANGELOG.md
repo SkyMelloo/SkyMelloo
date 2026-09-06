@@ -4,6 +4,15 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.44.6 (from 0.44.5) · patch
+
+The party-member low-HP blink (highlight flashes red under 25% HP) now only runs during an active
+dungeon run, matching the restriction the party HUD's own HP% display already applies. Outside a
+dungeon, Hypixel doesn't keep another player's vanilla health attribute in sync with their real
+SkyBlock HP at all, so the health%/maxHealth% ratio this checked was close to arbitrary - a
+perfectly healthy party member could sit there blinking red non-stop for no real reason (reported
+live: a 130 HP player outside a dungeon, blinking constantly).
+
 ## 0.44.5 (from 0.44.4) · patch
 
 Hardened config load/save against a corrupt file or a crash mid-write. Saves now write to a temp file and atomically move it into place instead of writing straight to the real config, so a crash or power loss mid-save can no longer leave a half-written/corrupt file behind. Loading a corrupt config used to actually crash mod init outright (malformed JSON throws a RuntimeException, which the old code's `catch (IOException ...)` never caught) - it now backs the broken file up as `.broken-<timestamp>` and starts from defaults instead, same as it already did for a real I/O error.

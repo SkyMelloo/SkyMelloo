@@ -229,10 +229,22 @@ public final class HighlightManager {
 	 * Blinks (alternates every ~400ms) rather than just going solid red, so it's noticeably distinct
 	 * from a static color choice. Returns {@code null} (not {@code normalColor}) when the blink
 	 * shouldn't apply, matching the override hook's own null-means-"leave as-is" contract.
+	 * <p>
+	 * Dungeon-only, same restriction {@link com.melloo.skymelloo.client.party.PartyHud}'s own HP%
+	 * display already applies (see its {@code subInfoLines}) - Hypixel only keeps another player's
+	 * vanilla health attribute meaningfully in sync with their real SkyBlock HP during an active
+	 * dungeon run. Outside one, {@code getHealth()/getMaxHealth()} for a party member is close to
+	 * arbitrary, so this used to blink constantly for anyone whose real (large, SkyBlock-scaled) HP
+	 * happened to sit under whatever fraction that stale vanilla attribute pair worked out to -
+	 * reported live: a player sitting at a perfectly healthy 130 HP outside a dungeon, blinking red
+	 * non-stop.
 	 */
 	public static Integer partyBlinkOverride(java.util.UUID uuid, int normalColor) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		if (!config.lowHpBlinkEnabled) {
+			return null;
+		}
+		if (!com.melloo.skymelloo.client.social.DungeonRunTracker.isRunActive()) {
 			return null;
 		}
 		Minecraft client = Minecraft.getInstance();
