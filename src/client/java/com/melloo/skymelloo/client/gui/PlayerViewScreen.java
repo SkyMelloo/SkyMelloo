@@ -137,6 +137,19 @@ public class PlayerViewScreen extends Screen {
 		errorMessage = null;
 		long thisRequest = ++requestId;
 
+		// Same reasoning and fire-and-forget shape as PartyHudManager#forceRefreshAll: the summary
+		// fetch below hits the sky.melloo.me backend, which has its own separate 3-5 minute profile
+		// cache on top of whatever this screen itself does - without this, opening /sm view on
+		// someone right after they changed gear/levels/etc. could show a stale snapshot for up to 5
+		// minutes even though Hypixel itself already has the current data. A 429 here (someone else
+		// already refreshed this account in the last 10 minutes server-side) is a fine outcome, not
+		// a real failure - same small, accepted race as PartyHudManager's version: this fetch and the
+		// refresh both fire at once, so the fetch can still occasionally beat the refresh completing,
+		// but that's never worse than not requesting a refresh at all.
+		ModAuthManager.getIdentity(Minecraft.getInstance())
+				.thenCompose(identity -> SkyMellooApiClient.requestRefresh(username, identity))
+				.exceptionally(error -> null);
+
 		ModAuthManager.getIdentity(Minecraft.getInstance()).thenCompose(identity -> SkyMellooApiClient.fetchProfileNames(username, identity))
 				.whenComplete((names, err) ->
 						Minecraft.getInstance().execute(() -> {

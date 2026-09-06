@@ -4,6 +4,14 @@ Internal dev version history - every entry below used to live as a giant stacked
 
 > Versioning scheme (set 2026-07-26): PATCH (3rd number) for small bugfixes, MINOR (2nd number, patch reset to 0) for bigger added features, MAJOR (1st number) only ever bumped on explicit instruction. Bumped 0.0.0 -> 0.1.0 the same day after a whole batch of real features shipped (room grouping on the map, non-mod-user position reporting, redesigned cosmetics, the mod signing/integrity system, /sm info+version, etc.) without ever actually bumping the version - this scheme must be applied on every future change from here on, not just remembered once. The backend checks this against a minimum-compatible version on join (see ModVersionManager) and separately nudges (without disabling anything) if it's merely behind the latest release - see MIN_CLIENT_VERSION/LATEST_CLIENT_VERSION in server.js, which must stay in lockstep with whatever's released here.
 
+## 0.44.7 (from 0.44.6) · patch
+
+`/sm view` now forces the backend to bypass its own 3-5 minute profile cache and pull fresh from
+Hypixel before fetching, same `requestRefresh` call PartyHudManager already fires when a dungeon
+run starts. Without this, opening the view on someone right after they changed gear/levels/etc.
+could keep showing a stale snapshot for up to 5 minutes even though Hypixel itself already had the
+current data.
+
 ## 0.44.6 (from 0.44.5) · patch
 
 The party-member low-HP blink (highlight flashes red under 25% HP) now only runs during an active
