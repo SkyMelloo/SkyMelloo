@@ -24,18 +24,9 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-/**
- * A fake chest-style menu, opened via {@link SkyMellooMenuItemManager}'s hotbar item - the same
- * click-through-items UX Hypixel's own SkyBlock Menu uses, just for SkyMelloo's own settings. Purely
- * client-drawn (plain filled rectangles for the slot grid, matching this mod's other custom screens
- * like {@link HudLayoutEditorScreen} - no real vanilla chest texture/Container/Slot involved, since
- * there's no server-side inventory to sync with here at all).
- * <p>
- * Pages only ever produce a flat, unordered {@link MenuAction} list (icon + click handler) - this
- * screen is what turns that into a real grid, auto-flowing through a 45-slot (5-row) content area and
- * splitting into multiple sub-pages with Prev/Next arrows in the bottom corners once a page has more
- * entries than fit on one sheet. A page never has to think about slot numbers or pagination itself.
- */
+// A fake chest-style menu opened via the hotbar item, purely client-drawn (no real Container/Slot).
+// Pages produce a flat MenuAction list; this screen auto-flows it into a grid, splitting into
+// sub-pages with Prev/Next arrows once a page has more entries than fit on one sheet.
 public class SkyMellooMenuScreen extends Screen {
 	private record MenuAction(ItemStack icon, Runnable onClick, Runnable onRightClick) {
 		MenuAction(ItemStack icon, Runnable onClick) {
@@ -54,12 +45,12 @@ public class SkyMellooMenuScreen extends Screen {
 
 		List<MenuAction> buildActions(SkyMellooMenuScreen screen);
 
-		/** Optional, pinned to the bottom-right corner slot regardless of how the normal flowing entries fill up - see {@link MainPage#cornerAction}. */
+		// Optional, pinned to the bottom-right corner slot regardless of how entries fill up.
 		default MenuAction cornerAction(SkyMellooMenuScreen screen) {
 			return null;
 		}
 
-		/** Optional, pinned to the nav row right next to the Back arrow. */
+		// Optional, pinned to the nav row right next to the Back arrow.
 		default MenuAction navExtraAction(SkyMellooMenuScreen screen) {
 			return null;
 		}
@@ -84,7 +75,7 @@ public class SkyMellooMenuScreen extends Screen {
 		pageStack.push(new MainPage());
 	}
 
-	/** Resolves a translation key to its display string, for lore/name text built via concatenation. */
+	// Resolves a translation key to its display string, for lore/name text built via concatenation.
 	private static String tr(String key) {
 		return Component.translatable(key).getString();
 	}
@@ -108,11 +99,8 @@ public class SkyMellooMenuScreen extends Screen {
 		int end = Math.min(start + CONTENT_SLOTS, actions.size());
 
 		entries = new ArrayList<>();
-		// Centered in the content grid rather than always flowing from the top-left corner - a page
-		// with only a handful of entries (most of them) used to leave everything crammed up top
-		// instead of looking like an intentional, finished layout. Full rows are left as-is (an
-		// entirely full row has no "center" to speak of); only a final partial row gets horizontally
-		// centered, and the whole block is centered vertically within the 5 content rows.
+		// Centered in the content grid rather than flowing from the top-left corner. Full rows are
+		// left as-is; only a final partial row is horizontally centered, and the whole block vertically.
 		int itemsOnSheet = end - start;
 		int contentRows = ROWS - 1;
 		int rowsNeeded = Math.max(1, (int) Math.ceil(itemsOnSheet / (double) COLS));
@@ -243,15 +231,13 @@ public class SkyMellooMenuScreen extends Screen {
 		return stack;
 	}
 
-	// Styled after Hypixel's own SkyBlock Menu tooltip (title + "(Click)", description, yellow
-	// "Click to open!") but in this mod's pink rather than Hypixel's green, matching the pink-dye
-	// theming used everywhere else in this menu.
+	// Styled after Hypixel's own SkyBlock Menu tooltip, in this mod's pink rather than Hypixel's green.
 	private static MenuAction linkAction(Item item, String name, String description, Page target, SkyMellooMenuScreen screen) {
 		ItemStack icon = named(item, tr("skymelloo.gui.menu.format.link_title", name), List.of(tr("skymelloo.gui.menu.format.description_line", description), "", tr("skymelloo.gui.menu.link.click_to_open")));
 		return new MenuAction(icon, () -> screen.push(target));
 	}
 
-	/** Green/gray wool, "click to enable/disable" - the standard on/off representation used throughout every settings page below. */
+	// Green/gray wool, "click to enable/disable" - the standard on/off representation used throughout.
 	private static ItemStack toggleIcon(boolean on, String name, String description) {
 		return named(on ? Items.LIME_WOOL : Items.GRAY_WOOL, tr(on ? "skymelloo.gui.menu.format.toggle_name_on" : "skymelloo.gui.menu.format.toggle_name_off", name),
 				List.of(tr("skymelloo.gui.menu.format.description_line", description), "", on ? tr("skymelloo.gui.menu.toggle.enabled") : tr("skymelloo.gui.menu.toggle.disabled")));
@@ -265,12 +251,12 @@ public class SkyMellooMenuScreen extends Screen {
 		});
 	}
 
-	/** A LOCAL/PARTY delivery setting - cycles on click rather than a plain on/off. */
+	// A LOCAL/PARTY delivery setting - cycles on click rather than a plain on/off.
 	private static MenuAction deliveryAction(String name, String description, Supplier<String> getter, Consumer<String> setter, SkyMellooMenuScreen screen) {
 		return cycleAction(Items.PAPER, name, description, getter, setter, new String[] { "LOCAL", "PARTY", "PARTY SM" }, screen);
 	}
 
-	/** Any small fixed set of string options (not just LOCAL/PARTY) - cycles to the next option on click, wrapping around. */
+	// Any small fixed set of string options - cycles to the next option on click, wrapping around.
 	private static MenuAction cycleAction(Item item, String name, String description, Supplier<String> getter, Consumer<String> setter, String[] options, SkyMellooMenuScreen screen) {
 		String current = getter.get();
 		int index = 0;
@@ -303,9 +289,7 @@ public class SkyMellooMenuScreen extends Screen {
 			list.add(linkAction(Items.WRITABLE_BOOK, tr("skymelloo.gui.menu.link.settings.name"), tr("skymelloo.gui.menu.link.settings.description"), new SettingsPage(), screen));
 			list.add(linkAction(Items.BLAZE_ROD, tr("skymelloo.gui.menu.link.spells.name"), tr("skymelloo.gui.menu.link.spells.description"), new SpellsPage(), screen));
 			if (com.melloo.mellooessentials.client.config.EssentialsConfig.get().cosmeticsEnabled) {
-				// Opens MellooEssentials' own settings screen directly (straight to its Cosmetics tab)
-				// instead of maintaining a second, duplicate cosmetics UI here - see that screen's own
-				// two-arg constructor.
+				// Opens MellooEssentials' own Cosmetics tab directly, instead of a duplicate UI here.
 				list.add(new MenuAction(named(Items.FIREWORK_STAR, tr("skymelloo.gui.menu.link.cosmetics.name"), List.of(tr("skymelloo.gui.menu.link.cosmetics.lore_1"), "", tr("skymelloo.gui.menu.link.cosmetics.lore_2"))), () ->
 						Minecraft.getInstance().setScreen(new com.melloo.mellooessentials.client.gui.SettingsScreen(screen, true))));
 			}
@@ -320,13 +304,8 @@ public class SkyMellooMenuScreen extends Screen {
 		}
 	}
 
-	// The credit list itself (names/roles) is cached across screen instances - that part changes
-	// rarely, no need to re-fetch just for re-opening the menu. The per-entry online/offline status
-	// is NOT stable like that though - it should
-	// actually update live, so once the Credits page is open, creditsRefreshRunning drives a
-	// periodic re-fetch (see ensureRefreshRunning/scheduleCreditsRefresh) that stops itself the
-	// moment the page/screen is no longer the Credits page, rather than refreshing forever in the
-	// background after it's closed.
+	// The credit list is cached across screen instances; per-entry online status isn't, so
+	// creditsRefreshRunning drives a periodic re-fetch while the Credits page is open (see below).
 	private static List<SkyMellooApiClient.CreditEntry> creditsCache = null;
 	private static boolean creditsLoading = false;
 	private static boolean creditsRefreshRunning = false;
@@ -340,10 +319,7 @@ public class SkyMellooMenuScreen extends Screen {
 		@Override
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			List<MenuAction> list = new ArrayList<>();
-			// Required disclaimer (Minecraft Brand and Asset Usage Guidelines) - shown here rather
-			// than on every page, since Credits is the one place a player is already reading "who
-			// made this", the same context this belongs in. Not clickable, same treatment as the
-			// "Loading..."/"No credits yet" placeholder entries below.
+			// Required Minecraft Brand and Asset Usage Guidelines disclaimer. Not clickable.
 			list.add(new MenuAction(named(Items.PAPER, tr("skymelloo.gui.menu.credits.about.name"), List.of(
 					tr("skymelloo.gui.menu.credits.about.lore_1"),
 					tr("skymelloo.gui.menu.credits.about.lore_2"),
@@ -394,9 +370,7 @@ public class SkyMellooMenuScreen extends Screen {
 			}
 		}
 
-		/** Starts the periodic online-status refresh loop the first time the Credits page actually
-		 * shows entries, if it isn't already running - guarded so re-opening the page while a loop
-		 * from an earlier open is already ticking doesn't stack a second one. */
+		// Guarded so re-opening the page while a loop from an earlier open is ticking doesn't stack a second one.
 		private static void ensureRefreshRunning() {
 			if (creditsRefreshRunning) {
 				return;
@@ -405,14 +379,11 @@ public class SkyMellooMenuScreen extends Screen {
 			scheduleCreditsRefresh();
 		}
 
-		// 5s - frequent enough that the online dot feels live (matches the mod's own presence report
-		// cadence closely), without hammering /api/credits, which itself does a small Mojang lookup
-		// per credited account server-side.
+		// 5s - live-feeling without hammering /api/credits, which does a Mojang lookup per account.
 		private static void scheduleCreditsRefresh() {
 			TickDelay.schedule(100, () -> {
 				if (!(Minecraft.getInstance().screen instanceof SkyMellooMenuScreen current) || !(current.pageStack.peek() instanceof CreditsPage)) {
-					// Menu closed, or navigated to a different page - stop refreshing in the
-					// background; ensureRefreshRunning() restarts this the next time Credits opens.
+					// Stops in the background; ensureRefreshRunning() restarts this the next time Credits opens.
 					creditsRefreshRunning = false;
 					return;
 				}
@@ -439,7 +410,7 @@ public class SkyMellooMenuScreen extends Screen {
 		}
 	}
 
-	/** Links out to each dungeon settings category below - mirrors the section headers in the real settings screen 1:1, just navigable as menu items instead of a scrolling list. */
+	// Mirrors the section headers in the real settings screen, navigable as menu items instead of a scrolling list.
 	private static final class DungeonsHubPage implements Page {
 		@Override
 		public String title() {
@@ -733,7 +704,7 @@ public class SkyMellooMenuScreen extends Screen {
 		}
 	}
 
-	/** Landing page for the Spells section - just three links, each opening straight into its own full page rather than mixing switch/stats/kills into one flat list. */
+	// Landing page for the Spells section - links into switch/color/stats/kills, each its own page.
 	private static final class SpellsPage implements Page {
 		@Override
 		public String title() {
@@ -752,7 +723,7 @@ public class SkyMellooMenuScreen extends Screen {
 		}
 	}
 
-	/** Same 12-color palette as SkyMellooSettingsScreen's own color dropdown - moved here so the spell's color is fully configurable from this item-menu too, not just the (now-removed) Fun settings tab. */
+	// Same 12-color palette as SkyMellooSettingsScreen's own color dropdown.
 	private static final class SpellColorPage implements Page {
 		private static final int[] COLOR_PALETTE = {
 				0xFFFF5555, 0xFFFFAA00, 0xFFFFFF55, 0xFF55FF55, 0xFF55FFFF,
@@ -802,8 +773,6 @@ public class SkyMellooMenuScreen extends Screen {
 		public List<MenuAction> buildActions(SkyMellooMenuScreen screen) {
 			SkyMellooConfig c = SkyMellooConfig.HANDLER.instance();
 			List<MenuAction> list = new ArrayList<>();
-			// Previously the only way to stop casting entirely was the separate full settings screen's
-			// "Spell" toggle, not reachable from this quick menu at all.
 			// Off is just another selectable entry here, same as any spell type.
 			list.add(offAction(c, screen));
 			list.add(spellTypeAction(Items.SNOWBALL, tr("skymelloo.gui.menu.spell_type.icy.name"), "MISSILE", tr("skymelloo.gui.menu.spell_type.icy.description"), c, screen));
