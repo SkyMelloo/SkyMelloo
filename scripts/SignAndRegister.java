@@ -12,18 +12,8 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Signs and registers a build's release entry, run by Gradle's "signAndRegisterBuild" task right
- * after every build:
- *   1. Hashes ONLY this build's own compiled classes (com/melloo/skymelloo/*.class), same
- *      scoped-hash approach as ModVersionManager's own runtime check.
- *   2. Signs {version}:{hash} with the Ed25519 private key that lives ONLY on this machine
- *      (~/.skymelloo-signing/private_key.pem), never in either repo. The server independently
- *      verifies the signature against the matching public key before trusting anything.
- *   3. POSTs {version, hash, signature} to sky.melloo.me, authenticated with a separate shared
- *      token (not the private key).
- * Never fails the actual Gradle build - every real error here is caught and logged, not thrown.
- */
+// Hashes this build's own compiled classes, signs {version}:{hash} with a private key that lives
+// only on this machine, and POSTs it to sky.melloo.me. Every error is caught, never fails the build.
 public class SignAndRegister {
     public static void main(String[] args) {
         try {
@@ -33,9 +23,8 @@ public class SignAndRegister {
             }
             String version = args[0];
             Path jarPath = Paths.get(args[1]);
-            // Required by build.gradle's requireChangelog task before this even runs - defaulted to
-            // "" defensively rather than crashing. Read from a file path, not a raw CLI arg, since
-            // gradlew.bat's cmd.exe re-invocation mangles special characters in multi-line values.
+            // Read from a file path, not a raw CLI arg, since gradlew.bat's cmd.exe re-invocation
+            // mangles special characters in multi-line values.
             String changelog = "";
             if (args.length >= 3) {
                 try {
@@ -90,7 +79,7 @@ public class SignAndRegister {
         }
     }
 
-    /** Same scoped-hash approach as ModVersionManager#computeOwnJarHash on the mod side - hashes ONLY com/melloo/skymelloo/*.class, opened via the jar's own zip filesystem, in a stable sorted order. */
+    // Same scoped-hash approach as ModVersionManager#computeOwnJarHash: only com/melloo/skymelloo/*.class.
     private static String hashOwnClasses(Path jarPath) throws Exception {
         try (FileSystem zipFs = FileSystems.newFileSystem(jarPath)) {
             Path packageRoot = zipFs.getPath("com", "melloo", "skymelloo");
@@ -129,8 +118,7 @@ public class SignAndRegister {
         return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(der));
     }
 
-    /** Escapes backslash/quote/newline/control characters for embedding in a JSON string body. */
-    /** Set by Gradle from the site_url property, so a build registers against whichever deployment it targets. */
+    // Set by Gradle from the site_url property, so a build registers against whichever deployment it targets.
     private static String siteUrl() {
         String value = System.getenv("SKYMELLOO_SITE_URL");
         if (value == null || value.isBlank()) {
@@ -139,6 +127,7 @@ public class SignAndRegister {
         return value.replaceAll("/+$", "");
     }
 
+    // Escapes backslash/quote/newline/control characters for embedding in a JSON string body.
     private static String escapeJson(String s) {
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")

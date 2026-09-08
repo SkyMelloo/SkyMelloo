@@ -10,24 +10,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Same job as {@link ForcedInvisibilityExtractionMixin}, but for real players specifically - the
- * actual root cause of armor/held-item/head staying visible on hit real players. Confirmed via
- * javap: {@code AvatarRenderer} (Mojang's renamed {@code PlayerRenderer}) declares its OWN override
- * of the untyped {@code extractRenderState(Entity, EntityRenderState, float)} bridge rather than
- * inheriting {@link net.minecraft.client.renderer.entity.LivingEntityRenderer}'s body unchanged -
- * so the TAIL inject in {@link ForcedInvisibilityExtractionMixin} (which targets that base-class
- * method) never actually runs for players at all; virtual dispatch calls AvatarRenderer's own
- * override instead. That's why the flag this sets was never true for real players, no matter how
- * clearly {@link MagicMissileManager#isTemporarilyInvisible} said they should be. Mixing directly
- * into AvatarRenderer's own override fixes that at the actual call site.
- * <p>
- * Also applies the Levitate spell's actual visual position lock here (see
- * {@link MagicMissileManager#getLevitateRenderOverride}) - THIS is the mixin that actually matters
- * for that, since Levitate only ever targets real players, which go through AvatarRenderer
- * specifically per the above. Locks X/Z as well as Y so the target can't visibly wander off
- * mid-animation while still under their own movement control.
- */
+// Same job as ForcedInvisibilityExtractionMixin, but for real players: AvatarRenderer overrides
+// extractRenderState itself, so a base-class inject never fires. Also locks Levitate's X/Y/Z here.
 @Mixin(AvatarRenderer.class)
 public abstract class AvatarForcedInvisibilityExtractionMixin {
 	@Inject(
