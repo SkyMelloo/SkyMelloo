@@ -9,19 +9,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Same idea as {@link ArmorInvisibilityMixin} but for held items - vanilla renders a held item
- * even on an otherwise-invisible entity, so without this the magic-missile-hit/death-double
- * "invisible" cases would still show a floating held item. Same {@link ForcedInvisibilityHolder}
- * fix as {@link ArmorInvisibilityMixin} - checks that instead of the vanilla flag, which is also
- * true for genuinely-invisible entities that should keep their held item visible as normal.
- * <p>
- * Targets the untyped {@code submit(..., EntityRenderState, ...)} overload, not the generically-typed
- * {@code submit(..., ArmedEntityRenderState, ...)} one - confirmed as a real, reported bug that the
- * typed overload alone never actually fires (same generics-bridge-method situation already documented
- * and worked around in {@link ForcedInvisibilityExtractionMixin} for {@code extractRenderState}; this
- * layer has the identical typed/untyped pair, and the untyped one is what's genuinely called).
- */
+// Same idea as ArmorInvisibilityMixin but for held items: vanilla renders a held item even on an
+// otherwise-invisible entity. Targets the untyped submit overload - the typed one never fires.
 @Mixin(ItemInHandLayer.class)
 public abstract class HeldItemInvisibilityMixin {
 	@Inject(
