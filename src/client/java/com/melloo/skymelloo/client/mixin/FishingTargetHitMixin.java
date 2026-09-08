@@ -7,11 +7,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Detects clicking a fishing-minigame target. Targets sit 5-10 blocks out, beyond normal
- * interaction reach, so {@code Minecraft.hitResult} never picks them up - an explicit aim-cone
- * check against the tracked targets is used instead. Read-only: never touches the callback.
- */
+// Detects clicking a fishing-minigame target, which sit beyond normal interaction reach, so
+// hitResult never picks them up - an explicit aim-cone check is used instead.
 @Mixin(Minecraft.class)
 public abstract class FishingTargetHitMixin {
 

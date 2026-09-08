@@ -7,11 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Forces the vanilla glow-outline (the same effect used by the Glowing status effect,
- * which already renders through walls) onto entities selected by {@link HighlightManager}.
- * Purely client-side rendering: no packets are sent, no server-side entity state changes.
- */
+// Forces the vanilla glow-outline onto entities HighlightManager selects. Purely client-side.
 @Mixin(Entity.class)
 public abstract class EntityGlowMixin {
 
