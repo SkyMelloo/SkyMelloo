@@ -16,8 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Locale;
 
 // Turns Hypixel's "Failed to load resource pack!" disconnect into a clear toast, and clears both
-// the vanilla resource-pack cache and Lunar Client's own separate cache (see LunarPackCacheCleaner)
-// - clearing only the vanilla one left Lunar still serving the same bad cached copy on reconnect.
+// the vanilla resource-pack cache and Lunar Client's own separate cache (see LunarPackCacheCleaner).
 @Mixin(DisconnectedScreen.class)
 public abstract class ResourcePackFailureToastMixin {
 	@Shadow
