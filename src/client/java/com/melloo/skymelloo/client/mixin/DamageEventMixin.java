@@ -11,13 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * The server sends this packet for every hit an entity takes (not just the killing blow), purely so
- * the client can play the right hurt sound/animation - it carries a real {@link DamageSource}
- * (attacker entity included), unlike the local player's own damage calculation which happens entirely
- * server-side and never runs client-side at all. Repurposed by {@link DeathRecapManager} to build a
- * real "what hit me" combat log instead of guessing at the nearest hostile mob.
- */
+// The server sends this for every hit, carrying a real DamageSource (attacker included).
+// Repurposed by DeathRecapManager to build a real combat log instead of guessing the nearest mob.
 @Mixin(ClientPacketListener.class)
 public abstract class DamageEventMixin {
 
