@@ -7,14 +7,8 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-/**
- * SkyMelloo's own outlined/glow button style - a translucent fill + outline in a given accent
- * color, brightening on hover, instead of vanilla's grey 9-slice {@link net.minecraft.client.gui.components.Button}.
- * Extracted from SocialMenuScreen - the Settings screen's Report a Bug button had been added using
- * a plain vanilla Button, the only place in the mod's UI that didn't match this look, so every
- * screen can share the
- * exact same widget instead of each screen keeping its own private copy.
- */
+// SkyMelloo's own outlined/glow button style - translucent fill + outline in an accent color,
+// brightening on hover, instead of vanilla's grey 9-slice Button.
 public final class SkyMellooButtonWidget extends AbstractWidget {
 	public static final int PINK = 0xFFFF6EC7;
 	public static final int RED = 0xFFFF5555;

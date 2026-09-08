@@ -6,14 +6,8 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-/**
- * Persistent fishing-minigame combo/score display, centered just above the hotbar by default -
- * deliberately NOT using the vanilla actionbar ({@code setOverlayMessage}), since Hypixel's own
- * health/mana/defense HUD keeps overwriting that every tick, making text posted there barely
- * visible. Only shows while there's an active chain ({@link FishingMinigameManager#isDisplayActive()}).
- * Position is configurable via the HUD layout editor (default J) - a -1 sentinel means "use the
- * default centered-above-hotbar position", since that position depends on the current window size.
- */
+// Persistent fishing-minigame combo/score display. Not the vanilla actionbar, since Hypixel's own
+// health/mana/defense HUD overwrites that every tick. A -1 position sentinel means "use default".
 public final class FishingScoreHud implements HudElement {
 	private static final int DEFAULT_BOTTOM_MARGIN = 58;
 	private static final long RECENT_HIT_WINDOW_MS = 1000;
