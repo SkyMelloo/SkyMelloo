@@ -5,15 +5,12 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * Real line-of-sight check via a block raycast from the player's eyes - used to gate chest and
- * item highlighting so they only ever show when actually visible, never through solid blocks.
- */
+// Real line-of-sight check via a block raycast from the player's eyes, gating chest/item
+// highlighting so they never show through solid blocks. Fails open if there's no player/level.
 public final class VisibilityUtil {
 	private VisibilityUtil() {
 	}
 
-	/** Whether nothing solid blocks the straight line from the player's eyes to {@code targetPos}. Fails open (returns true) if there's no player/level to raycast against at all. */
 	public static boolean hasLineOfSight(Vec3 targetPos) {
 		Minecraft client = Minecraft.getInstance();
 		if (client.player == null || client.level == null) {
@@ -25,8 +22,7 @@ public final class VisibilityUtil {
 		if (hit.getType() == HitResult.Type.MISS) {
 			return true;
 		}
-		// Hit something - only actually visible if that something IS the target itself (or close
-		// enough to it), not a different block sitting in between eye and target.
+		// Only visible if what was hit is close enough to be the target itself, not a blocking block.
 		return hit.getLocation().distanceToSqr(targetPos) < 1.0;
 	}
 }
