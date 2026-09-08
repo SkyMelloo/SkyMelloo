@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/** "/skymelloo view &lt;player&gt;" - the website's player-stats view in game, read-only. */
+// "/skymelloo view <player>" - the website's player-stats view in game, read-only.
 public class PlayerViewScreen extends Screen {
 	private static final int PANEL_BG = 0xE8101014;
 	private static final int CARD_BG = 0x18FFFFFF;
@@ -57,7 +57,6 @@ public class PlayerViewScreen extends Screen {
 		}
 	}
 
-	/** Whether a tab needs the inventory endpoint, which is fetched separately from the summary. */
 	private static boolean needsInventory(Tab tab) {
 		return tab == Tab.GEAR || tab == Tab.ACCESSORIES || tab == Tab.INVENTORY || tab == Tab.SACKS;
 	}
@@ -69,7 +68,7 @@ public class PlayerViewScreen extends Screen {
 	private record Row(int height, RowFactory factory) {
 	}
 
-	/** One slot in a grid. A null tooltip means draw the stack's own item tooltip. */
+	// A null tooltip means draw the stack's own item tooltip.
 	private record GridEntry(ItemStack stack, String countLabel, List<Component> tooltip, int tierColor) {
 	}
 
@@ -101,7 +100,6 @@ public class PlayerViewScreen extends Screen {
 		this.skin = new PlayerSkinPanel(username);
 	}
 
-	/** Resolves a translation key to its display string, for row labels rendered as raw text. */
 	private static String tr(String key) {
 		return Component.translatable(key).getString();
 	}
@@ -137,15 +135,8 @@ public class PlayerViewScreen extends Screen {
 		errorMessage = null;
 		long thisRequest = ++requestId;
 
-		// Same reasoning and fire-and-forget shape as PartyHudManager#forceRefreshAll: the summary
-		// fetch below hits the sky.melloo.me backend, which has its own separate 3-5 minute profile
-		// cache on top of whatever this screen itself does - without this, opening /sm view on
-		// someone right after they changed gear/levels/etc. could show a stale snapshot for up to 5
-		// minutes even though Hypixel itself already has the current data. A 429 here (someone else
-		// already refreshed this account in the last 10 minutes server-side) is a fine outcome, not
-		// a real failure - same small, accepted race as PartyHudManager's version: this fetch and the
-		// refresh both fire at once, so the fetch can still occasionally beat the refresh completing,
-		// but that's never worse than not requesting a refresh at all.
+		// Fire-and-forget refresh request so opening /sm view right after a stat change doesn't show
+		// a stale cached snapshot for up to 5 minutes. A 429 (already refreshed recently) is fine.
 		ModAuthManager.getIdentity(Minecraft.getInstance())
 				.thenCompose(identity -> SkyMellooApiClient.requestRefresh(username, identity))
 				.exceptionally(error -> null);
@@ -187,7 +178,7 @@ public class PlayerViewScreen extends Screen {
 		}
 	}
 
-	/** Separate from the summary - only fetched once, and only for the tabs that actually show items. */
+	// Separate from the summary - only fetched once, for tabs that actually show items.
 	private void loadInventory(long thisRequest) {
 		if (inventory != null || inventoryLoading) {
 			return;
@@ -230,7 +221,6 @@ public class PlayerViewScreen extends Screen {
 		buildRows();
 	}
 
-	/** Rebuilds the profile-pill row and tab bar - called on init and whenever the profile list arrives. */
 	private void rebuildChrome() {
 		for (AbstractWidget widget : chromeWidgets) {
 			removeWidget(widget);
@@ -527,7 +517,6 @@ public class PlayerViewScreen extends Screen {
 		return rows;
 	}
 
-	/** Adds a loading/empty placeholder and reports whether the inventory is actually usable yet. */
 	private boolean inventoryReady(List<Row> rows) {
 		if (inventory == null) {
 			rows.add(textRow(tr(inventoryLoading ? "skymelloo.gui.player_view.loading_items" : "skymelloo.gui.player_view.no_data")));
@@ -541,7 +530,6 @@ public class PlayerViewScreen extends Screen {
 				null, SkyblockItemIcons.tierColor(item.tier()));
 	}
 
-	/** Chunks entries into rows of {@code cols} and appends them as grid rows. */
 	private void addGridRows(List<Row> rows, List<GridEntry> entries, int cols) {
 		for (int i = 0; i < entries.size(); i += cols) {
 			List<GridEntry> line = new ArrayList<>(entries.subList(i, Math.min(entries.size(), i + cols)));
@@ -553,7 +541,7 @@ public class PlayerViewScreen extends Screen {
 		return Math.max(1, (listX2 - listX1 - 6) / SLOT_PITCH);
 	}
 
-	/** Packed left to right - for gear and accessories, where the raw slot index carries no meaning. */
+	// Packed left to right - for gear and accessories, where the raw slot index carries no meaning.
 	private void addItemSection(List<Row> rows, String title, List<SkyMellooApiClient.SkyblockItem> items) {
 		List<SkyMellooApiClient.SkyblockItem> present = items.stream().filter(i -> i.name() != null).toList();
 		if (present.isEmpty()) {
@@ -564,7 +552,7 @@ public class PlayerViewScreen extends Screen {
 		rows.add(spacerRow());
 	}
 
-	/** Nine slots per row at the item's own slot index, so gaps stay where they are in game. */
+	// Nine slots per row at the item's own slot index, so gaps stay where they are in game.
 	private void addContainerSection(List<Row> rows, String title, List<SkyMellooApiClient.SkyblockItem> items, int size) {
 		List<SkyMellooApiClient.SkyblockItem> present = items.stream().filter(i -> i.name() != null).toList();
 		if (present.isEmpty()) {
@@ -584,7 +572,7 @@ public class PlayerViewScreen extends Screen {
 		rows.add(spacerRow());
 	}
 
-	/** One block per backpack, titled with its own name/size - the part of Inventory the tab was missing entirely. */
+	// One block per backpack, titled with its own name/size.
 	private void addBackpacksSection(List<Row> rows) {
 		List<SkyMellooApiClient.BackpackEntry> backpacks = inventory.backpacks();
 		if (backpacks.isEmpty()) {
@@ -617,7 +605,6 @@ public class PlayerViewScreen extends Screen {
 		}
 	}
 
-	/** Prefers the server's own level curve; falls back to the flat level map when it isn't present. */
 	private void addProgressBars(List<Row> rows, List<SkyMellooApiClient.LevelEntry> entries, Map<String, Integer> fallback, int fallbackMax) {
 		if (!entries.isEmpty()) {
 			for (SkyMellooApiClient.LevelEntry entry : entries) {
@@ -687,7 +674,6 @@ public class PlayerViewScreen extends Screen {
 		return String.valueOf(count);
 	}
 
-	/** Full number with thousands separators - for exact per-item counts (sack amounts, per-mob kills), matching the website's non-abbreviated fmtNum. */
 	private static String formatExact(long count) {
 		return String.format(Locale.US, "%,d", count);
 	}
@@ -697,7 +683,6 @@ public class PlayerViewScreen extends Screen {
 		return (totalSeconds / 60) + "m " + (totalSeconds % 60) + "s";
 	}
 
-	/** The cached stack carries the real name, lore, dye and skull texture; count and worth are per-item. */
 	private static ItemStack stackFor(SkyMellooApiClient.SkyblockItem item) {
 		ItemStack stack = SkyblockItemIcons.resolve(item.uuid(), item.raw(), item.skyblockId(), item.legacyId(), item.tier(), item.name())
 				.copyWithCount(item.count());
@@ -719,7 +704,6 @@ public class PlayerViewScreen extends Screen {
 		return new Row(ROW_H, (x, y, w, h) -> new InfoRowWidget(x, y, w, h, text, ""));
 	}
 
-	/** Blank gap so consecutive sections read as separate blocks rather than one long grid. */
 	private Row spacerRow() {
 		return new Row(6, (x, y, w, h) -> new SectionRowWidget(x, y, w, h, ""));
 	}
@@ -890,7 +874,6 @@ public class PlayerViewScreen extends Screen {
 		}
 	}
 
-	/** One row of item slots, with a real icon, count and the item's own lore as a hover tooltip. */
 	private final class ItemGridWidget extends AbstractWidget {
 		private final List<GridEntry> entries;
 
@@ -967,7 +950,6 @@ public class PlayerViewScreen extends Screen {
 		}
 	}
 
-	/** A label with a filled progress track behind it - used for skills, slayers, pets and collections. */
 	private final class BarRowWidget extends AbstractWidget {
 		private final String label;
 		private final String value;
