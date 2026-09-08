@@ -24,8 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 // Proves to sky.melloo.me that a request comes from a live, logged-in client, via the same
-// joinServer/hasJoined handshake vanilla servers use. Requests are signed with a fresh in-memory
-// Ed25519 keypair the backend only ever sees the public half of, so none can be replayed.
+// joinServer/hasJoined handshake vanilla servers use, signed with a fresh in-memory Ed25519 keypair.
 public final class ModAuthManager {
 	// Refresh a little before actual expiry so an in-flight request never races a just-expired session.
 	private static final long REFRESH_MARGIN_MS = 5 * 60 * 1000;
@@ -80,8 +79,7 @@ public final class ModAuthManager {
 
 	// Not reset on every server join - the session proves account ownership, not a specific TCP connection.
 	public static synchronized CompletableFuture<ModIdentity> getIdentity(Minecraft client) {
-		// !isDone() matters too - while a fetch is in flight, identityExpiresAt is still 0 from the
-		// previous session, so a second near-simultaneous caller would otherwise start a redundant fetch.
+		// !isDone() avoids a redundant fetch from a near-simultaneous caller while one is in flight.
 		if (identityFuture != null && (!identityFuture.isDone() || System.currentTimeMillis() < identityExpiresAt - REFRESH_MARGIN_MS)) {
 			return identityFuture;
 		}

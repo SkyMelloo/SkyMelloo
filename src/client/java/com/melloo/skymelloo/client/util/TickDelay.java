@@ -3,12 +3,8 @@ package com.melloo.skymelloo.client.util;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Runs a callback a fixed number of client ticks from now - used to stagger a sequence of actions
- * (e.g. one /pc announcement per party member) rather than firing them back-to-back, which risks
- * tripping Hypixel's own chat rate limit. Not a general-purpose scheduler: just a flat list checked
- * once per tick, fine for the handful of concurrent delays this mod ever actually needs.
- */
+// Runs a callback a fixed number of client ticks from now, to stagger actions and avoid tripping
+// Hypixel's chat rate limit. Not a general-purpose scheduler, just a flat list checked per tick.
 public final class TickDelay {
 	private record Pending(int[] ticksRemaining, Runnable task) {
 	}
@@ -22,15 +18,8 @@ public final class TickDelay {
 		pending.add(new Pending(new int[]{delayTicks}, task));
 	}
 
-	/**
-	 * Call once per client tick. Iterates a snapshot rather than the live list directly - confirmed
-	 * directly from a real crash report: a task run from here (e.g. a delayed run-report) can itself
-	 * call {@link #schedule} again (a long party announcement splitting into several staggered chunks -
-	 * see DungeonRunTracker#sendDungeonMessage), which used to throw ConcurrentModificationException by
-	 * mutating {@code pending} while the old removeIf() was still iterating it. A newly-scheduled entry
-	 * added mid-tick this way just isn't in this tick's snapshot, so it's picked up starting next tick -
-	 * correct anyway, since it was scheduled partway through the current one.
-	 */
+	// Iterates a snapshot, not the live list - a task run here can itself call schedule() again,
+	// which would otherwise throw ConcurrentModificationException while the loop is still iterating.
 	public static void tick() {
 		if (pending.isEmpty()) {
 			return;

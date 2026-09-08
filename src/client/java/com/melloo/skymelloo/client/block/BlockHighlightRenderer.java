@@ -14,20 +14,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Highlights chests with a colored outline by spawning invisible, client-side-only (never sent to
- * the server) marker entities on top of them and forcing them to glow - the same vanilla
- * "invisible + glowing" mechanic used for mob/player/item highlighting. The marker itself is
- * always invisible; only the glow outline (applied by
- * {@link com.melloo.skymelloo.client.highlight.HighlightManager#shouldGlow}) makes it show at all, and that
- * check requires an actual clear line of sight to the block, so this reads as a normal outline
- * effect rather than seeing through walls.
- * <p>
- * Markers are {@link Display.BlockDisplay} entities carrying the actual block's model/shape
- * (instead of a generic humanoid ArmorStand silhouette), so the glow outline matches the block.
- * Every matching block gets its own marker (not merged into one per vein) - adjacent glowing
- * outlines already read visually as one connected vein.
- */
+// Highlights chests via invisible, client-side-only BlockDisplay marker entities forced to glow -
+// the same vanilla invisible+glowing mechanic used for mob/player/item highlighting.
 public final class BlockHighlightRenderer {
 	private static int nextMarkerId = Integer.MAX_VALUE - 100_000;
 
