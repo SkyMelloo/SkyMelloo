@@ -9,18 +9,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Same fix as {@link ArmorInvisibilityMixin}, for the separate layer that renders a worn
- * player-head/mob-head/pumpkin item on the helmet slot - {@code CustomHeadLayer} isn't part of
- * {@code HumanoidArmorLayer} at all, so a magic-missile-hit or hidden-death-double player wearing
- * a head item kept showing that head floating in place even though the rest of them vanished.
- * Same {@link ForcedInvisibilityHolder} fix as {@link ArmorInvisibilityMixin} - checks that
- * instead of the vanilla flag, which is also true for genuinely-invisible entities/mobs that
- * should keep their (possibly custom-model-relevant) head visible as normal.
- * <p>
- * Targets the untyped {@code submit(..., EntityRenderState, ...)} overload - see
- * {@link HeldItemInvisibilityMixin}'s doc comment for why.
- */
+// Same fix as ArmorInvisibilityMixin, for the separate layer rendering a worn head item -
+// CustomHeadLayer isn't part of HumanoidArmorLayer, so that fix alone missed it.
 @Mixin(CustomHeadLayer.class)
 public abstract class PlayerHeadInvisibilityMixin {
 	@Inject(
