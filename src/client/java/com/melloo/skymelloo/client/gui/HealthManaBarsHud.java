@@ -8,39 +8,24 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 
-/**
- * A sleek replacement bar display for health (green, gold where absorption/"golden hearts" adds
- * extra) and mana (light blue), independently toggleable and either stacked or side-by-side. Health
- * reads real vanilla data ({@link LocalPlayer#getHealth()} etc. - no scraping needed, always exactly
- * accurate). Mana has no real vanilla stat of its own to read directly - {@code experienceProgress}
- * (the vanilla XP bar fill) was a wrong assumption, not actually what Hypixel uses here. The real
- * mana number is plain text Hypixel prints into the actionbar every tick (see
- * {@link ActionBarTracker}), so this reads that instead.
- */
+// Replacement bar display for health (green, gold for absorption) and mana (light blue), stacked or
+// side-by-side. Mana has no real vanilla stat - reads it from ActionBarTracker's actionbar text instead.
 public final class HealthManaBarsHud implements HudElement {
 	public static final HealthManaBarsHud INSTANCE = new HealthManaBarsHud();
 
-	// Public - /sm debug hm-bar reports fill state against these same constants, so the chat output and
-	// the actual on-screen bar can never disagree about what "120px wide" means.
+	// Public - /sm debug hm-bar reports fill state against these same constants.
 	public static final int BAR_WIDTH = 120;
 	public static final int BAR_HEIGHT = 8;
 	private static final int BAR_GAP = 4;
-	// How fast the white "recently lost" trailing segment catches down to the real value - fraction
-	// of the bar drained per tick, tuned so a big hit takes roughly half a second to fully catch up.
-	// Also reused for the mirrored "gain" fill-in below (same speed in both directions).
+	// Fraction of the bar drained per tick for the "recently lost" trail (and the mirrored gain fill-in).
 	private static final float DAMAGE_TRAIL_DECAY_PER_TICK = 0.03F;
-	// The gained-but-not-yet-filled-in gap: a heal/mana-regen shows the FULL new amount instantly in
-	// this color, while the real green/blue fill only animates up to meet it.
+	// A heal/mana-regen shows the full new amount instantly in this color, while the real fill animates up to meet it.
 	private static final int GAIN_HIGHLIGHT_COLOR = 0xFFFF5555;
 
 	private float displayedHealthFraction = 1F;
-	// Mirror of displayedHealthFraction for GAINS instead of losses - snaps down immediately with the
-	// real value on a loss, but lags BEHIND (catching up from below) on a gain, so the newly-added
-	// chunk stays visible as the gain-highlight colour until this animates up to meet it.
+	// Mirrors displayedHealthFraction for gains instead of losses - lags behind, catching up from below.
 	private float risingHealthFraction = 1F;
 	private boolean initializedTrail = false;
-	// Same "flash white, then catch down a second later" trail the health bar already had, applied
-	// to the mana bar as well.
 	private float displayedManaFraction = 1F;
 	private float risingManaFraction = 1F;
 	private boolean initializedManaTrail = false;
@@ -48,13 +33,8 @@ public final class HealthManaBarsHud implements HudElement {
 	private HealthManaBarsHud() {
 	}
 
-	/**
-	 * Everything the health bar's fill is derived from, in one place - shared by the actual renderer
-	 * ({@link #renderHealthBar}) and {@code /sm debug hm-bar} so the chat output can never drift from
-	 * what's really drawn on screen. {@code fromActionBar} is false only in the brief window before the
-	 * first actionbar packet has arrived this session, when this falls back to the vanilla health
-	 * attribute - see the class doc comment on why the actionbar reading is preferred once available.
-	 */
+	// Shared by renderHealthBar and /sm debug hm-bar so they can never drift. fromActionBar is false
+	// only before the first actionbar packet arrives, when this falls back to the vanilla attribute.
 	public record HealthBarState(float health, float maxHealth, float absorption, float healthFraction,
 								  float absorptionFraction, int healthPx, int absorptionPx, boolean fromActionBar) {
 	}
@@ -84,7 +64,7 @@ public final class HealthManaBarsHud implements HudElement {
 		return new HealthBarState(health, maxHealth, absorption, healthFraction, absorptionFraction, healthPx, absorptionPx, fromActionBar);
 	}
 
-	/** Same sharing purpose as {@link HealthBarState} - {@code fraction}/{@code manaPx} are {@code null}/0 until the first actionbar mana readout has arrived this session. */
+	// fraction/manaPx are null/0 until the first actionbar mana readout has arrived this session.
 	public record ManaBarState(Integer current, Integer max, Float fraction, int manaPx) {
 	}
 
@@ -94,7 +74,7 @@ public final class HealthManaBarsHud implements HudElement {
 		return new ManaBarState(ActionBarTracker.getCurrentMana(), ActionBarTracker.getMaxMana(), manaFraction, manaPx);
 	}
 
-	/** The health bar's current animated "just lost" white-trail fill (0-1) - only meaningful once {@link #isHealthTrailInitialized()} is true. */
+	// Only meaningful once isHealthTrailInitialized() is true.
 	public float getDisplayedHealthFraction() {
 		return displayedHealthFraction;
 	}
@@ -103,7 +83,6 @@ public final class HealthManaBarsHud implements HudElement {
 		return initializedTrail;
 	}
 
-	/** The mana bar's equivalent of {@link #getDisplayedHealthFraction()}. */
 	public float getDisplayedManaFraction() {
 		return displayedManaFraction;
 	}
@@ -112,12 +91,10 @@ public final class HealthManaBarsHud implements HudElement {
 		return initializedManaTrail;
 	}
 
-	/** The health bar's current animated "catching up to a gain" fill (0-1, mirror of {@link #getDisplayedHealthFraction()}) - only meaningful once {@link #isHealthTrailInitialized()} is true. */
 	public float getRisingHealthFraction() {
 		return risingHealthFraction;
 	}
 
-	/** The mana bar's equivalent of {@link #getRisingHealthFraction()}. */
 	public float getRisingManaFraction() {
 		return risingManaFraction;
 	}
@@ -130,8 +107,6 @@ public final class HealthManaBarsHud implements HudElement {
 			initializedManaTrail = false;
 			return;
 		}
-		// SkyBlock-only - these bars used to show on ANY Hypixel gamemode (lobby, other minigames),
-		// not just SkyBlock, since nothing here ever checked further than "connected to Hypixel".
 		if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock()) {
 			initializedTrail = false;
 			initializedManaTrail = false;
@@ -159,10 +134,6 @@ public final class HealthManaBarsHud implements HudElement {
 	}
 
 	private void renderHealthBar(GuiGraphicsExtractor gg, Minecraft client, LocalPlayer player, int x, int y) {
-		// Reads real SkyBlock HP from the same actionbar text the mana bar already uses, not vanilla's
-		// own health attribute: vanilla health doesn't necessarily match Hypixel's real HP number 1:1 (e.g.
-		// absorption/overheal can push "current" past "max", same as the mana pattern already handles).
-		// Falls back to the vanilla attribute only if no actionbar reading has arrived yet this session.
 		HealthBarState state = computeHealthBarState(player);
 		float health = state.health();
 		float maxHealth = state.maxHealth();
@@ -173,25 +144,18 @@ public final class HealthManaBarsHud implements HudElement {
 			risingHealthFraction = healthFraction;
 			initializedTrail = true;
 		} else {
-			// Loss trail: the real fill snaps down immediately (drawn below), this lags behind on the
-			// way down, fading out.
+			// Loss trail lags behind on the way down, fading out.
 			displayedHealthFraction = displayedHealthFraction > healthFraction
 					? Math.max(healthFraction, displayedHealthFraction - DAMAGE_TRAIL_DECAY_PER_TICK)
 					: healthFraction;
-			// Gain fill-in: the real value is shown instantly (below, as the highlight-coloured block),
-			// this is the green fill catching UP to it - snaps immediately on a drop, no animation there.
+			// Gain fill-in: the green fill catches up to the instantly-shown highlight block.
 			risingHealthFraction = risingHealthFraction < healthFraction
 					? Math.min(healthFraction, risingHealthFraction + DAMAGE_TRAIL_DECAY_PER_TICK)
 					: healthFraction;
 		}
 
-		// Background, white "just lost" trail, gain-highlight block (full new amount, instantly), then
-		// the real current fill (green, gold where absorption extends past normal max) drawn on top -
-		// the loss-trail only ever peeks out past the real edge (never underneath it), and the
-		// gain-highlight only ever peeks out ahead of the still-catching-up green fill. healthPx is the
-		// FULL health/total fraction on its own (NOT minus absorption - that was the bug: it made the
-		// green segment absorption-worth too short, leaving a visible gap between the green and gold
-		// segments instead of them sitting flush).
+		// healthPx is the full health/total fraction, not minus absorption - otherwise the green segment
+		// would fall short of the gold absorption segment, leaving a gap instead of sitting flush.
 		gg.fill(x, y, x + BAR_WIDTH, y + BAR_HEIGHT, 0x99101018);
 		int trailPx = Math.round(BAR_WIDTH * displayedHealthFraction);
 		if (trailPx > 0) {
@@ -210,8 +174,7 @@ public final class HealthManaBarsHud implements HudElement {
 			gg.fill(x + healthPx, y, x + healthPx + absorptionPx, y + BAR_HEIGHT, 0xFFFFD700);
 		}
 		gg.outline(x, y, BAR_WIDTH, BAR_HEIGHT, 0xFF000000);
-		// Numeric current/max HP label added alongside the bar - not counting absorption
-		// (that's already visually distinct as the gold segment above).
+		// Doesn't count absorption - that's already visually distinct as the gold segment above.
 		String healthText = Math.round(health) + "/" + Math.round(maxHealth);
 		int healthTextX = x + BAR_WIDTH / 2 - client.font.width(healthText) / 2;
 		gg.text(client.font, healthText, healthTextX, y, 0xFFFFFFFF);
@@ -220,8 +183,6 @@ public final class HealthManaBarsHud implements HudElement {
 	private void renderManaBar(GuiGraphicsExtractor gg, Minecraft client, LocalPlayer player, int x, int y) {
 		Float manaFraction = ActionBarTracker.getManaFraction();
 		float safeManaFraction = manaFraction != null ? manaFraction : displayedManaFraction;
-		// Same white "just lost" trail the health bar has, applied to the mana bar as well. Same
-		// mirrored gain fill-in as the health bar too.
 		if (!initializedManaTrail) {
 			displayedManaFraction = safeManaFraction;
 			risingManaFraction = safeManaFraction;
@@ -263,7 +224,7 @@ public final class HealthManaBarsHud implements HudElement {
 		}
 	}
 
-	/** Every (color, text) run actually seen in the last actionbar packet - toggled via "Mana Debug" in the settings screen. */
+	// Toggled via "Mana Debug" in the settings screen.
 	private void renderManaDebug(GuiGraphicsExtractor gg, Minecraft client, int x, int y) {
 		int lineY = y + BAR_HEIGHT + 2;
 		long sincePacket = System.currentTimeMillis() - ActionBarTracker.getLastPacketMillis();
