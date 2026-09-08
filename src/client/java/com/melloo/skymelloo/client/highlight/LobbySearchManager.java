@@ -13,12 +13,8 @@ import net.minecraft.network.chat.Component;
 
 import java.util.UUID;
 
-/**
- * Tracks the one player currently targeted by {@code /sm search}, so {@link HighlightManager} can
- * highlight them green anywhere on Hypixel, lobby or SkyBlock - party/staff/friend highlighting
- * (see MellooEssentials' own highlight.HighlightManager) needs an actual Hypixel party/team/friend
- * relationship, so there's otherwise no way to pick an arbitrary specific person out of a crowd.
- */
+// Tracks the one player targeted by /sm search, so HighlightManager can highlight them anywhere
+// on Hypixel - there's otherwise no way to pick an arbitrary person out of a crowd.
 public final class LobbySearchManager {
 	private static volatile UUID searchedUuid = null;
 	private static volatile String searchedName = null;
@@ -35,16 +31,11 @@ public final class LobbySearchManager {
 		}
 	}
 
-	/** Whether the local player is somewhere this feature actually applies - connected to Hypixel at all. */
 	public static boolean isLobby(Minecraft client) {
 		return HypixelDetector.isHypixel(client);
 	}
 
-	/**
-	 * Resolves the typed name against the current tab list - the true source of truth for who's
-	 * actually visible right now, same list the command's own autocomplete offers (see
-	 * {@link SkyMellooClient#suggestOnlinePlayers}). Sends its own chat feedback either way.
-	 */
+	// Resolves the typed name against the current tab list. Sends its own chat feedback either way.
 	public static void search(Minecraft client, String name) {
 		if (client.player == null) {
 			return;

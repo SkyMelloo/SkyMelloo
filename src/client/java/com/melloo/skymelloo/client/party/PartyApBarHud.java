@@ -13,14 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * A horizontal Accessory Power "spread" bar for the current party - each member's face icon is
- * placed along a fixed-width strip, positioned left-to-right from whoever has the least AP to
- * whoever has the most, with the actual AP range labeled above it. Distinct from {@link PartyHud}'s
- * own vertical name+AP list: this is about seeing the SHAPE of the party's gear gap at a glance
- * (how spread out everyone is) rather than reading exact numbers per member. Needs at least 2
- * members with known AP to mean anything - a single point has nowhere meaningful to sit on a range.
- */
+// Horizontal Accessory Power "spread" bar for the party - face icons placed left-to-right from
+// least to most AP, showing the shape of the gear gap rather than exact numbers. Needs 2+ members.
 public final class PartyApBarHud implements HudElement {
 	private static final int BAR_WIDTH = 140;
 	private static final int BAR_HEIGHT = 6;
@@ -33,8 +27,7 @@ public final class PartyApBarHud implements HudElement {
 	private PartyApBarHud() {
 	}
 
-	// Same corner-face blit as PartyHud's own drawFace - duplicated rather than shared since it's a
-	// tiny private static method there, not worth restructuring a working file over.
+	// Same corner-face blit as PartyHud's own drawFace, duplicated since that one is a tiny private method.
 	private static void drawFace(GuiGraphicsExtractor gg, Identifier texture, int x, int y, int size) {
 		gg.blit(texture, x, y, x + size, y + size, 8f / SKIN_TEX_SIZE, 16f / SKIN_TEX_SIZE, 8f / SKIN_TEX_SIZE, 16f / SKIN_TEX_SIZE);
 		gg.blit(texture, x, y, x + size, y + size, 40f / SKIN_TEX_SIZE, 48f / SKIN_TEX_SIZE, 8f / SKIN_TEX_SIZE, 16f / SKIN_TEX_SIZE);
@@ -74,9 +67,7 @@ public final class PartyApBarHud implements HudElement {
 			int faceX = x + (int) Math.round(t * (BAR_WIDTH - FACE_SIZE));
 			int faceY = barY + BAR_HEIGHT / 2 - FACE_SIZE / 2;
 
-			// Same tab-list-first, cache-fallback resolution as PartyHud's own face icons - a party
-			// member isn't always in the local tab list (cross-instance parties), so this keeps
-			// showing the last-known skin instead of the icon flickering away and back.
+			// Tab-list-first, cache-fallback, same as PartyHud's own face icons.
 			PlayerInfo info = client.getConnection() != null ? client.getConnection().getPlayerInfo(entry.getKey()) : null;
 			Identifier skinTexture;
 			if (info != null && info.getSkin() != null) {
