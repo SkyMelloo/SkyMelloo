@@ -14,18 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Logs a short chronological "what actually hit me" recap for the LOCAL player, dumped in chat the
- * moment they die - real damage-source entities (not a proximity guess), sourced from
- * {@link net.minecraft.network.protocol.game.ClientboundDamageEventPacket} (see
- * {@link com.melloo.skymelloo.client.mixin.DamageEventMixin}), which the server sends for every hit
- * (not just the killing blow) specifically so the client can play the right hurt sound/animation -
- * repurposed here to build a real combat log instead of guessing at the nearest hostile.
- * <p>
- * The damage event packet carries the SOURCE but not the amount - amount is inferred separately by
- * diffing the local player's own health every tick ({@link #tick}) and pairing it with whichever
- * source label was most recently seen, since both land within the same tick in practice.
- */
+// Logs a chronological "what actually hit me" recap for the local player, dumped in chat on death.
+// Source comes from the damage-event packet; amount is inferred by diffing health each tick.
 public final class DeathRecapManager {
 	private record RecapEntry(String sourceLabel, float damage) {
 	}
@@ -38,7 +28,6 @@ public final class DeathRecapManager {
 	private DeathRecapManager() {
 	}
 
-	/** Called from {@link com.melloo.skymelloo.client.mixin.DamageEventMixin} for every damage-event packet - only ever cares about the LOCAL player's own. */
 	public static void onDamageEvent(Entity damaged, DamageSource source) {
 		Minecraft client = Minecraft.getInstance();
 		if (client.player == null || damaged != client.player) {
@@ -53,12 +42,10 @@ public final class DeathRecapManager {
 			Component name = attacker.getCustomName() != null ? attacker.getCustomName() : attacker.getName();
 			return name.getString();
 		}
-		// No entity - environmental damage (fall, lava, magic, etc.). Mojang's own internal damage-type
-		// key is readable enough on its own without a translation table (e.g. "fall", "lava", "inFire").
+		// No entity - environmental damage; the raw damage-type key is readable enough on its own.
 		return source.getMsgId();
 	}
 
-	/** Called every client tick - diffs the local player's health to catch amount+timing, paired with whatever source was last seen via {@link #onDamageEvent}. */
 	public static void tick(Minecraft client) {
 		if (client.player == null) {
 			lastHealth = -1;
@@ -78,7 +65,6 @@ public final class DeathRecapManager {
 		lastHealth = current;
 	}
 
-	/** Called from {@link com.melloo.skymelloo.client.mixin.PlayerKillMixin} when the LOCAL player specifically dies. */
 	public static void onLocalPlayerDied() {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		Minecraft client = Minecraft.getInstance();
@@ -90,9 +76,7 @@ public final class DeathRecapManager {
 			String text = config.deathRecapPartyAnnounceTemplate
 					.replace("{player}", client.player.getGameProfile().name())
 					.replace("{cause}", summarizeCause());
-			// leaderOnlyForRelay=false: a death recap is inherently personal (only the player who died
-			// generates it), never a duplicated shared fact, so it must NOT be restricted to just the
-			// party leader for the "PARTY SM" delivery option - see sendDungeonMessage's own doc comment.
+			// leaderOnlyForRelay=false: a death recap is personal, not a shared fact restricted to the leader.
 			DungeonRunTracker.sendDungeonMessage(client, text, config.deathRecapPartyAnnounceDelivery, false);
 		}
 		if (!config.deathRecapEnabled || recentDamage.isEmpty()) {
@@ -107,7 +91,7 @@ public final class DeathRecapManager {
 		recentDamage.clear();
 	}
 
-	/** "Bonzo (18.2), lava (4.0)" - damage grouped by source and summed (the recap can have several entries from the same attacker), biggest contributor first, capped to the top 3 so a long fight doesn't turn into an unreadable chat line. */
+	// "Bonzo (18.2), lava (4.0)" - grouped by source and summed, top 3 contributors.
 	private static String summarizeCause() {
 		Map<String, Float> totalBySource = new LinkedHashMap<>();
 		for (RecapEntry entry : recentDamage) {

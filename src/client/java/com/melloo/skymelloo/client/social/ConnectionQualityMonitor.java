@@ -11,21 +11,8 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * On connecting to Hypixel specifically - gated behind {@link HypixelDetector#isHypixel} and
- * {@link SkyMellooConfig#connectionQualityCheckEnabled}.
- * <p>
- * Samples ping every tick (20/s) for the first 5 seconds to judge whether the connection looks
- * stable, then chat-reports the result plus the client's own packet-rate averages. The persistent
- * HUD is the only on-screen indicator - no title/subtitle.
- * <p>
- * Started from {@code ClientPlayConnectionEvents.INIT} rather than {@code JOIN}, since INIT fires
- * as soon as the play-protocol packet listener is set up, before the player entity/world exist.
- * <p>
- * {@link net.minecraft.network.Connection#getAverageSentPackets()}/{@code getAverageReceivedPackets()}
- * already track both directions on one object - "sent" is what this client is putting out,
- * "received" is what's coming back from the server - so there's no need for a second measurement.
- */
+// Samples ping every tick for the first 5s after connecting to Hypixel, then chat-reports
+// stability plus packet-rate averages. Started from INIT (fires before the player/world exist).
 public final class ConnectionQualityMonitor {
 	private static final int CHECK_DURATION_TICKS = 100; // 5 seconds at 20 ticks/s
 	private static final int PING_SPIKE_THRESHOLD_MS = 250;
@@ -45,14 +32,12 @@ public final class ConnectionQualityMonitor {
 		pingSamples.clear();
 	}
 
-	/** Called once per connection attempt (INIT) - starts the 5-second sampling window, but only on Hypixel and only with the toggle on (see class doc comment). */
 	public static void start(Minecraft client) {
 		if (!SkyMellooConfig.HANDLER.instance().connectionQualityCheckEnabled || !HypixelDetector.isHypixel(client)) {
 			return;
 		}
-		// Networks like Hypixel move you between internal sub-servers (lobby <-> Skyblock island)
-		// using the same vanilla transfer mechanism as a genuine reconnect, which re-fires INIT even
-		// though you never actually left the network. Only measure this for an address change.
+		// Hypixel moves you between internal sub-servers via the same transfer mechanism as a real
+		// reconnect, re-firing INIT without you leaving the network - only measure on an address change.
 		ServerData server = client.getCurrentServer();
 		String address = server != null ? server.ip : null;
 		boolean sameNetwork = address != null && address.equalsIgnoreCase(lastServerAddress);
@@ -90,8 +75,7 @@ public final class ConnectionQualityMonitor {
 		float received = connection != null ? connection.getAverageReceivedPackets() : 0;
 
 		if (pingSamples.isEmpty()) {
-			// Zero samples across the whole 5-second window is itself a bad sign - either the
-			// connection never settled, or something's wrong.
+			// Zero samples across the whole window is itself a bad sign.
 			report(client, false, -1, 0, sent, received);
 			return;
 		}
@@ -109,7 +93,6 @@ public final class ConnectionQualityMonitor {
 		report(client, stable, avg, spread, sent, received);
 	}
 
-	/** Only reached at all when {@link SkyMellooConfig#connectionQualityCheckEnabled} was on back when {@link #start} kicked off this sampling window - the toggle is a hard gate now, not just a filter on which outcomes get reported. */
 	private static void report(Minecraft client, boolean stable, int avgPing, int spread, float sent, float received) {
 		if (client.player == null) {
 			return;

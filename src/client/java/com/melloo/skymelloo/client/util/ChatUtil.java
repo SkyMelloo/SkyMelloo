@@ -7,10 +7,10 @@ import net.minecraft.network.chat.TextColor;
 
 import java.util.regex.Pattern;
 
-/** Consistent chat message formatting for all SkyMelloo output. */
+// Consistent chat message formatting for all SkyMelloo output.
 public final class ChatUtil {
 	private static final int GRADIENT_START = 0xFF6EC7; // pink
-	private static final int GRADIENT_END = 0xD946B8; // deeper pink/magenta - was light blue, matching the website's now-all-pink brand gradient instead of fading toward blue
+	private static final int GRADIENT_END = 0xD946B8; // deeper pink/magenta, matches the website's brand gradient
 	private static final Pattern FORMAT_CODE = Pattern.compile("§[0-9A-FK-ORa-fk-or]");
 
 	private ChatUtil() {
@@ -20,19 +20,12 @@ public final class ChatUtil {
 		return prefixed(Component.literal(message));
 	}
 
-	/**
-	 * Strips §-color codes and prepends a plain "[SkyMelloo] " prefix (no color at all) - for text
-	 * actually sent through {@code /pc} as a command string. Confirmed directly from a real screenshot:
-	 * § codes typed into a command argument don't survive to the other party members' screens at all -
-	 * Hypixel strips the § itself but leaves its format-code LETTER behind as literal text (e.g.
-	 * "§b[SkyMelloo]§r" arrived as literal "b[SkyMelloo]r"), which reads as garbled nonsense, worse
-	 * than no color at all.
-	 */
+	// Strips §-color codes and uses a plain "[SkyMelloo] " prefix, for text sent through /pc as a
+	// command string - Hypixel strips the § but leaves the format-code letter as literal garbage text.
 	public static String partyPrefixed(String message) {
 		return "[SkyMelloo] " + FORMAT_CODE.matcher(message).replaceAll("");
 	}
 
-	/** Like {@link #prefixed(String)}, but for a message that needs rich formatting (click/hover events, mixed colors) rather than a plain string. */
 	public static MutableComponent prefixed(Component message) {
 		MutableComponent result = Component.literal("§b[").append(gradientText("SkyMelloo")).append(Component.literal("§b]§r "));
 		result.append(message);
@@ -50,24 +43,12 @@ public final class ChatUtil {
 		return result;
 	}
 
-	/**
-	 * Consistent, colorized "fetch failed" line for every stats-lookup call site - a raw exception's
-	 * getMessage() (e.g. "java.net.http.HttpTimeoutException: request timed out") read like a bare
-	 * stack trace line, all one flat color, nothing like the rest of this mod's chat output. Unwraps
-	 * CompletableFuture's CompletionException/ExecutionException wrapping to get at the real cause,
-	 * and gives timeouts specifically a plain-language message instead of the exception class name -
-	 * by the time this shows at all, the automatic 1-retry in SkyMellooApiClient already failed too.
-	 */
 	public static String errorMessage(String name, Throwable error) {
 		return Component.translatable("skymelloo.chat.error.error_in", name, friendlyError(error)).getString();
 	}
 
-	/**
-	 * Public entry point for call sites that build their own chat line (not the "✖ Error in X: ..."
-	 * shape {@link #errorMessage} produces) but still need the same CompletionException-unwrapping -
-	 * without it, a failed command chain shows "java.lang.RuntimeException: <message>" instead of just
-	 * "<message>", since CompletionException(cause)'s own getMessage() is cause.toString().
-	 */
+	// Unwraps CompletionException/ExecutionException to the real cause, since its own getMessage()
+	// is just cause.toString().
 	public static String friendlyError(Throwable error) {
 		Throwable cause = error;
 		while (cause.getCause() != null && cause.getCause() != cause) {
