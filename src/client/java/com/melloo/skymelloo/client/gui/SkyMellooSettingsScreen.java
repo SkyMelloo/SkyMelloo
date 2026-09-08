@@ -27,7 +27,7 @@ import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
-/** Custom settings screen: rotatable 3D character preview on the left, a tabbed row list on the right. Replaces YACL's generated screen. */
+// Custom settings screen: rotatable 3D character preview on the left, a tabbed row list on the right. Replaces YACL's generated screen.
 public class SkyMellooSettingsScreen extends Screen {
 	private static final int PANEL_BG = 0x30000000;
 	private static final int PREVIEW_BG = 0x800C0C14;
@@ -85,7 +85,7 @@ public class SkyMellooSettingsScreen extends Screen {
 	private int tabScrollX = 0;
 	private int tabBarMaxScrollX = 0;
 
-	/** Only tabs whose feature the account is actually permitted to use show up in the tab bar. */
+	// Only tabs whose feature the account is actually permitted to use show up in the tab bar.
 	private static Tab[] visibleTabs() {
 		List<Tab> tabs = new ArrayList<>();
 		for (Tab tab : Tab.values()) {
@@ -110,7 +110,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		this(null);
 	}
 
-	/** Used by ModMenuIntegration - {@code parent} is Mod Menu's own mod-list screen, returned to on close instead of the game world. */
+	// Used by ModMenuIntegration - parent is Mod Menu's own mod-list screen, returned to on close instead of the game world.
 	public SkyMellooSettingsScreen(Screen parent) {
 		super(Component.translatable("skymelloo.gui.settings.title"));
 		this.parent = parent;
@@ -172,7 +172,7 @@ public class SkyMellooSettingsScreen extends Screen {
 				Component.translatable("skymelloo.gui.settings.button.report_bug"), SkyMellooButtonWidget.RED, SkyMellooMenuScreen::openReportBug));
 	}
 
-	/** Fixed-width tabs that scroll horizontally instead of shrinking to fit - equal-division gets cramped with many tabs. */
+	// Fixed-width tabs that scroll horizontally instead of shrinking to fit - equal-division gets cramped with many tabs.
 	private void buildTabBar() {
 		for (AbstractWidget widget : tabWidgets) {
 			removeWidget(widget);
@@ -197,7 +197,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** Sets every dungeon-announcement delivery setting on this tab to {@code value} in one go, instead of clicking through each row individually - see the "Delivery" section at the top of the Dungeons tab. */
+	// Sets every dungeon-announcement delivery setting on this tab to value in one go.
 	private void setAllDungeonDeliveries(SkyMellooConfig c, String value) {
 		c.deathRecapPartyAnnounceDelivery = value;
 		c.dungeonInfoMessageDelivery = value;
@@ -223,7 +223,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		buildRows();
 	}
 
-	/** Single scrollable column - a tab with more rows than fit on screen scrolls with the mouse wheel. */
+	// Single scrollable column - a tab with more rows than fit on screen scrolls with the mouse wheel.
 	private void buildRows() {
 		closeColorDropdown();
 		for (AbstractWidget widget : contentWidgets) {
@@ -249,7 +249,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** Adjusts the scroll offset and re-lays out the current tab's rows at their new position. */
+	// Adjusts the scroll offset and re-lays out the current tab's rows at their new position.
 	private void scrollBy(double amount) {
 		int next = (int) Math.round(scrollOffset - amount * (ROW_H + ROW_GAP));
 		scrollOffset = Math.max(0, Math.min(next, maxScroll));
@@ -516,37 +516,37 @@ public class SkyMellooSettingsScreen extends Screen {
 		return (x, y, w, h) -> new IntStepRowWidget(x, y, w, h, label, getter, setter, min, max, step);
 	}
 
-	/** Like {@link #intStepRow}, but opens a text-input screen instead of cycling by a fixed step - for values worth typing directly (e.g. an AP threshold in the thousands). */
+	// Like intStepRow, but opens a text-input screen instead of cycling by a fixed step - for values worth typing directly (e.g. an AP threshold in the thousands).
 	private RowFactory intTextRow(String label, IntSupplier getter, IntConsumer setter, int min, int max) {
 		return (x, y, w, h) -> new IntTextRowWidget(x, y, w, h, label, getter, setter, min, max);
 	}
 
-	/** A row that cycles through a fixed list of string options on click - for small enum-like settings that don't need a full text input screen. */
+	// A row that cycles through a fixed list of string options on click - for small enum-like settings that don't need a full text input screen.
 	private RowFactory cycleRow(String label, Supplier<String> getter, Consumer<String> setter, String[] options) {
 		return (x, y, w, h) -> new CycleRowWidget(x, y, w, h, label, getter, setter, options);
 	}
 
-	/** A plain action button row - label on the left, button text on the right, runs {@code onClick} when clicked. */
+	// A plain action button row - label on the left, button text on the right, runs onClick when clicked.
 	private RowFactory actionRow(String label, String buttonText, Runnable onClick) {
 		return (x, y, w, h) -> new ActionRowWidget(x, y, w, h, label, buttonText, onClick);
 	}
 
-	/** A rebindable hotkey row - shows the currently bound key, click then press any key (Escape cancels) to change it, right here instead of vanilla's separate Controls screen. */
+	// A rebindable hotkey row - click, then press any key (Escape cancels) to change it.
 	private RowFactory keybindRow(String label, KeyMapping mapping) {
 		return (x, y, w, h) -> new KeybindRowWidget(x, y, w, h, label, mapping);
 	}
 
-	/** A non-interactive row - label on the left, a colored status value on the right. */
+	// A non-interactive row - label on the left, a colored status value on the right.
 	private RowFactory infoRow(String label, Supplier<String> valueGetter, IntSupplier colorGetter) {
 		return (x, y, w, h) -> new InfoRowWidget(x, y, w, h, label, valueGetter, colorGetter);
 	}
 
-	/** Resolves a translation key to its display string, for row labels rendered as raw text. */
+	// Resolves a translation key to its display string, for row labels rendered as raw text.
 	private static String tr(String key) {
 		return Component.translatable(key).getString();
 	}
 
-	/** Wraps any row factory with a hover tooltip explaining what the setting does. */
+	// Wraps any row factory with a hover tooltip explaining what the setting does.
 	private RowFactory tip(RowFactory factory, Component tooltip) {
 		return (x, y, w, h) -> {
 			AbstractWidget widget = factory.create(x, y, w, h);
@@ -560,7 +560,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		return capturingKeybind == null;
 	}
 
-	/** While {@link #capturingKeybind} is set, the next key press (including Escape, which just cancels rather than closing the screen) binds it - same convention as vanilla's own Controls > Key Binds screen. */
+	// While capturingKeybind is set, the next key press binds it; Escape cancels instead of closing the screen.
 	@Override
 	public boolean keyPressed(KeyEvent event) {
 		if (capturingKeybind != null) {
@@ -753,7 +753,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** A non-interactive section label (e.g. "Players", "Minigame") shown above a cluster of related rows. */
+	// A non-interactive section label (e.g. "Players", "Minigame") shown above a cluster of related rows.
 	private final class HeaderRowWidget extends AbstractWidget {
 		private final String label;
 
@@ -1012,7 +1012,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** Like {@link IntStepRowWidget}, but clicking opens a text-input screen to type the value directly instead of cycling by a fixed step. */
+	// Like IntStepRowWidget, but clicking opens a text-input screen to type the value directly instead of cycling by a fixed step.
 	private final class IntTextRowWidget extends AbstractWidget {
 		private final String label;
 		private final IntSupplier getter;
@@ -1070,7 +1070,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** A row that cycles through a small fixed set of string options on click - e.g. "AP" / "LEVEL". */
+	// A row that cycles through a small fixed set of string options on click - e.g. "AP" / "LEVEL".
 	private final class CycleRowWidget extends AbstractWidget {
 		private final String label;
 		private final Supplier<String> getter;
@@ -1125,7 +1125,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** A plain action button row - label on the left, a button-styled text on the right, no toggle state of its own. */
+	// A plain action button row - label on the left, a button-styled text on the right, no toggle state of its own.
 	private final class ActionRowWidget extends AbstractWidget {
 		private final String label;
 		private final String buttonText;
@@ -1168,7 +1168,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** Label on the left, the currently bound key on the right - click it, then press any key (Escape cancels) to rebind, handled by the screen's own {@link #keyPressed}. */
+	// Label on the left, the currently bound key on the right - click it, then press any key (Escape cancels) to rebind, handled by the screen's own keyPressed.
 	private final class KeybindRowWidget extends AbstractWidget {
 		private final String label;
 		private final KeyMapping mapping;
@@ -1210,7 +1210,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		}
 	}
 
-	/** A non-interactive row - label on the left, a colored status value on the right. Clicking does nothing. */
+	// A non-interactive row - label on the left, a colored status value on the right. Clicking does nothing.
 	private final class InfoRowWidget extends AbstractWidget {
 		private final String label;
 		private final Supplier<String> valueGetter;

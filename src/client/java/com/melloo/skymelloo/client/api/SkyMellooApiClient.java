@@ -23,12 +23,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Thin client for sky.melloo.me's read-only SkyBlock API (no key/auth required).
- * All requests run on the JDK HttpClient's own async executor, never the render/tick thread;
- * callers must marshal results back via {@code Minecraft.getInstance().execute(...)} before
- * touching any game state.
- */
+// Thin client for sky.melloo.me's read-only SkyBlock API. Requests run on HttpClient's own async
+// executor, never the render/tick thread - callers must marshal results back via Minecraft.getInstance().execute(...).
 public final class SkyMellooApiClient {
 	private static final String BASE_URL = SiteConfig.url("/api/public/mod/v1");
 	private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -60,22 +56,19 @@ public final class SkyMellooApiClient {
 	) {
 	}
 
-	/**
-	 * One SkyBlock item out of any inventory section. {@code raw} is Hypixel's own item NBT, kept so
-	 * the GUI can rebuild the real stack (icon, colours, skull texture) rather than approximate it.
-	 */
+	// One SkyBlock item out of any inventory section; raw is the item's own NBT, kept so the GUI can rebuild the real stack.
 	public record SkyblockItem(int slot, String skyblockId, String uuid, String name, List<String> lore, String tier,
 			int count, Double value, int legacyId, JsonObject raw, boolean inactive) {
 	}
 
-	/** An accessory the account doesn't own at all yet - never has NBT to render from, just an id/name/tier. */
+	// An accessory the account doesn't own yet - never has NBT to render from, just an id/name/tier.
 	public record MissingAccessory(String skyblockId, String name, String tier) {
 	}
 
 	public record RarityCount(String rarity, int count, int accessoryPower) {
 	}
 
-	/** A skill or slayer with the server's own level curve, so a bar shows real progress rather than level/max. */
+	// A skill or slayer with the server's own level curve, so a bar shows real progress rather than level/max.
 	public record LevelEntry(String name, int level, int maxLevel, double progress, double xp) {
 	}
 
@@ -115,11 +108,7 @@ public final class SkyMellooApiClient {
 	private static final String[] SLAYER_KEYS = {"zombie", "spider", "wolf", "enderman", "blaze", "vampire"};
 	private static final String[] CLASS_KEYS = {"healer", "mage", "berserk", "archer", "tank"};
 
-	/**
-	 * Null-safe replacement for {@link JsonObject#getAsJsonObject(String)} - the API sometimes
-	 * sends a member as a literal JSON {@code null} (not just an absent key), and Gson's own
-	 * getAsJsonObject blindly casts whatever it finds, throwing ClassCastException on JsonNull.
-	 */
+	// Null-safe getAsJsonObject - the API can send a member as a literal JSON null, which Gson's own version throws on.
 	private static JsonObject safeObject(JsonObject parent, String key) {
 		if (parent == null || !parent.has(key) || parent.get(key).isJsonNull()) {
 			return null;
@@ -154,7 +143,7 @@ public final class SkyMellooApiClient {
 		return parent.getAsJsonArray(key);
 	}
 
-	/** Reads an item-list section ({size, items}) or a bare array into the mod's own item model. */
+	// Reads an item-list section ({size, items}) or a bare array into the mod's own item model.
 	private static List<SkyblockItem> parseItems(JsonObject parent, String key) {
 		List<SkyblockItem> out = new ArrayList<>();
 		if (parent == null || !parent.has(key) || parent.get(key).isJsonNull()) {
@@ -184,7 +173,7 @@ public final class SkyMellooApiClient {
 				safeObject(it, "raw"), bool(it, "inactive"));
 	}
 
-	/** From /player/:username/inventory - gear, accessories, storage and sacks in one call. */
+	// From /player/:username/inventory - gear, accessories, storage and sacks in one call.
 	public static CompletableFuture<InventoryResult> fetchInventory(String username, String profile, ModAuthManager.ModIdentity identity) {
 		return getJson("/player/" + encode(username) + "/inventory" + profileQuery(profile), identity).thenApply(root -> {
 			List<SackEntry> sacks = new ArrayList<>();
@@ -257,12 +246,12 @@ public final class SkyMellooApiClient {
 		return levels;
 	}
 
-	/** From /api/player/:username/inventory - the only endpoint that exposes Accessory Power. */
+	// From /api/player/:username/inventory - the only endpoint that exposes Accessory Power.
 	public static CompletableFuture<AccessoryPowerResult> fetchAccessoryPower(String username, ModAuthManager.ModIdentity identity) {
 		return fetchAccessoryPower(username, null, identity);
 	}
 
-	/** @param profile a specific SkyBlock profile name (see {@link #fetchProfileNames}), or null for the player's currently-selected profile. */
+	// profile is a specific SkyBlock profile name, or null for the player's currently-selected profile.
 	public static CompletableFuture<AccessoryPowerResult> fetchAccessoryPower(String username, String profile, ModAuthManager.ModIdentity identity) {
 		return getJson("/player/" + encode(username) + "/inventory" + profileQuery(profile), identity).thenApply(root -> {
 			// Prefers the website's new "accessoryPower" field, falls back to the legacy
@@ -280,20 +269,13 @@ public final class SkyMellooApiClient {
 		});
 	}
 
-	/**
-	 * Forces the backend to bypass its own 3-5 minute profile cache (POST /player/:username/request-refresh)
-	 * and pull straight from Hypixel - used right when a dungeon run starts, since a party member's
-	 * gear/AP could have changed just before queueing and {@link DungeonReadiness} needs current data,
-	 * not up-to-5-minutes-stale. Server-side cooldown-limited to once per 10 minutes per account
-	 * (shared across every caller, not per-IP) - a 429 here just means someone already refreshed this
-	 * account recently enough, which is a fine outcome too, not a real failure. Callers should treat
-	 * any error from this as ignorable (fire-and-forget best effort).
-	 */
+	// Forces the backend past its own profile cache to pull straight from Hypixel. Server-side
+	// cooldown-limited to once per 10 minutes/account - a 429 is a fine outcome, treat errors as ignorable.
 	public static CompletableFuture<Void> requestRefresh(String username, ModAuthManager.ModIdentity identity) {
 		return postJson("/player/" + encode(username) + "/request-refresh", new JsonObject(), identity).thenApply(root -> null);
 	}
 
-	/** The account's SkyBlock profile names (e.g. "Banana", "Orange") - for building a /player/:username?profile= call and for command autocomplete. */
+	// The account's SkyBlock profile names, for a ?profile= call and command autocomplete.
 	public static CompletableFuture<List<String>> fetchProfileNames(String username, ModAuthManager.ModIdentity identity) {
 		return getJson("/player/" + encode(username), identity).thenApply(root -> {
 			List<String> names = new ArrayList<>();
@@ -316,12 +298,12 @@ public final class SkyMellooApiClient {
 		return (profile != null && !profile.isBlank()) ? "?profile=" + encode(profile) : "";
 	}
 
-	/** From /api/player/:username - profile summary (skills, dungeons, etc). */
+	// From /api/player/:username - profile summary (skills, dungeons, etc).
 	public static CompletableFuture<SummaryResult> fetchSummary(String username, ModAuthManager.ModIdentity identity) {
 		return fetchSummary(username, null, identity);
 	}
 
-	/** @param profile a specific SkyBlock profile name (see {@link #fetchProfileNames}), or null for the player's currently-selected profile. */
+	// profile is a specific SkyBlock profile name, or null for the player's currently-selected profile.
 	public static CompletableFuture<SummaryResult> fetchSummary(String username, String profile, ModAuthManager.ModIdentity identity) {
 		return getJson("/player/" + encode(username) + profileQuery(profile), identity).thenApply(root -> {
 			int catacombs = 0;
@@ -553,7 +535,7 @@ public final class SkyMellooApiClient {
 		});
 	}
 
-	/** Reads a {@code {name: {level, maxLevel, progress, xp}}} map, keeping the server's own curve. */
+	// Reads a {name: {level, maxLevel, progress, xp}} map, keeping the server's own curve.
 	private static List<LevelEntry> parseLevels(JsonObject parent) {
 		List<LevelEntry> out = new ArrayList<>();
 		if (parent == null) {
@@ -570,7 +552,7 @@ public final class SkyMellooApiClient {
 		return out;
 	}
 
-	/** The API sends a rank colour as a CSS hex string; the GUI needs it as an ARGB int. */
+	// The API sends a rank colour as a CSS hex string; the GUI needs it as an ARGB int.
 	private static int parseHexColor(String hex) {
 		if (hex == null || !hex.startsWith("#") || hex.length() != 7) {
 			return 0xFFAAAAAA;
@@ -617,7 +599,7 @@ public final class SkyMellooApiClient {
 		return getJson(path, null);
 	}
 
-	/** @param identity a live identity from {@link ModAuthManager#getIdentity}, required by every /mod/* route except the auth handshake itself and /mod/check. Signs this specific request rather than attaching a single reusable token - see attachSignature. */
+	// Signs this specific request rather than reusing a token - required by every /mod/* route except the auth handshake.
 	private static CompletableFuture<JsonObject> getJson(String path, ModAuthManager.ModIdentity identity) {
 		HttpRequest.Builder builder = HttpRequest.newBuilder()
 				.uri(URI.create(BASE_URL + path))
@@ -644,13 +626,7 @@ public final class SkyMellooApiClient {
 				});
 	}
 
-	/**
-	 * A request timing out is very often just a one-off network hiccup (confirmed directly from a real
-	 * screenshot: a single lookup failed with "request timed out" while every other identical request
-	 * around it succeeded fine) - retried exactly ONCE, after a 1 second delay, rather than surfacing an
-	 * error to chat immediately. Any other failure (a real HTTP error status, a malformed response) isn't
-	 * retried - those aren't transient, retrying would just fail again the same way.
-	 */
+	// A timeout is often a one-off hiccup - retried exactly once after 1s. Other failures aren't retried.
 	private static CompletableFuture<HttpResponse<String>> sendWithRetry(HttpRequest request) {
 		return HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString())
 				.handle((response, error) -> {
@@ -680,7 +656,7 @@ public final class SkyMellooApiClient {
 		return false;
 	}
 
-	/** Every error response from the server is JSON {@code { "error": "message" }} - surface that instead of a bare HTTP status code. */
+	// Every error response is JSON { "error": "message" } - surface that instead of a bare status code.
 	private static String extractErrorMessage(String body, int statusCode) {
 		try {
 			JsonElement parsed = JsonParser.parseString(body);
@@ -698,9 +674,7 @@ public final class SkyMellooApiClient {
 	}
 
 	private static CompletableFuture<JsonObject> postJson(String path, JsonObject body, ModAuthManager.ModIdentity identity) {
-		// Captured once as raw bytes and reused for BOTH transmission and the signature's body hash -
-		// computing the hash from a second body.toString() call would risk it disagreeing (even in
-		// theory) with what was actually sent, silently breaking every signed POST.
+		// Reused as raw bytes for both transmission and the signature hash - a second toString() call could disagree with what was sent.
 		byte[] bodyBytes = body.toString().getBytes(StandardCharsets.UTF_8);
 		HttpRequest.Builder builder = HttpRequest.newBuilder()
 				.uri(URI.create(BASE_URL + path))
@@ -732,19 +706,14 @@ public final class SkyMellooApiClient {
 				.header("X-SkyMelloo-Signature", headers.signature());
 	}
 
-	/**
-	 * Only the path is signed, never the query string - none of the query params on these routes
-	 * (e.g. checkVersion's ?version=/&hash=) are sensitive or mutate any state, so this is a
-	 * deliberate simplification, not an oversight. Prepends "/api/public/mod/v1" to match the full
-	 * signed path the server expects (see DEVELOPER_API.md section 3.1).
-	 */
+	// Only the path is signed, never the query string - deliberate, these routes' query params never mutate state.
 	private static String requestPath(String pathWithQuery) {
 		int queryStart = pathWithQuery.indexOf('?');
 		String pathOnly = queryStart < 0 ? pathWithQuery : pathWithQuery.substring(0, queryStart);
 		return "/api/public/mod/v1" + pathOnly;
 	}
 
-	/** Round-trip latency to sky.melloo.me (see SkyMellooPingMonitor) - v1's /health requires mod auth, unlike the old internal route. */
+	// Round-trip latency to sky.melloo.me - v1's /health requires mod auth, unlike the old internal route.
 	public static CompletableFuture<Void> ping(ModAuthManager.ModIdentity identity) {
 		return getJson("/health", identity).thenApply(root -> null);
 	}
@@ -752,14 +721,7 @@ public final class SkyMellooApiClient {
 	public record LegalInfo(String imprint, String privacy, String terms) {
 	}
 
-	/**
-	 * "/sm legal" - moved server-side entirely, out of the (now public/open-source) mod
-	 * source, and gated by the same build-verification check the integrity system already does: a
-	 * build that can't be verified as an official/dev SkyMelloo release doesn't get to show itself as
-	 * legally covered by the maintainer's own imprint/privacy/terms, since it genuinely isn't -
-	 * anyone could have changed anything in an unverified build. The future completes exceptionally
-	 * (see server.js's 403) for an unverified build - the caller shows a "not available" message.
-	 */
+	// "/sm legal" - server-gated by build verification; an unverified build can't claim to be legally covered, future completes exceptionally.
 	public static CompletableFuture<LegalInfo> fetchLegalInfo(String jarHash) {
 		String url = "/legal" + (jarHash != null ? "?hash=" + encode(jarHash) : "");
 		return getJson(url).thenApply(root -> new LegalInfo(
@@ -769,7 +731,7 @@ public final class SkyMellooApiClient {
 		));
 	}
 
-	/** A one-time serverId to hand to Mojang's own joinServer call, plus the server's own clock reading so the mod can correct for its own clock drift once per session - see {@link ModAuthManager}. */
+	// A one-time serverId for Mojang's joinServer call, plus a clock reading to correct for drift.
 	public record ChallengeResult(String serverId, long serverTime) {
 	}
 
@@ -781,7 +743,7 @@ public final class SkyMellooApiClient {
 	public record SessionResult(long expiresAt) {
 	}
 
-	/** Redeems a completed joinServer call, registering {@code publicKeyBase64} (this launch's ephemeral Ed25519 public key, SPKI DER) as this account's active session - Mojang's hasJoined has to actually confirm the joinServer call server-side first. */
+	// Redeems a completed joinServer call, registering this launch's ephemeral public key as the active session.
 	public static CompletableFuture<SessionResult> verifyAuthChallenge(String serverId, String username, String uuid, String publicKeyBase64) {
 		JsonObject body = new JsonObject();
 		body.addProperty("serverId", serverId);
@@ -792,7 +754,7 @@ public final class SkyMellooApiClient {
 				.thenApply(root -> new SessionResult(root.get("expiresAt").getAsLong()));
 	}
 
-	/** Resolved per-feature permissions (cosmetics, etc.) - admin-configurable defaults + per-user overrides, resolved server-side from the verified signed request. */
+	// Resolved per-feature permissions - admin defaults + per-user overrides, resolved server-side.
 	public static CompletableFuture<Map<String, Boolean>> fetchPermissions(ModAuthManager.ModIdentity identity) {
 		return getJson("/permissions", identity).thenApply(root -> {
 			Map<String, Boolean> result = new HashMap<>();
@@ -805,11 +767,11 @@ public final class SkyMellooApiClient {
 		});
 	}
 
-	/** Whether the account is admin-linked, and its actual highest role label (e.g. "Owner") if so - {@code roleLabel} is {@code null} against an older server that doesn't send it yet. */
+	// roleLabel is null against an older server that doesn't send it yet.
 	public record AdminStatus(boolean isAdmin, String roleLabel) {
 	}
 
-	/** Whether the account behind this identity is verified-linked to the admin website account (via /skymelloo verify). */
+	// Whether the account behind this identity is verified-linked to the admin website account (via /skymelloo verify).
 	public static CompletableFuture<AdminStatus> checkIsAdmin(ModAuthManager.ModIdentity identity) {
 		return getJson("/is-admin", identity).thenApply(root -> {
 			boolean isAdmin = root.has("isAdmin") && !root.get("isAdmin").isJsonNull() && root.get("isAdmin").getAsBoolean();
@@ -818,15 +780,15 @@ public final class SkyMellooApiClient {
 		});
 	}
 
-	/** Result of completing the "/skymelloo unlink" account flow (account verification itself moved to MellooEssentials' "/mes verify"). */
+	// Result of completing the "/skymelloo unlink" account flow (account verification itself moved to MellooEssentials' "/mes verify").
 	public record VerifyResult(boolean ok, String error) {
 	}
 
-	/** Result of starting the "/sm link" browser-based linking flow - {@code token} is opened as {@code https://sky.melloo.me/link/<token>} in the system browser, see SkyMellooClient's "link" command. */
+	// Result of starting "/sm link" - token is opened as sky.melloo.me/link/<token> in the system browser.
 	public record LinkStartResult(boolean ok, String token, String error) {
 	}
 
-	/** Starts the mirror-image of "/skymelloo verify <code>" - instead of typing a website-generated code in-game, this generates a token in-game (via the signed request, so it's tied to a proven identity) that the website consumes once opened, using whatever Discord session is already there. */
+	// Mirror of "/skymelloo verify <code>" - generates a token in-game the website consumes once opened.
 	public static CompletableFuture<LinkStartResult> startAccountLink(ModAuthManager.ModIdentity identity) {
 		return postJson("/link/start", new JsonObject(), identity)
 				.thenApply(root -> new LinkStartResult(true, root.get("token").getAsString(), null))
@@ -836,7 +798,7 @@ public final class SkyMellooApiClient {
 	public record CloudSettingsResult(JsonObject settings) {
 	}
 
-	/** The cloud-synced settings blob for the account behind this identity, or null if nothing's been saved yet (or the request failed). */
+	// The cloud-synced settings blob for the account behind this identity, or null if nothing's been saved yet (or the request failed).
 	public static CompletableFuture<CloudSettingsResult> fetchCloudSettings(ModAuthManager.ModIdentity identity) {
 		return getJson("/settings", identity)
 				.thenApply(root -> root.has("settings") && root.get("settings").isJsonObject()
@@ -845,7 +807,7 @@ public final class SkyMellooApiClient {
 				.exceptionally(error -> null);
 	}
 
-	/** Saves the current settings for cloud sync - a failure here just means the next sync attempt tries again. Returns whether it actually succeeded, for debug logging. */
+	// A failure here just means the next sync attempt tries again; returns success for debug logging.
 	public static CompletableFuture<Boolean> pushCloudSettings(ModAuthManager.ModIdentity identity, JsonObject settings) {
 		JsonObject body = new JsonObject();
 		body.add("settings", settings);
@@ -854,18 +816,18 @@ public final class SkyMellooApiClient {
 				.exceptionally(error -> false);
 	}
 
-	/** Undoes "/skymelloo verify" - only ever affects whichever account the signed request proves you are. */
+	// Undoes "/skymelloo verify" - only ever affects whichever account the signed request proves you are.
 	public static CompletableFuture<VerifyResult> unlinkAccount(ModAuthManager.ModIdentity identity) {
 		return postJson("/unlink", new JsonObject(), identity)
 				.thenApply(root -> new VerifyResult(true, null))
 				.exceptionally(error -> new VerifyResult(false, ChatUtil.friendlyError(error)));
 	}
 
-	/** One credited contributor - shown on the menu's Credits page as a player head. {@code online} is live (same presence system behind the mod-user highlight/badge), not baked into the cached list - see SkyMellooMenuScreen's CreditsPage, which re-fetches on a timer to keep it current while the page is open. */
+	// One credited contributor shown on the Credits page - online is live, not baked into the cached list.
 	public record CreditEntry(String username, String role, boolean online) {
 	}
 
-	/** Who's credited for the mod/website - pulled live rather than hardcoded, so it stays current without a mod update. */
+	// Who's credited for the mod/website - pulled live rather than hardcoded, so it stays current without a mod update.
 	public static CompletableFuture<List<CreditEntry>> fetchCredits(ModAuthManager.ModIdentity identity) {
 		return getJson("/credits", identity).thenApply(root -> {
 			List<CreditEntry> result = new ArrayList<>();

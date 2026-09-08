@@ -26,10 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Decides which entities get the forced-glow highlight treatment and what color they get.
- * Hooked from {@link com.melloo.skymelloo.client.mixin.EntityGlowMixin}.
- */
+// Decides which entities get the forced-glow highlight treatment and what color they get.
+// Hooked from EntityGlowMixin.
 public final class HighlightManager {
 	private static final int KILL_FLASH_COLOR = 0xFFFFA500;
 	private static final long KILL_FLASH_DURATION_MS = 3000;
@@ -38,7 +36,7 @@ public final class HighlightManager {
 	private HighlightManager() {
 	}
 
-	/** Briefly (3s) forces a player's highlight color to orange - called right after you kill them. */
+	// Briefly (3s) forces a player's highlight color to orange - called right after you kill them.
 	public static void flashKillHighlight(UUID victimUuid) {
 		killFlashExpiry.put(victimUuid, System.currentTimeMillis() + KILL_FLASH_DURATION_MS);
 	}
@@ -48,7 +46,7 @@ public final class HighlightManager {
 		return expiry != null && expiry > System.currentTimeMillis();
 	}
 
-	/** Player/mob highlighting glows through walls; chests/items only glow with a clear line of sight. */
+	// Player/mob highlighting glows through walls; chests/items only glow with a clear line of sight.
 	public static boolean shouldGlow(Entity entity) {
 		if (!WhitelistManager.isAllowed()) {
 			return false;
@@ -94,7 +92,7 @@ public final class HighlightManager {
 				&& isDungeonMobEntity(living) && isInCurrentDungeonRoom(living);
 	}
 
-	/** Many dungeon bosses/reskins are a disguised ArmorStand, not a real Enemy; marker stands are pure decoration, excluded. */
+	// Many dungeon bosses/reskins are a disguised ArmorStand, not a real Enemy; marker stands are pure decoration, excluded.
 	private static boolean isDungeonMobEntity(LivingEntity living) {
 		if (living instanceof Enemy) {
 			return true;
@@ -105,7 +103,7 @@ public final class HighlightManager {
 		return !(living instanceof Player);
 	}
 
-	/** Whether this entity gets ANY highlight treatment right now (glow, colored name, or item name) - used to gate the distance display. */
+	// Whether this entity gets ANY highlight treatment right now (glow, colored name, or item name) - used to gate the distance display.
 	public static boolean isHighlightTarget(Entity entity) {
 		if (!WhitelistManager.isAllowed()) {
 			return false;
@@ -123,7 +121,7 @@ public final class HighlightManager {
 		return shouldGlow(entity);
 	}
 
-	/** Hypixel NPCs are real Player entities with a fake GameProfile - detected by UUID version (real accounts are always v4). */
+	// Hypixel NPCs are real Player entities with a fake GameProfile - detected by UUID version (real accounts are always v4).
 	public static boolean isNpc(Player player) {
 		if (Minecraft.getInstance().player == player) {
 			return false;
@@ -131,7 +129,7 @@ public final class HighlightManager {
 		return player.getUUID().version() != 4;
 	}
 
-	/** Whether a dropped item's floating name should be forced visible (vanilla hides it by default). */
+	// Whether a dropped item's floating name should be forced visible (vanilla hides it by default).
 	public static boolean shouldShowItemName(Entity entity) {
 		return entity instanceof ItemEntity item && shouldGlowItem(item, SkyMellooConfig.HANDLER.instance());
 	}
@@ -183,7 +181,7 @@ public final class HighlightManager {
 	private static final int LOW_HP_BLINK_INTERVAL_MS = 400;
 	private static final double LOW_HP_BLINK_THRESHOLD = 0.25;
 
-	/** Blinks a party member's highlight red under 25% HP (MellooEssentials' override callback). Dungeon-only - vanilla HP isn't synced with real SkyBlock HP outside a run. */
+	// Blinks red under 25% HP. Dungeon-only - vanilla HP isn't synced with real SkyBlock HP outside a run.
 	public static Integer partyBlinkOverride(java.util.UUID uuid, int normalColor) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		if (!config.lowHpBlinkEnabled) {
@@ -207,7 +205,7 @@ public final class HighlightManager {
 		return blinkOn ? LOW_HP_BLINK_COLOR : normalColor;
 	}
 
-	/** Whether {@code living} is in the local player's current dungeon room, not just anywhere on the floor. Only meaningful during an active run. */
+	// Whether living is in the local player's current dungeon room, not just anywhere on the floor. Only meaningful during an active run.
 	private static boolean isInCurrentDungeonRoom(LivingEntity living) {
 		if (!com.melloo.skymelloo.client.social.DungeonRunTracker.isRunActive()) {
 			return false;
@@ -220,7 +218,7 @@ public final class HighlightManager {
 		return bounds != null && bounds.intersects(living.getBoundingBox());
 	}
 
-	/** Appends a colored marker after the nametag rather than recoloring it, so Hypixel's own rank color stays intact. */
+	// Appends a colored marker after the nametag rather than recoloring it, so Hypixel's own rank color stays intact.
 	public static Component colorizeName(Player player, Component original) {
 		if (!WhitelistManager.isAllowed()) {
 			return original;

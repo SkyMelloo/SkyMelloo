@@ -20,21 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * "Dungeon Info": when someone joins your Dungeon Party Finder group (NOT a regular party
- * invite/join), looks up their SkyBlock stats via sky.melloo.me/api and posts a customizable
- * summary in chat, so you can spot undergeared members before starting - and optionally
- * auto-kicks them if a chosen stat is below a threshold.
- * <p>
- * Verified against a live Hypixel screenshot: "Party Finder &gt; &lt;name&gt; joined the dungeon
- * group! (&lt;Class&gt; Level &lt;n&gt;)" - names can have a leading rank/cosmetic icon glued
- * directly to them with no space, so the username is matched from the end (right before
- * "joined the dungeon group!") rather than anchored to the start of the line.
- * <p>
- * If the joining name is YOUR OWN, it means you just joined an existing party via the finder
- * (rather than someone joining a party you made) - in that case, request a fresh party info
- * packet and check everyone already in it a couple seconds later, once HypixelModAPI has replied.
- */
+// "Dungeon Info": posts a stat summary (and optionally auto-kicks) when someone joins your Party Finder group.
 public final class PartyJoinWatcher {
 	private static final Pattern FORMAT_CODE = Pattern.compile("§[0-9A-FK-ORa-fk-or]");
 	private static final Pattern JOINED_DUNGEON_GROUP = Pattern.compile(
@@ -42,10 +28,7 @@ public final class PartyJoinWatcher {
 	);
 	private static final int SELF_JOIN_CHECK_DELAY_TICKS = 40;
 
-	// Verified directly from the real in-game Catacombs floor-selection tooltips, not guessed:
-	// Entrance needs Combat Skill 15; Floors I-VII each need Catacombs
-	// Skill 1/3/5/9/14/19/24 respectively (index 0 = Floor I's requirement). Master Mode
-	// requirements aren't verified/included here.
+	// Catacombs Skill required per floor (index 0 = Floor I); Entrance needs Combat Skill instead, see below.
 	private static final int[] CATACOMBS_LEVEL_PER_FLOOR = {1, 3, 5, 9, 14, 19, 24};
 	private static final int ENTRANCE_COMBAT_REQUIREMENT = 15;
 
@@ -57,9 +40,7 @@ public final class PartyJoinWatcher {
 
 	public static void init() {
 		ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-			// dungeonAutoKickEnabled only decides whether the low-stat check below kicks
-			// automatically or just posts a warning with a manual [Kick] button, it's no longer a
-			// full on/off switch for the check itself.
+			// dungeonAutoKickEnabled only picks auto-kick vs. a manual [Kick] warning - it doesn't disable the check itself.
 			String stripped = FORMAT_CODE.matcher(message.getString()).replaceAll("");
 			for (String line : stripped.split("\n")) {
 				String trimmed = line.trim();
@@ -135,12 +116,7 @@ public final class PartyJoinWatcher {
 		});
 	}
 
-	/**
-	 * Checks the joining player against the configured stat/threshold - if they're below it and
-	 * {@link SkyMellooConfig#dungeonAutoKickEnabled} is on, kicks them automatically like before;
-	 * if it's off, posts the same warning but with a manual, clickable [Kick] button instead of
-	 * acting on its own, so the check is never fully silent either way.
-	 */
+	// If below threshold, auto-kicks when dungeonAutoKickEnabled, else posts a manual [Kick] warning.
 	private static void maybeAutoKick(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, int ap, SkyMellooConfig config) {
 		// Anything other than "LEVEL" means AP - covers both the current "AP" value and "MP" left
 		// over from configs saved before the Hypixel stat rename.
@@ -154,9 +130,7 @@ public final class PartyJoinWatcher {
 			return;
 		}
 		String statLabel = useAp ? "AP" : "Level";
-		// Only the actual party LEADER can /party kick at all on Hypixel - anyone else's attempt just
-		// fails server-side. Auto-kicking only happens if leader; the button is only even shown if
-		// leader too, rather than offering something that would silently fail when clicked.
+		// Only the party leader can /party kick - the button is hidden for anyone else so it can't silently fail.
 		boolean isLeader = com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader();
 		if (config.dungeonAutoKickEnabled && isLeader) {
 			com.melloo.mellooessentials.client.party.PartyKickQueue.queueKick(username);
@@ -181,20 +155,12 @@ public final class PartyJoinWatcher {
 		client.player.sendSystemMessage(ChatUtil.prefixed(warning));
 	}
 
-	/**
-	 * Checks {@link #qualifyingFloor} (real level REQUIREMENTS - Catacombs/Combat Skill - not just
-	 * "have they ever completed floor N before") against {@link SkyMellooConfig#dungeonFloorKickThreshold}.
-	 * Independent toggle/threshold from the AP/Level check above - a party can reasonably want both,
-	 * either, or neither.
-	 */
-	/** Public - also called by {@link com.melloo.skymelloo.client.party.PartyHudManager} once it independently resolves a tracked party member's floor stat, not just on the join-message path. */
+	// Checks qualifyingFloor against the threshold; also called directly by PartyHudManager.
 	public static void maybeAutoKickForFloor(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, SkyMellooConfig config) {
 		int value = qualifyingFloor(summary.catacombsLevel(), summary.skillLevels().getOrDefault("combat", 0));
 		if (!config.dungeonFloorKickEnabled || value >= config.dungeonFloorKickThreshold) {
 			return;
 		}
-		// Only the actual party LEADER can /party kick at all on Hypixel - skip silently rather than
-		// send a command that would just fail server-side for anyone else.
 		if (!com.melloo.skymelloo.client.party.PartyTracker.isLocalPlayerLeader()) {
 			return;
 		}
@@ -206,11 +172,7 @@ public final class PartyJoinWatcher {
 		DungeonRunTracker.sendDungeonMessage(client, text, config.dungeonFloorKickDelivery);
 	}
 
-	/**
-	 * The opposite of {@link #maybeAutoKick} - for carry parties, where a joiner whose stat is already
-	 * OVER the threshold doesn't need carrying and may be taking a slot from someone who does.
-	 * Independent toggle/stat/threshold from the min check, so a party can run either, both, or neither.
-	 */
+	// Opposite of maybeAutoKick - for carry parties, kicks a joiner already OVER the threshold.
 	private static void maybeAutoKickMax(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, int ap, SkyMellooConfig config) {
 		if (!config.dungeonAutoKickMaxEnabled) {
 			return;
@@ -239,11 +201,7 @@ public final class PartyJoinWatcher {
 		DungeonRunTracker.sendDungeonMessage(client, text, config.dungeonAutoKickMaxDelivery);
 	}
 
-	/**
-	 * The opposite of {@link #maybeAutoKickForFloor} - for carry parties, where a member already
-	 * level-eligible for a floor higher than the threshold doesn't need to be carried through it.
-	 */
-	/** Public - also called by {@link com.melloo.skymelloo.client.party.PartyHudManager}, same as {@link #maybeAutoKickForFloor}. */
+	// Opposite of maybeAutoKickForFloor - kicks a member already eligible past the threshold; also called by PartyHudManager.
 	public static void maybeAutoKickForFloorMax(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, SkyMellooConfig config) {
 		int value = qualifyingFloor(summary.catacombsLevel(), summary.skillLevels().getOrDefault("combat", 0));
 		if (!config.dungeonFloorKickMaxEnabled || value <= config.dungeonFloorKickMaxThreshold) {
@@ -260,14 +218,7 @@ public final class PartyJoinWatcher {
 		DungeonRunTracker.sendDungeonMessage(client, text, config.dungeonFloorKickMaxDelivery);
 	}
 
-	/**
-	 * Checks {@link SkyMellooApiClient.SummaryResult#highestFloor()} (real Hypixel completion record,
-	 * NOT the level-requirement "eligible" check above) against
-	 * {@link SkyMellooConfig#dungeonFloorCompletionKickThreshold} - not just the min/max Catacombs
-	 * level requirement above, but the highest floor actually completed and unlocked.
-	 * Independent toggle/threshold from every other check here.
-	 */
-	/** Public - also called by {@link com.melloo.skymelloo.client.party.PartyHudManager}, same as {@link #maybeAutoKickForFloor}. */
+	// Checks actual Hypixel floor-completion record, not the level-requirement check above; also called by PartyHudManager.
 	public static void maybeAutoKickForFloorCompletion(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, SkyMellooConfig config) {
 		int value = summary.highestFloor();
 		if (!config.dungeonFloorCompletionKickEnabled || value >= config.dungeonFloorCompletionKickThreshold) {
@@ -284,7 +235,7 @@ public final class PartyJoinWatcher {
 		DungeonRunTracker.sendDungeonMessage(client, text, config.dungeonFloorCompletionKickDelivery);
 	}
 
-	/** The opposite of {@link #maybeAutoKickForFloorCompletion} - for carry parties, where a member who's already completed a floor higher than the threshold doesn't need to take a carry slot. */
+	// Opposite of maybeAutoKickForFloorCompletion - kicks a member already past the completion threshold.
 	public static void maybeAutoKickForFloorCompletionMax(Minecraft client, String username, SkyMellooApiClient.SummaryResult summary, SkyMellooConfig config) {
 		int value = summary.highestFloor();
 		if (!config.dungeonFloorCompletionKickMaxEnabled || value <= config.dungeonFloorCompletionKickMaxThreshold) {
@@ -301,26 +252,14 @@ public final class PartyJoinWatcher {
 		DungeonRunTracker.sendDungeonMessage(client, text, config.dungeonFloorCompletionKickMaxDelivery);
 	}
 
-	/** Verified minimum Catacombs Skill level required for {@code floor} (1-7, clamped) - see {@link #CATACOMBS_LEVEL_PER_FLOOR}. */
+	// Minimum Catacombs Skill level required for floor (1-7, clamped).
 	public static int requiredCatacombsLevel(int floor) {
 		int index = Math.max(1, Math.min(floor, CATACOMBS_LEVEL_PER_FLOOR.length)) - 1;
 		return CATACOMBS_LEVEL_PER_FLOOR[index];
 	}
 
-	/**
-	 * Highest floor this player is currently ELIGIBLE for right now, purely from their Catacombs/
-	 * Combat skill levels ({@link #CATACOMBS_LEVEL_PER_FLOOR}/{@link #ENTRANCE_COMBAT_REQUIREMENT}) -
-	 * distinct from {@link SkyMellooApiClient.SummaryResult#highestFloor()} (highest floor they've
-	 * ever actually COMPLETED before). A player can be level-eligible for a floor they've personally
-	 * never cleared, or - much less commonly - have completed a floor in the past under different
-	 * circumstances without currently meeting the requirement (not really possible for level
-	 * requirements specifically, since Catacombs levels don't decrease, but kept as two separate
-	 * numbers since they answer two different questions: "have they done this" vs. "can they queue
-	 * for this at all").
-	 *
-	 * @return -1 if they don't even meet the Entrance's Combat Skill requirement, 0 if they meet
-	 * Entrance but not yet Floor I, otherwise the highest floor (1-7) they qualify for.
-	 */
+	// Highest floor eligible by level requirement, not actual completion history. -1 if below the
+	// Entrance requirement, 0 if Entrance-only, else the highest floor (1-7) qualified for.
 	public static int qualifyingFloor(int catacombsLevel, int combatLevel) {
 		if (combatLevel < ENTRANCE_COMBAT_REQUIREMENT) {
 			return -1;
@@ -335,7 +274,7 @@ public final class PartyJoinWatcher {
 		return floor;
 	}
 
-	/** Substitutes {username} {ap} {level} {cata} {class} {skillavg} {networth} {rank} {guild} {maxfloor} {qualfloor} {time} {date} (also the legacy {mp}/{mptier}/{mpscore} names, for templates saved before the AP rename) in the Dungeon Info message template. */
+	// Substitutes template placeholders like {username}/{ap}/{level}/{cata}/{class} (plus legacy {mp}/{mptier}/{mpscore}).
 	private static String renderTemplate(String template, String username, SkyMellooApiClient.SummaryResult summary, int ap) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		ZoneId zone;

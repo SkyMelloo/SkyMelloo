@@ -12,7 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Optional soft integration with Skyblocker, read via reflection only if it's installed - no compile-time dependency, read-only. */
+// Optional soft integration with Skyblocker, read via reflection only if it's installed - no compile-time dependency, read-only.
 public final class SkyblockerBridge {
 	private static final String DUNGEON_MANAGER_CLASS = "de.hysky.skyblocker.skyblock.dungeon.secrets.DungeonManager";
 	private static final String ROOM_CLASS = "de.hysky.skyblocker.skyblock.dungeon.secrets.Room";
@@ -99,7 +99,7 @@ public final class SkyblockerBridge {
 		}
 	}
 
-	/** Whether Skyblocker is installed and exposes the expected room/secrets API. */
+	// Whether Skyblocker is installed and exposes the expected room/secrets API.
 	public static boolean isAvailable() {
 		ensureChecked();
 		return available;
@@ -108,7 +108,7 @@ public final class SkyblockerBridge {
 	public record RoomSecrets(String roomName, int found, int max) {
 	}
 
-	/** Secrets found/total for the local player's current room. {@code null} if unmatched or Skyblocker isn't installed. */
+	// Secrets found/total for the local player's current room. null if unmatched or Skyblocker isn't installed.
 	public static RoomSecrets getCurrentRoomSecrets() {
 		if (!isAvailable()) {
 			return null;
@@ -127,7 +127,7 @@ public final class SkyblockerBridge {
 		}
 	}
 
-	/** Grid-cell corners for the current room's full shape - unlike our map-color read, correct even for cells not yet revealed. */
+	// Grid-cell corners for the current room's full shape - unlike our map-color read, correct even for cells not yet revealed.
 	public static List<int[]> getCurrentRoomSegments() {
 		if (!isAvailable()) {
 			return null;
@@ -148,7 +148,7 @@ public final class SkyblockerBridge {
 		}
 	}
 
-	/** Confirmed room type, slower but more authoritative than {@link DungeonRoomTracker}'s map-color read. Names match {@link DungeonRoomTracker.RoomType}. */
+	// Confirmed room type, slower but more authoritative than DungeonRoomTracker's map-color read. Names match RoomType.
 	public static String getCurrentRoomTypeName() {
 		if (!isAvailable()) {
 			return null;
@@ -166,7 +166,7 @@ public final class SkyblockerBridge {
 		}
 	}
 
-	/** Real in-game checkmark state: GREEN_CHECKED/WHITE_CHECKED (completed, WHITE = with a recorded fail)/FAILED/UNCLEARED. */
+	// Real in-game checkmark state: GREEN_CHECKED/WHITE_CHECKED (completed, WHITE = with a recorded fail)/FAILED/UNCLEARED.
 	public static String getCurrentRoomClearState() {
 		if (!isAvailable()) {
 			return null;
@@ -183,12 +183,12 @@ public final class SkyblockerBridge {
 		}
 	}
 
-	/** Skyblocker's internal room names carry a "-N" catalog variant suffix (e.g. "Altar-6") - stripped for display, since a player has no use for which cataloged variant it is, only the room's real name. */
+	// Skyblocker's room names carry a "-N" catalog variant suffix (e.g. "Altar-6") - stripped for display.
 	private static String cleanRoomName(String rawName) {
 		return rawName != null ? rawName.replaceFirst("-\\d+$", "") : null;
 	}
 
-	/** Skyblocker's own live score - preferred over {@link DungeonRunTracker#calculateScore()} when available. */
+	// Skyblocker's own live score - preferred over calculateScore() when available.
 	public static Integer getScore() {
 		if (!isAvailable()) {
 			return null;
@@ -206,7 +206,7 @@ public final class SkyblockerBridge {
 	public record SecretRow(int secretIndex, boolean found) {
 	}
 
-	/** One row per distinct secret index (multiple waypoint spots sharing an index collapse to one row). See {@link #ensureSecretDetailChecked}. */
+	// One row per distinct secret index (multiple waypoint spots sharing an index collapse to one row). See ensureSecretDetailChecked.
 	public static List<SecretRow> getCurrentRoomSecretDetails() {
 		ensureSecretDetailChecked();
 		if (!secretDetailAvailable) {
