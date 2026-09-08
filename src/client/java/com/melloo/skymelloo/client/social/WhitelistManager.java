@@ -7,16 +7,8 @@ import com.melloo.skymelloo.client.util.DebugLog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
-/**
- * The admin-managed whitelist gate that used to make the ENTIRE mod inert for anyone not
- * explicitly approved is gone - SkyMelloo works fully for everyone now, whitelisted or not, now that the
- * mod is open source. {@link #isAllowed()} always returns {@code true} - kept only so the ~60
- * existing call sites across the mod (every feature system's own entry point) don't each need an
- * individual edit; none of them actually gate on anything real anymore. {@link #isAdmin()} is a
- * genuinely separate, still-real concept - whether this account is verified-linked to the actual
- * sky.melloo.me owner/admin/developer team (via /skymelloo verify) - used for staff highlighting
- * and admin-only debug/settings visibility, nothing to do with whitelist status.
- */
+// isAllowed() always returns true - the mod is open source, no whitelist gate anymore. Kept only
+// so existing call sites don't need editing. isAdmin() is separate: real admin-link status.
 public final class WhitelistManager {
 	private static final int PERIODIC_RECHECK_TICKS = 600; // 30s at 20 ticks/s
 
@@ -32,17 +24,15 @@ public final class WhitelistManager {
 		return true;
 	}
 
-	/** Whether this account is verified-linked to the admin website account (via /skymelloo verify). */
 	public static boolean isAdmin() {
 		return admin;
 	}
 
-	/** The account's actual highest role label (e.g. "Owner", "Lead Mod Developer") - {@code null} if not admin, or against an older server that doesn't send it yet. */
 	public static String getRoleLabel() {
 		return roleLabel;
 	}
 
-	/** Display text for the connection HUD's admin badge - the real role label if known, else a generic "Admin" fallback while admin-linked but the server hasn't sent a role label yet. Null when not admin at all. */
+	// Real role label if known, else a generic "Admin" fallback; null when not admin at all.
 	public static String getAdminBadgeText() {
 		if (!admin) {
 			return null;
@@ -50,7 +40,7 @@ public final class WhitelistManager {
 		return roleLabel != null ? roleLabel : "Admin";
 	}
 
-	/** Bypasses the once-per-join gate and re-checks right now - used when opening the settings menu, so a fresh admin-link made moments ago (e.g. via /skymelloo verify) shows up without needing to reconnect. */
+	// Bypasses the once-per-join gate, used when opening the settings menu.
 	public static void forceRecheck(Minecraft client) {
 		checkStarted = false;
 		checkOnce(client);
@@ -64,7 +54,6 @@ public final class WhitelistManager {
 		performCheck(client, false);
 	}
 
-	/** Call every tick - only actually re-checks every {@link #PERIODIC_RECHECK_TICKS}, and announces in chat if admin status changed since the last check. */
 	public static void tickPeriodicRecheck(Minecraft client) {
 		if (!checkStarted || client.player == null) {
 			return;
@@ -80,9 +69,7 @@ public final class WhitelistManager {
 	private static void performCheck(Minecraft client, boolean announceChanges) {
 		boolean wasAdmin = admin;
 		DebugLog.log(DebugLog.Category.PERMISSIONS, "Checking admin-link status...");
-		// Connection health itself (connected/connecting/failed) is MellooEssentials' own
-		// ConnectionStatusHud's job now, driven by its own ModAuthManager state - this only ever
-		// updates the admin-link flag itself, not any HUD's connection state.
+		// Connection health is MellooEssentials' ConnectionStatusHud's job; this only updates admin status.
 		ModAuthManager.getIdentity(client).thenCompose(SkyMellooApiClient::checkIsAdmin).whenComplete((status, error) -> Minecraft.getInstance().execute(() -> {
 			if (error != null) {
 				DebugLog.log(DebugLog.Category.PERMISSIONS, "Admin-link check failed: " + error.getMessage());

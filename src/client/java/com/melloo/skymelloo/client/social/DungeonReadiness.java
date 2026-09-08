@@ -6,11 +6,8 @@ import net.minecraft.network.chat.Component;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Estimates dungeon readiness as a 0-1000 score, combining {@link #statsBreakdown}
- * (skills + Accessory Power) and {@link #experienceBreakdown} (floor/completions).
- * Not a verified formula - Hypixel's API exposes no per-run damage/team data.
- */
+// Estimates dungeon readiness as a 0-1000 score combining stats and experience breakdowns.
+// Not a verified formula - Hypixel's API exposes no per-run damage/team data.
 public final class DungeonReadiness {
 	// Target Accessory Power per floor (index 0 = Entrance, 1-7 = Floor I-VII).
 	private static final int[] AP_BENCHMARK_PER_FLOOR = {50, 50, 100, 150, 250, 350, 450, 600};
