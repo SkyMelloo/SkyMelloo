@@ -62,12 +62,10 @@ public class SkyMellooClient implements ClientModInitializer {
 	private static KeyMapping saveLookKey;
 	private static KeyMapping loadLookKey;
 
-	/** So the settings screen itself can offer a "rebind" row without going out to vanilla's separate Controls screen. */
 	public static KeyMapping getOpenConfigKey() {
 		return openConfigKey;
 	}
 
-	/** No Screen.hasControlDown()-equivalent left on this version's input API - reads the raw GLFW modifier state instead, for the saveLookKey/loadLookKey combo. */
 	private static boolean isControlDown(Minecraft client) {
 		return InputConstants.isKeyDown(client.getWindow(), InputConstants.KEY_LCONTROL)
 				|| InputConstants.isKeyDown(client.getWindow(), InputConstants.KEY_RCONTROL);
@@ -76,28 +74,18 @@ public class SkyMellooClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		SkyMellooConfig.HANDLER.load();
-		// Lets essentials' own settings screen offer a "SkyMelloo Config" button back to this - H
-		// always opens essentials' screen now (the single settings/status/player-info surface for
-		// both mods), this button is the way to still reach SkyMelloo's own party/dungeon/etc tabs.
+		// Lets essentials' settings screen (H) offer a button back into SkyMelloo's own tabs.
 		com.melloo.mellooessentials.client.gui.SettingsScreen.setSkyMellooScreenOpener(() ->
 				com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL));
-		// These two extension points let essentials' ConnectionStatusHud surface extra info only
-		// SkyMelloo has: whether this account is admin-linked, and the sky.melloo.me API ping.
 		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setAdminBadgeSupplier(WhitelistManager::getAdminBadgeText);
 		com.melloo.mellooessentials.client.social.ConnectionStatusHud.setExtraLineProvider(() -> {
 			int ms = com.melloo.skymelloo.client.social.SkyMellooPingMonitor.getLastPingMs();
 			return ms >= 0 ? ms + "ms" : "--";
 		});
-		// The HUD layout editor (key J) moved into MellooEssentials entirely - it now natively handles
-		// only the two HUD elements essentials itself renders, and this is the hook that lets it
-		// supply the ones only SkyMelloo has (Fishing Combo, Party, Dungeon Score, etc.) without
-		// essentials needing to know SkyMelloo exists. See SkyMellooHudElements/
-		// HudLayoutEditorScreen's own doc comments.
+		// Supplies this mod's own HUD elements to essentials' layout editor (key J).
 		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraElementsProvider(
 				com.melloo.skymelloo.client.gui.SkyMellooHudElements::build);
 		com.melloo.mellooessentials.client.gui.HudLayoutEditorScreen.setExtraSaveHandler(SkyMellooConfig.HANDLER::save);
-		// Feeds live HP back into essentials' party glow decision - the one piece of data it can't
-		// know on its own, for the low-HP blink. See HighlightManager#partyBlinkOverride's own doc comment.
 		com.melloo.mellooessentials.client.highlight.HighlightManager.setPartyBlinkColorOverride(
 				com.melloo.skymelloo.client.highlight.HighlightManager::partyBlinkOverride);
 		PartyTracker.init();
@@ -111,23 +99,15 @@ public class SkyMellooClient implements ClientModInitializer {
 		com.melloo.skymelloo.client.gui.SkyMellooMenuItemManager.init();
 		com.melloo.skymelloo.client.util.AutoReconnect.init();
 		BlockHighlightRenderer.init();
-		// INIT fires as soon as the play-protocol listener is set up, before the player entity/world exist.
 		ClientPlayConnectionEvents.INIT.register((handler, client) -> {
 			ConnectionQualityMonitor.reset();
 			ConnectionQualityMonitor.start(client);
 		});
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			PlayerKillTracker.resetSession();
-			// Whitelist/permissions/cloud-sync are account-level state on sky.melloo.me, not tied to a
-			// TCP connection, so this event's own internal-server-hop firing (dungeon floor entry,
-			// "/server X") doesn't reset them - each already has its own periodic 30s re-check. Party
-			// membership IS connection-tied (per-connection HypixelModAPI packets), so it still resets.
+			// Party membership is connection-tied; whitelist/permissions/cloud-sync have their own recheck timers.
 			PartyHudManager.reset();
 		});
-		// Connection-status and Player-Info HUDs are MellooEssentials-only now (this mod's own
-		// copies of both were byte-for-byte duplicates - see SkyMellooSettingsScreen's GENERAL tab
-		// and MellooEssentials' ConnectionStatusHud/PlayerInfoHud, plus the extension points
-		// registered below for the admin badge and sky.melloo.me ping line this mod still owns).
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "fishing_score"), FishingScoreHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "party"), PartyHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "party_mp_bar"), com.melloo.skymelloo.client.party.PartyApBarHud.INSTANCE);
@@ -135,10 +115,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "dungeon_debug"), DungeonDebugHud.INSTANCE);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "health_mana_bars"), com.melloo.skymelloo.client.gui.HealthManaBarsHud.INSTANCE);
 
-		// Unbound by default (no reasonable universal default across keyboard layouts) -
-		// bind it yourself under Controls > Key Binds > SkyMelloo, or toggle Mob Highlighting from
-		// the settings screen (key H by default) instead. Repurposed to toggle the dungeon
-		// current-room mob highlight, since that's the only mob highlighting left at all.
+		// Unbound by default - bind under Controls > Key Binds > SkyMelloo.
 		toggleMobHighlightKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.toggle_mob_highlight",
 				InputConstants.Type.KEYSYM,
@@ -146,10 +123,7 @@ public class SkyMellooClient implements ClientModInitializer {
 				CATEGORY
 		));
 
-		// Opens the SkyMelloo settings screen directly, no ModMenu/commands needed. Unbound by
-		// default now (used to default to H, but that's MellooEssentials' key now - its settings
-		// screen is the single H-menu for both mods, with a "SkyMelloo Config" button back to this
-		// screen). Still fully rebindable for anyone who wants a direct hotkey to it.
+		// Unbound by default - H opens MellooEssentials' settings screen instead.
 		openConfigKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.open_config",
 				InputConstants.Type.KEYSYM,
@@ -157,8 +131,6 @@ public class SkyMellooClient implements ClientModInitializer {
 				CATEGORY
 		));
 
-		// Opens the main SkyMelloo Menu item's screen (Credits/Spells/Cosmetics/Report a Bug nav row -
-		// see SkyMellooMenuScreen/SkyMellooMenuItemManager). Defaults to K (free in vanilla).
 		mainMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.main_menu",
 				InputConstants.Type.KEYSYM,
@@ -166,10 +138,7 @@ public class SkyMellooClient implements ClientModInitializer {
 				CATEGORY
 		));
 
-		// Ctrl+X/Ctrl+F "look clipboard" - fabric's KeyMapping has no native modifier-combo support,
-		// so these bind the bare key and LookClipboardManager's callers check
-		// Screen.hasControlDown() themselves before acting. X/F are both unbound in vanilla, so a
-		// bare press without Ctrl held is a harmless no-op, not a conflict with anything else.
+		// Ctrl+X/Ctrl+F "look clipboard" - fabric's KeyMapping has no modifier-combo support, so callers check isControlDown() themselves.
 		saveLookKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
 				"key.skymelloo.save_look",
 				InputConstants.Type.KEYSYM,
@@ -184,12 +153,6 @@ public class SkyMellooClient implements ClientModInitializer {
 		));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			// Runs regardless of sky.melloo.me whitelist status - this is about the actual Minecraft
-			// server connection, unrelated to any of the Hypixel-only SkyBlock features gated
-			// below. ConnectionQualityMonitor specifically IS Hypixel-only despite sitting in this
-			// block - its own start() refuses to ever go active off Hypixel (real bug fixed: it used
-			// to fire its connection-quality chat messages on any server at all), so tick() here is
-			// just a no-op everywhere else.
 			ConnectionQualityMonitor.tick(client);
 			com.melloo.skymelloo.client.util.SkyblockDetector.tick(client);
 			SkyMellooPingMonitor.tick(client);
@@ -221,9 +184,7 @@ public class SkyMellooClient implements ClientModInitializer {
 				com.melloo.skymelloo.client.util.LookClipboardManager.tick(client.player);
 			}
 
-			// Everything else is Hypixel-only - the whole rest of the mod (SkyBlock features, party,
-			// friends, cloud sync, the whitelist/version/permission checks that gate them) has no
-			// reason to run on any other server.
+			// Everything else is Hypixel-only.
 			if (!com.melloo.mellooessentials.client.util.HypixelDetector.isHypixel(client)) {
 				TickDelay.tick();
 				return;
@@ -237,9 +198,6 @@ public class SkyMellooClient implements ClientModInitializer {
 
 			WhitelistManager.checkOnce(client);
 			WhitelistManager.tickPeriodicRecheck(client);
-			// Version/integrity check for THIS mod now lives in MellooEssentials' own
-			// ModVersionManager (checks itself and, since Fabric Loader's mod registry is global, this
-			// mod too) - no separate check/tick needed here anymore, see its own class doc comment.
 			PermissionsManager.fetchIfNeeded(client);
 			PermissionsManager.tickPeriodicRecheck(client);
 			CloudSyncManager.pullIfNeeded(client);
@@ -250,9 +208,6 @@ public class SkyMellooClient implements ClientModInitializer {
 			}
 			FishingHelper.tick(client);
 			FishingMinigameManager.tick(client);
-			// Not gated on the highlight system anymore - the party HUD needs this too now. PartyTracker itself only
-			// actually sends a request once on join and then on party-related chat lines, not every
-			// tick, so this is cheap regardless.
 			PartyTracker.tick();
 			PartyJoinWatcher.tick(client);
 			BlockHighlightRenderer.tick(client);
@@ -276,7 +231,7 @@ public class SkyMellooClient implements ClientModInitializer {
 							return 1;
 						}))
 						.then(ClientCommands.literal("sync")
-								// Bare "/sm sync" == "/sm sync party" - the only thing left to sync.
+								// Bare "/sm sync" == "/sm sync party".
 								.executes(ctx -> {
 									PartyTracker.requestRefreshNow();
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.sync.requested")));
@@ -327,11 +282,6 @@ public class SkyMellooClient implements ClientModInitializer {
 									stats.totalDeaths(), timeText)));
 							return 1;
 						}))
-						// "/sm debug hm-bar" (renamed from "mana") - dumps the FULL pipeline to chat: the raw actionbar segments,
-						// every "cur/max" fraction parsed out of them (labeled by position, health=0/mana=1
-						// per ActionBarTracker's own positional matching), and then the actual on-screen
-						// bar fill state computed via the exact same HealthManaBarsHud.compute*BarState()
-						// methods the real renderer uses - so this can never drift from what's really drawn.
 						.then(ClientCommands.literal("debug")
 								.executes(ctx -> {
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.usage")));
@@ -412,10 +362,6 @@ public class SkyMellooClient implements ClientModInitializer {
 													+ " sideBySide=" + config.healthManaBarsSideBySide))));
 									return 1;
 								}))
-								// "/sm debug bossroom" - diagnostic for the boss-room 3D scanner prototype
-								// after a real report of it silently not working, with no error in the log -
-								// this exposes whether it's even active and how many blocks it's found,
-								// instead of it working (or not) completely silently.
 								.then(ClientCommands.literal("bossroom").executes(ctx -> {
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.header")));
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.entered_cleared",
@@ -431,10 +377,6 @@ public class SkyMellooClient implements ClientModInitializer {
 									} else {
 										ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.bossroom.not_scanning")));
 									}
-									// "Queued, not yet sent: 0" above only proves the data was drained LOCALLY,
-									// never that the HTTP report carrying it actually reached the server - these
-									// counts answer whether it actually arrived, tracking only presence reports
-									// that genuinely had ≥1 boss-room block in them.
 									long attempts = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendAttempts();
 									long successes = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendSuccesses();
 									long failures = com.melloo.skymelloo.client.social.ModPresenceManager.getBossRoomSendFailures();
@@ -444,12 +386,6 @@ public class SkyMellooClient implements ClientModInitializer {
 									}
 									return 1;
 								}))
-								// "/sm debug score" - real bugfix: the
-								// live/recorded score stayed frozen at 120 for an entire run regardless of
-								// real progress. Dumps every input the formula uses, PLUS a scan of every
-								// reconstructed tab-list line (not just the fixed index 43 the formula
-								// actually reads) so a live report shows exactly whether that index is wrong,
-								// empty, or Skyblocker's own score just isn't being used - instead of guessing.
 								.then(ClientCommands.literal("score").executes(ctx -> {
 									var info = com.melloo.skymelloo.client.social.DungeonRunTracker.debugScoreInfo();
 									ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.debug.score.header")));
@@ -479,14 +415,6 @@ public class SkyMellooClient implements ClientModInitializer {
 											on ? "skymelloo.command.debug.items.on" : "skymelloo.command.debug.items.off")));
 									return 1;
 								})))
-						// "/sm version" and "/sm info" merged into one command - always fires a FRESH check
-						// against the server (see ModVersionManager#checkNow) rather than just showing
-						// whatever the one join-time check happened to cache, so this always reflects the
-						// real latest published version right now, cooldown-limited client-side against
-						// accidental spam. Dropped the buildKind/"official"/"unofficial" trust framing
-						// entirely - a self-reported build check can't actually prove anything to anyone but
-						// yourself - plain informational, version numbers and a reminder of where the real
-						// thing comes from, nothing more.
 						.then(ClientCommands.literal("version").executes(ctx -> {
 							String version = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooLocalVersion();
 							String publicVersion = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooPublicVersion();
@@ -529,19 +457,11 @@ public class SkyMellooClient implements ClientModInitializer {
 							);
 							return 1;
 						}))
-						// German data-protection law expects the legal pages to actually be reachable from
-						// the mod itself, not just buried in the website's footer. Fetched fully server-side
-						// (rather than hardcoded here) so the server can refuse to hand them out to a build
-						// it can't verify as an official/dev SkyMelloo release, since a modified build
-						// genuinely isn't legally covered by the maintainer's own imprint/privacy/terms.
+						// Fetched server-side so an unverified build can be refused the real legal pages.
 						.then(ClientCommands.literal("legal").executes(ctx -> {
 							String jarHash = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooJarHash();
 							com.melloo.skymelloo.client.api.SkyMellooApiClient.fetchLegalInfo(jarHash).whenComplete((info, error) -> Minecraft.getInstance().execute(() -> {
 								if (error != null || info == null) {
-									// Addressed partly to whoever actually built this - a test/private build is
-									// almost always someone's own compile, so it's worth telling them directly that
-									// this command still points at the real maintainer's own legal pages and
-									// probably shouldn't ship as-is in a real fork, not just a generic refusal.
 									var lastResult = com.melloo.mellooessentials.client.util.ModVersionManager.getSkyMellooLastResult();
 									Component maintainer = lastResult != null && lastResult.maintainerUsername() != null
 											? Component.literal(lastResult.maintainerUsername())
@@ -560,9 +480,6 @@ public class SkyMellooClient implements ClientModInitializer {
 							return 1;
 						}))
 						.then(ClientCommands.literal("config").executes(ctx -> {
-							// Always open, regardless of current screen - the chat/command screen
-							// is technically still "open" when this executes, so a null-check here
-							// would silently do nothing.
 							com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.open(com.melloo.skymelloo.client.gui.SkyMellooSettingsScreen.Tab.GENERAL);
 							return 1;
 						}))
@@ -589,11 +506,7 @@ public class SkyMellooClient implements ClientModInitializer {
 									);
 							return 1;
 						}))
-						// "/sm link" - the mirror image of MellooEssentials' "/mes verify <code>": instead of
-						// typing a website-generated code in-game, this generates a token in-game and opens
-						// sky.melloo.me/link/<token> directly in the system browser, where it completes using
-						// whatever Discord session is already there (or prompts a fresh login first) - no
-						// code to type at all.
+						// Opens sky.melloo.me/link/<token> in the system browser to complete via existing Discord session.
 						.then(ClientCommands.literal("link").executes(ctx -> {
 							Minecraft client = Minecraft.getInstance();
 							if (client.player == null) {
@@ -626,7 +539,6 @@ public class SkyMellooClient implements ClientModInitializer {
 								.then(ClientCommands.argument("name", StringArgumentType.word())
 										.suggests(SkyMellooClient::suggestOnlinePlayers)
 										.executes(ctx -> {
-											// Reports failure to chat instead of silently doing nothing.
 											try {
 												com.melloo.skymelloo.client.gui.PlayerViewScreen.open(StringArgumentType.getString(ctx, "name"));
 											} catch (Throwable t) {
@@ -634,24 +546,18 @@ public class SkyMellooClient implements ClientModInitializer {
 											}
 											return 1;
 										})))
-						// Fallback for anything that doesn't match a known subcommand above - Brigadier tries
-						// literals first, so this only catches genuinely unknown input, replacing vanilla's
-						// generic "Unknown command" with a SkyMelloo-branded pointer to /skymelloo help.
 						.then(ClientCommands.argument("unknown", StringArgumentType.greedyString()).executes(ctx -> {
 							ctx.getSource().sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.unknown_command")));
 							return 1;
 						}))
 			);
-			// "/sm" - a shorter alias for everything above, via Brigadier's own redirect mechanism
-			// (the same one vanilla uses for its command aliases) rather than duplicating the whole
-			// tree, so the two can never drift out of sync with each other.
 			dispatcher.register(ClientCommands.literal("sm").redirect(skymellooNode));
 		});
 
 		LOGGER.info("SkyMelloo loaded. Open settings with 'H' (rebindable), or /skymelloo config");
 	}
 
-	/** Clickable "§dLabel: §fhttps://..." chat line - opens the URL in the system browser. Used by {@code /sm legal} and {@code /sm version}/{@code /sm info}'s download reminder. */
+	/** Clickable chat line that opens {@code url} in the system browser. */
 	private static net.minecraft.network.chat.MutableComponent legalLink(Component label, String url) {
 		return Component.translatable("skymelloo.command.legal.link_line", label, url).withStyle(style -> style
 				.withClickEvent(new net.minecraft.network.chat.ClickEvent.OpenUrl(java.net.URI.create(url)))
@@ -695,8 +601,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		return SharedSuggestionProvider.suggest(
 				client.getConnection().getOnlinePlayers().stream()
 						.map(info -> info.getProfile().name())
-						// Hypixel NPCs commonly show up in the tab list with names starting with "!"
-						// (e.g. "!Auctioneer") - not real players, so don't offer them as suggestions.
+						// Hypixel NPCs show up in the tab list with names starting with "!" (e.g. "!Auctioneer").
 						.filter(name -> !name.startsWith("!")),
 				builder
 		);
@@ -718,7 +623,6 @@ public class SkyMellooClient implements ClientModInitializer {
 		);
 	}
 
-	/** Autocompletes the "profile" argument with the SkyBlock profile names of whatever player was already typed as "name". */
 	private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestProfilesForPlayer(
 			com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> ctx,
 			com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
@@ -737,22 +641,14 @@ public class SkyMellooClient implements ClientModInitializer {
 				.exceptionally(e -> builder.build());
 	}
 
-	/**
-	 * Every leaf stat name under getdata, in the order they were added. "all" and "ap" are handled
-	 * specially in {@link #dispatchStat}/{@link #dispatchPartyStat} (different data source/shape
-	 * than the plain summary-endpoint stats); everything else maps 1:1 to an {@link ExtraStat}.
-	 */
+	// "all" and "ap" are handled specially; everything else maps 1:1 to an ExtraStat.
 	private static final java.util.List<String> GETDATA_STAT_NAMES = java.util.List.of(
 			"all", "ap", "networth", "bank", "purse", "fairysouls", "guild", "rank",
 			"skills", "slayer", "classes", "minions", "bestiary", "highestfloor", "firstjoin",
 			"pets", "collections", "minionslots", "profiles", "dungeonruns"
 	);
 
-	/**
-	 * Builds "/skymelloo getdata" with player/party (and the target name/profile) BEFORE the stat
-	 * you want, e.g. "getdata player Foo Bar all" / "getdata player Foo ap" / "getdata party all" -
-	 * so every stat shares one player-then-profile-then-stat shape instead of one command tree per stat.
-	 */
+	/** e.g. "getdata player Foo Bar all" / "getdata player Foo ap" / "getdata party all". */
 	private static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> buildGetDataCommand() {
 		var profileArg = ClientCommands.argument("profile", StringArgumentType.word())
 				.suggests(SkyMellooClient::suggestProfilesForPlayer);
@@ -781,9 +677,6 @@ public class SkyMellooClient implements ClientModInitializer {
 				dispatchStat(stat, name, null, ctx.getSource(), false);
 				return 1;
 			});
-			// Same idea as the party version below - "announce" only actually changes behavior for
-			// "all"/"ap" right now (the only two that have a party-chat-safe combined format), harmless
-			// no-op on the others - accepted everywhere for a consistent command shape.
 			statLiteral.then(ClientCommands.literal("announce").executes(ctx -> {
 				String name = StringArgumentType.getString(ctx, "name");
 				dispatchStat(stat, name, null, ctx.getSource(), true);
@@ -808,8 +701,6 @@ public class SkyMellooClient implements ClientModInitializer {
 				dispatchPartyStat(stat, ctx.getSource(), false);
 				return 1;
 			});
-			// "announce" only actually changes behavior for "all" right now (see announcePartyAllStats)
-			// - accepted on every stat for a consistent command shape, harmless no-op on the others.
 			statLiteral.then(ClientCommands.literal("announce").executes(ctx -> {
 				dispatchPartyStat(stat, ctx.getSource(), true);
 				return 1;
@@ -836,9 +727,7 @@ public class SkyMellooClient implements ClientModInitializer {
 	}
 
 	private static void dispatchStat(String stat, String name, String profile, FabricClientCommandSource source, boolean announce) {
-		// "normal" is a stand-in for "whatever profile this player is currently playing" - same as
-		// omitting the profile argument entirely, just spelled out for people who type the full
-		// name -> profile -> stat shape out of habit instead of skipping straight to the stat.
+		// "normal" is a stand-in for omitting the profile argument entirely.
 		if (profile != null && profile.equalsIgnoreCase("normal")) {
 			profile = null;
 		}
@@ -864,10 +753,6 @@ public class SkyMellooClient implements ClientModInitializer {
 		}
 	}
 
-	/**
-	 * Stats beyond Accessory Power that all live in the plain /player/:username summary endpoint
-	 * (no extra API call needed per-stat) - networth/bank/purse/fairysouls/guild.
-	 */
 	private enum ExtraStat {
 		NETWORTH("networth") {
 			Component format(SkyMellooApiClient.SummaryResult s) {
@@ -1020,11 +905,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		return String.format("%.0f", amount);
 	}
 
-	/**
-	 * The website caches Hypixel data for ~45s so many requests only cost one upstream call - with
-	 * debug messages on, show how stale the data actually is so it's clear why a fresh action in-game
-	 * (like just picking up a fairy soul) might not show up immediately.
-	 */
+	/** With debug messages on, shows how stale the ~45s-cached data is. */
 	private static String debugCacheAgeSuffix(long dataFetchedAt) {
 		if (!SkyMellooConfig.HANDLER.instance().debugMessagesEnabled || dataFetchedAt <= 0) {
 			return "";
@@ -1046,8 +927,6 @@ public class SkyMellooClient implements ClientModInitializer {
 					}
 					Component textComponent = Component.translatable("skymelloo.command.getdata.result_line", name, stat.format(summary), debugCacheAgeSuffix(summary.dataFetchedAt()));
 					if (announce) {
-						// §-codes above don't survive /pc (Hypixel strips them, see ChatUtil.partyPrefixed)
-						// so they're harmlessly stripped for the party delivery, kept as-is for local.
 						DungeonRunTracker.sendDungeonMessage(client, textComponent.getString(), "PARTY");
 						return;
 					}
@@ -1076,9 +955,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		}
 		String name = remaining.next();
 		Runnable next = () -> announcePartyExtraStatSequentially(stat, remaining, announce);
-		// Staggered a full second apart when announcing to party, same reasoning as
-		// announcePartyAllStatsSequentially - back-to-back /pc messages for a whole party risk
-		// Hypixel's own chat rate limit silently swallowing some of them.
+		// Staggered a second apart to avoid tripping Hypixel's chat rate limit.
 		Runnable onDone = announce ? () -> TickDelay.schedule(ANNOUNCE_STAGGER_TICKS, next) : next;
 		ModAuthManager.getIdentity(Minecraft.getInstance()).thenCompose(identity -> SkyMellooApiClient.fetchSummary(name, identity)).whenComplete((summary, error) ->
 				Minecraft.getInstance().execute(() -> {
@@ -1128,12 +1005,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		);
 	}
 
-	/**
-	 * Combines the most important stats into one readable overview. Locally this is several English
-	 * messages (one per stat group, easier to read); "announce" mode instead combines everything into
-	 * ONE message sent via /pc if in a party, since firing 6 separate /pc messages per player would
-	 * spam party chat badly across a whole party.
-	 */
+	/** Locally: several separate messages. Announce mode: one combined /pc message, to avoid spamming party chat. */
 	private static void announceAllStats(String name, String profile, Runnable onDone, boolean announce) {
 		ModAuthManager.getIdentity(Minecraft.getInstance()).thenAccept(identity ->
 		SkyMellooApiClient.fetchSummary(name, profile, identity).whenComplete((summary, summaryError) ->
@@ -1154,11 +1026,6 @@ public class SkyMellooClient implements ClientModInitializer {
 								String classSuffix = summary.selectedClass() != null ? " (" + summary.selectedClass() + ")" : "";
 								String avgSkillText = String.format("%.1f", summary.averageSkillLevel());
 								if (announce) {
-									// Previously trimmed down to just the "most important" handful of fields
-									// specifically to avoid Minecraft's 256-char /pc command limit - now that
-									// sendDungeonMessage auto-splits long party messages into multiple chunks,
-									// there's no need to hold back the rest of what the LOCAL view already
-									// shows.
 									Component textComponent = Component.translatable("skymelloo.command.getdata.all.party_summary",
 											name, summary.skyblockLevel(), rank, guild, summary.catacombsLevel(), classSuffix, apValue, avgSkillText,
 											formatAmount(summary.purse()), formatAmount(summary.bank()), formatAmount(summary.netWorth()),
@@ -1207,7 +1074,8 @@ public class SkyMellooClient implements ClientModInitializer {
 		});
 	}
 
-	private static final int ANNOUNCE_STAGGER_TICKS = 20; // 1 second - avoids tripping Hypixel's own chat rate limit when /pc-announcing a whole party back to back
+	// Delay between staggered /pc announcements to a whole party.
+	private static final int ANNOUNCE_STAGGER_TICKS = 20;
 
 	private static void announcePartyAllStats(FabricClientCommandSource source, boolean announce) {
 		java.util.List<String> names = resolvePartyMemberNames(false);
@@ -1219,9 +1087,6 @@ public class SkyMellooClient implements ClientModInitializer {
 			source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.common.no_resolved_members")));
 			return;
 		}
-		// The command-typing feedback always stays local (only you see it, same convention as every
-		// other command reply) - "announce" additionally posts a heads-up to the party itself, since
-		// everyone's about to see a string of stat messages land one by one.
 		source.sendFeedback(ChatUtil.prefixed(Component.translatable("skymelloo.command.party.loading_overview", names.size())));
 		if (announce) {
 			DungeonRunTracker.sendDungeonMessage(Minecraft.getInstance(),
@@ -1236,14 +1101,10 @@ public class SkyMellooClient implements ClientModInitializer {
 		}
 		String name = remaining.next();
 		Runnable next = () -> announcePartyAllStatsSequentially(remaining, announce);
-		// Announced results are staggered a full second apart rather than firing as fast as each
-		// API response lands - back-to-back /pc messages for a whole party risk Hypixel's own chat
-		// rate limit silently swallowing some of them.
 		Runnable onDone = announce ? () -> TickDelay.schedule(ANNOUNCE_STAGGER_TICKS, next) : next;
 		announceAllStats(name, null, onDone, announce);
 	}
 
-	/** Resolves the current party's members to usernames and checks their AP one at a time (not all at once). */
 	private static void announcePartyAccessoryPower(FabricClientCommandSource source, boolean announce) {
 		java.util.List<String> names = resolvePartyMemberNames(false);
 		if (names == null) {
@@ -1258,12 +1119,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		announcePartyAccessoryPowerSequentially(names.iterator(), announce);
 	}
 
-	/**
-	 * Called from {@link PartyJoinWatcher} right after detecting that YOU joined an existing
-	 * Dungeon Finder party (not one you created) - checks everyone already in it, silently doing
-	 * nothing if there's no party data yet (e.g. HypixelModAPI hasn't responded, or you made the
-	 * party yourself and there's no one else in it).
-	 */
+	/** Called after joining an existing Dungeon Finder party; no-ops if there's no party data yet. */
 	public static void checkPartyAccessoryPowerAuto() {
 		java.util.List<String> names = resolvePartyMemberNames(true);
 		if (names == null || names.isEmpty()) {
@@ -1276,16 +1132,7 @@ public class SkyMellooClient implements ClientModInitializer {
 		announcePartyAccessoryPowerSequentially(names.iterator(), false);
 	}
 
-	/** @return null if there's no party at all, otherwise the resolved (possibly empty) member name list. */
-	/**
-	 * Prefers {@link PartyHudManager}'s already-resolved, continuously-cached usernames over a fresh
-	 * tab-list lookup - a real report showed this dropping a genuine party member entirely (loaded/
-	 * announced "1 party member" when 2 were actually in the party) because that member simply wasn't
-	 * in tab-list/render range at the EXACT moment the command ran, and the old code silently skipped
-	 * anyone {@code getPlayerInfo} returned null for. PartyHudManager resolves names once (via tab
-	 * list, falling back to a Mojang lookup) and keeps using that cached name afterward regardless of
-	 * momentary tab-list gaps, so it still has the real name even when a fresh lookup here wouldn't.
-	 */
+	/** Null if there's no party; prefers PartyHudManager's cached usernames over a fresh tab-list lookup. */
 	private static java.util.List<String> resolvePartyMemberNames(boolean excludeSelf) {
 		Minecraft client = Minecraft.getInstance();
 		if (client.player == null || client.getConnection() == null) {
@@ -1304,14 +1151,10 @@ public class SkyMellooClient implements ClientModInitializer {
 			PartyHudManager.MemberInfo info = resolved.get(uuid);
 			String username = info != null ? info.username() : null;
 			if (username == null) {
-				// PartyHudManager hasn't caught up yet (e.g. command run right after joining) - fall
-				// back to a direct tab-list lookup rather than dropping this member entirely.
 				var tabInfo = client.getConnection().getPlayerInfo(uuid);
 				username = tabInfo != null ? tabInfo.getProfile().name() : null;
 			}
 			if (username == null || username.equals(uuid.toString().substring(0, 8))) {
-				// Still just the UUID-fragment placeholder, not a real name - log why this member is
-				// missing instead of silently dropping them with no explanation.
 				DebugLog.log(DebugLog.Category.PARTY, "getdata party: couldn't resolve a username for " + uuid + " yet, skipping.");
 				continue;
 			}
@@ -1345,8 +1188,6 @@ public class SkyMellooClient implements ClientModInitializer {
 							}
 						}
 					}
-					// Only move to the next member once this one's result has actually come back -
-					// keeps them appearing one-by-one in chat instead of firing all requests at once.
 					onDone.run();
 				})
 		);

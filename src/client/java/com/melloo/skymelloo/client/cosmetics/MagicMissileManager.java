@@ -38,20 +38,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Purely cosmetic "magic missile": cast by punching empty air with an empty hand (see
- * EmptyHandAirClickMixin - briefly moved to a "Cast Spell" menu button instead and reverted back,
- * since needing to open a whole menu just to cast felt worse than the incidental-punch trigger it
- * replaced), fires a slow particle projectile from the player's eyes that bursts into a small
- * particle explosion on impact with a solid block or another player. Client-side-only, no gameplay
- * effect (no real damage, no packets) beyond the deliberate arm swing {@link #trigger} sends so other
- * SkyMelloo users can still see it (see RemoteMissileTriggerMixin).
- */
+/** Purely cosmetic "magic missile": punch empty air to fire a particle projectile. Client-side-only, no real damage/packets. */
 public final class MagicMissileManager {
 	private static final double SPEED = 0.9;
-	private static final int MAX_AGE_TICKS = 90; // was 60 (ranges increased across all spells)
+	private static final int MAX_AGE_TICKS = 90;
 	private static final int BURST_PARTICLES = 64;
-	private static final int HIT_INVISIBLE_TICKS = 100; // 5 seconds
+	private static final int HIT_INVISIBLE_TICKS = 100;
 	private static final int TRAIL_SPIRAL_RGB = 0xFFFFFF;
 	private static final double TRAIL_SPIRAL_START_RADIUS = 0.12;
 	private static final double TRAIL_SPIRAL_OUTWARD_SPEED = 0.1;
@@ -60,14 +52,12 @@ public final class MagicMissileManager {
 
 	private static final class Missile {
 		Vec3 pos;
-		Vec3 velocity; // not final - Homing Arrow steers this in flight, see tick()
+		Vec3 velocity;
 		final int rgb;
 		final boolean own;
 		final AbstractClientPlayer shooter;
-		// Tagged at spawn time rather than re-read from live config on hit, so switching spell type
-		// mid-flight can't change what an already-fired missile does on impact.
 		final String spellType;
-		AbstractClientPlayer homingTarget; // null unless spellType is "ARROW" - not final, re-acquired mid-flight, see tick()
+		AbstractClientPlayer homingTarget;
 		int age;
 		float spiralAngle;
 
@@ -82,7 +72,7 @@ public final class MagicMissileManager {
 		}
 	}
 
-	private static final long KILL_ANNOUNCE_COOLDOWN_TICKS = 60L * 60 * 20; // 60 minutes at 20 ticks/s
+	private static final long KILL_ANNOUNCE_COOLDOWN_TICKS = 60L * 60 * 20;
 
 	private static final int MESSAGE_HISTORY_SIZE = 5;
 
@@ -91,30 +81,18 @@ public final class MagicMissileManager {
 	private static final Map<UUID, Long> killAnnounceCooldownUntil = new HashMap<>();
 	private static final Deque<String> recentKillMessages = new ArrayDeque<>();
 
-	// "Spell Essence" - a fake, client-only collectible dropped on a missile kill (own kills only).
-	// Never actually vanilla-pickable (see the huge setPickUpDelay below - a real pickup attempt on an
-	// entity the server doesn't know about would just look broken), collection is handled entirely
-	// ourselves via simple distance checks each tick.
-	private static final int ESSENCE_DESPAWN_TICKS = 400; // 20s - uncollected essence just vanishes
-	// Was 1.3 - reported as basically never actually collectible. Most likely cause: it spawns right
-	// where the target was standing, and the target (still solid even while rendered invisible, see
-	// MissileHitInvisibilityMixin - only the RENDERING is faked, not real collision) physically blocks
-	// walking close enough to reach the old, tighter radius. Widened well past "standing on top of it"
-	// so it's reachable from beside the target instead of requiring the same tile.
+	// Fake, client-only collectible dropped on an own kill; never vanilla-pickable, collected via distance check.
+	private static final int ESSENCE_DESPAWN_TICKS = 400;
+	// Target stays solid while rendered invisible, so the collect radius has to reach past their old standing spot.
 	private static final double ESSENCE_COLLECT_DISTANCE_SQ = 2.5 * 2.5;
 	private record PendingEssence(int entityId, long expiryTick) {
 	}
 	private static final List<PendingEssence> pendingEssence = new ArrayList<>();
-	// Counting down from the top of the int range, kept in its own separate range from other fake
-	// entity ids this mod creates elsewhere so they can never collide.
-	// Shared by essence item drops AND fake lightning bolt entities - both just need a unique id, no
-	// reason to keep two separate counters.
+	// Shared counter for essence drops and fake lightning entities, kept out of range of other fake ids.
 	private static int nextFakeEntityId = Integer.MAX_VALUE - 100_000;
 	private static long currentTick = 0;
 
-	private static final double LIGHTNING_MAX_RANGE = 60; // was 40 (ranges increased across all spells)
-	// Your lifetime overall kill count (config.totalMagicMissileKills) at the moment of this kill -
-	// not how many times this specific victim has been hit.
+	private static final double LIGHTNING_MAX_RANGE = 60;
 	public record RecentKill(GameProfile profile, long timestampMillis, int victimKillNumber) {
 	}
 	private static final int MAX_RECENT_KILLS = 20;
@@ -132,11 +110,6 @@ public final class MagicMissileManager {
 		if (player == null) {
 			return;
 		}
-		// Casting rides along on a real vanilla attack (punching empty air, see
-		// EmptyHandAirClickMixin) again, which already swings the arm and sends the network packet
-		// other clients need to mirror it (see RemoteMissileTriggerMixin) for free - this explicit
-		// swing is technically redundant with that now, but harmless (just re-plays the same
-		// animation) and cheap insurance against ever needing a non-punch trigger path again.
 		player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
 		config.totalSpellsCast++;
 		SkyMellooConfig.HANDLER.saveDebounced();
@@ -158,21 +131,14 @@ public final class MagicMissileManager {
 		client.level.playLocalSound(origin.x, origin.y, origin.z, SoundEvents.TRIDENT_THROW.value(), SoundSource.PLAYERS, 1.0F, 1.6F, false);
 	}
 
-	private static final double HOMING_MAX_RANGE = 60; // was 40 (ranges increased across all spells)
+	private static final double HOMING_MAX_RANGE = 60;
 	private static final int HOMING_REACQUIRE_INTERVAL_TICKS = 5;
-	// Within this distance, ignore wall-proximity cost and beeline straight at the target instead of
-	// letting the obstacle-steering swerve wide - see the close-range terminal guidance check in tick().
+	// Within this distance, ignore wall-proximity cost and beeline straight at the target.
 	private static final double HOMING_DIRECT_APPROACH_DISTANCE_SQ = 3.5 * 3.5;
-	// cos(35 degrees) - how far off dead-center the candidate can be and still be picked. Used both
-	// for the initial crosshair lock and every mid-flight re-scan (from the arrow's own position/
-	// heading at that point, not the shooter's) - see HOMING_REACQUIRE_INTERVAL_TICKS in tick().
 	private static final double HOMING_MIN_ALIGNMENT = Math.cos(Math.toRadians(35));
-	// How many homing arrows are allowed to share one target
-	// before it's considered "full" for target-selection purposes (still allowed as a last resort -
-	// see findHomingTarget - just never preferred over an untargeted player).
+	// Targets already at this many arrows are deprioritized, not excluded.
 	private static final int HOMING_MAX_PER_TARGET = 5;
 
-	/** How many currently in-flight homing arrows already have {@code target} locked on. */
 	private static int countHomingArrowsTargeting(AbstractClientPlayer target) {
 		int count = 0;
 		for (Missile m : active) {
@@ -183,12 +149,7 @@ public final class MagicMissileManager {
 		return count;
 	}
 
-	/**
-	 * Called right when {@code deadTarget} is confirmed hit/killed (by anything, not just an arrow) -
-	 * any OTHER in-flight homing arrows still chasing that same now-invisible player immediately look
-	 * for a new target instead of waiting for their own next scheduled re-scan tick (up to
-	 * {@link #HOMING_REACQUIRE_INTERVAL_TICKS} ticks later).
-	 */
+	/** Retargets any other in-flight arrows still chasing this now-hit player. */
 	private static void reassignArrowsTargeting(AbstractClientPlayer deadTarget) {
 		Minecraft client = Minecraft.getInstance();
 		for (Missile m : active) {
@@ -198,28 +159,11 @@ public final class MagicMissileManager {
 		}
 	}
 
-	/**
-	 * Best player within a generous cone of {@code look} from {@code origin} for the "Homing Arrow"
-	 * spell type - closest to dead-center wins, not just closest in distance - AND only if there's
-	 * an actual clear line of sight to them (see {@link #hasLineOfSight}), so it won't lock onto
-	 * someone standing behind a wall just because they're within the cone. Null if nobody qualifies.
-	 * Reused both for the initial launch (origin/look = shooter's eye/look) and for continuous
-	 * re-acquisition while already in flight (origin/look = the arrow's own current position/heading),
-	 * so a target is continuously re-validated rather than locked once at launch.
-	 * <p>
-	 * When multiple arrows are in flight, this spreads them across different targets rather than
-	 * piling everything onto one - an untargeted player is always preferred over one that already has
-	 * an arrow homing on them, up to {@link #HOMING_MAX_PER_TARGET} arrows per target; only once every
-	 * candidate in range/sight is already at that cap does it fall back to just the best-aligned one
-	 * regardless.
-	 */
+	/** Best in-sight player within the crosshair cone for Homing Arrow; spreads targets before exceeding {@link #HOMING_MAX_PER_TARGET}. */
 	private static AbstractClientPlayer findHomingTarget(Minecraft client, Vec3 origin, Vec3 look, AbstractClientPlayer shooter) {
 		if (!(client.level instanceof ClientLevel level)) {
 			return null;
 		}
-		// Three priority tiers, checked in order at the end: nobody homing on them yet, then anyone
-		// still under the per-target cap, then finally anyone at all regardless of load - so the cap
-		// only ever gets exceeded as a genuine last resort.
 		AbstractClientPlayer bestUntargeted = null;
 		double bestUntargetedAlignment = HOMING_MIN_ALIGNMENT;
 		AbstractClientPlayer bestUnderCap = null;
@@ -238,7 +182,7 @@ public final class MagicMissileManager {
 			}
 			double alignment = toOther.normalize().dot(look);
 			if (alignment <= bestOverallAlignment && alignment <= bestUnderCapAlignment && alignment <= bestUntargetedAlignment) {
-				continue; // can't improve any bucket - skip the line-of-sight raycast, it isn't free
+				continue;
 			}
 			if (!hasLineOfSight(level, origin, targetPos)) {
 				continue;
@@ -263,29 +207,19 @@ public final class MagicMissileManager {
 		return bestUnderCap != null ? bestUnderCap : bestOverall;
 	}
 
-	/** Whether a straight line from {@code from} to {@code to} is unobstructed by any solid block. */
 	private static boolean hasLineOfSight(ClientLevel level, Vec3 from, Vec3 to) {
 		ClipContext ctx = new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty());
 		return level.clip(ctx).getType() == HitResult.Type.MISS;
 	}
 
-	// Homing Arrow's "leicht" (light) pathfinding - not a real grid search, just cost-scored steering
-	// sampled around the direct line to the target every tick, cheap enough to run continuously. Air
-	// is free, solid costs 3 (discouraged, not impassable - sometimes there's no way around), and cost
-	// rises the closer a candidate cell sits to a solid block so the arrow keeps some clearance from
-	// walls instead of grazing them.
+	// Homing Arrow steering: cost-scored sampling around the direct line, not a real grid search.
 	private static final double STEER_PROBE_DISTANCE = 1.6;
 	private static final double STEER_ANGLE_WEIGHT = 4.0;
-	// Small yaw/pitch-style offsets (in a side/up basis around the direct direction), radians-ish -
-	// dead center plus a ring of 8 around it, enough to find a way around a thin wall/pillar without
-	// being a real search.
 	private static final double[][] STEER_OFFSETS = {
 			{0, 0},
 			{0.4, 0}, {-0.4, 0}, {0, 0.4}, {0, -0.4},
 			{0.3, 0.3}, {-0.3, 0.3}, {0.3, -0.3}, {-0.3, -0.3},
 	};
-	// Axis-aligned neighbor offsets, checked at distance 1 and distance 2 - a cheap stand-in for a full
-	// spherical "within N blocks" check that's more than good enough for steering feel.
 	private static final int[][] AXIS_OFFSETS_1 = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
 	private static final int[][] AXIS_OFFSETS_2 = {{2, 0, 0}, {-2, 0, 0}, {0, 2, 0}, {0, -2, 0}, {0, 0, 2}, {0, 0, -2}};
 
@@ -294,7 +228,6 @@ public final class MagicMissileManager {
 		return !state.isAir() && !state.getCollisionShape(level, pos).isEmpty();
 	}
 
-	/** Air = 0, solid = 7, +4 if a solid block is directly adjacent, +2 if one's within 2 blocks otherwise - raised from 3/2/1 so it keeps noticeably more clearance from walls instead of grazing past them. */
 	private static double blockTraversalCost(ClientLevel level, BlockPos pos) {
 		if (isSolidBlock(level, pos)) {
 			return 7.0;
@@ -312,7 +245,6 @@ public final class MagicMissileManager {
 		return 0.0;
 	}
 
-	/** Picks the lowest-cost direction near {@code desiredDir}, blending obstacle cost with staying close to the direct line so it still generally beelines for the target. */
 	private static Vec3 steerAroundObstacles(ClientLevel level, Vec3 origin, Vec3 desiredDir) {
 		Vec3 reference = Math.abs(desiredDir.y) < 0.99 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
 		Vec3 side = desiredDir.cross(reference).normalize();
@@ -339,14 +271,7 @@ public final class MagicMissileManager {
 		return best;
 	}
 
-	/**
-	 * The "Lightning" spell type - instant, not a travelling projectile like the default Missile: only
-	 * fires if a player is directly under the crosshair right now (same segment/AABB hit-test as
-	 * {@link #findHitPlayer}, just one long segment instead of one tick's worth of missile travel), and
-	 * strikes them with a real (but {@link LightningBolt#setVisualOnly}) lightning bolt - no real
-	 * damage, just the flash/thunder. Silent no-op if nothing's actually under the crosshair, rather
-	 * than firing blind.
-	 */
+	/** Instant crosshair hit-test, visual-only lightning bolt - no real damage. */
 	private static void triggerLightning(Minecraft client, LocalPlayer player) {
 		Vec3 origin = player.getEyePosition();
 		Vec3 end = origin.add(player.getLookAngle().scale(LIGHTNING_MAX_RANGE));
@@ -365,14 +290,7 @@ public final class MagicMissileManager {
 		recordOwnKill(client, target, target.position());
 	}
 
-	/**
-	 * The "Levitate" spell type - same instant crosshair hit-test as Lightning (no travelling
-	 * projectile), but the kill isn't immediate: the target vanishes right away (same as every other
-	 * spell's hit-invisibility) and a rising effigy of particles lifts off from where they stood,
-	 * climbing for the first stretch of the sequence,
-	 * then a {@link net.minecraft.core.particles.ParticleTypes#SONIC_BOOM} shockwave ring at the peak,
-	 * then the usual own-kill burst/death-double at the very end - see {@link #tickLevitateSequences}.
-	 */
+	/** Instant crosshair hit-test; kill resolves at the end of {@link #tickLevitateSequences}, not immediately. */
 	private static void triggerLevitate(Minecraft client, LocalPlayer player) {
 		Vec3 origin = player.getEyePosition();
 		Vec3 end = origin.add(player.getLookAngle().scale(LIGHTNING_MAX_RANGE));
@@ -381,20 +299,13 @@ public final class MagicMissileManager {
 			return;
 		}
 		Vec3 anchor = target.position();
-		// Stays visible through the whole rise/shockwave buildup - only actually vanishes at the kill
-		// moment itself (see tickLevitateSequences), not the instant they're hit. Going invisible
-		// before anything has actually "killed" them yet didn't make sense.
 		levitateSequences.add(new LevitateSequence(target, currentTick, anchor, SkyMellooConfig.HANDLER.instance().magicMissileColor.getRGB() & 0xFFFFFF));
 		level.playLocalSound(anchor.x, anchor.y, anchor.z, SoundEvents.SHULKER_TELEPORT, SoundSource.PLAYERS, 1.2F, 0.7F, false);
 	}
 
-	/** Shared by both spell types for a confirmed own-kill hit - announce/essence-drop/recent-kills tracking, all in one place so Missile and Lightning can never drift out of sync with each other. */
 	private static void recordOwnKill(Minecraft client, AbstractClientPlayer hitPlayer, Vec3 hitPos) {
 		announceMissileKill(client, hitPlayer);
 		spawnCollectibleEssence(client, hitPos);
-		// Lifetime total across every victim (persisted in config, same as totalSpellsCast) - "war
-		// mein 837 kill", not how many times THIS specific person has been hit, which is a much
-		// smaller and less interesting number for the Last Kills list to show.
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		config.totalMagicMissileKills++;
 		SkyMellooConfig.HANDLER.saveDebounced();
@@ -404,18 +315,11 @@ public final class MagicMissileManager {
 		}
 	}
 
-	/** Most recent own-kills first, up to {@link #MAX_RECENT_KILLS} - see the menu's "Last Kills" page. */
 	public static List<RecentKill> getRecentKills() {
 		return new ArrayList<>(recentKills);
 	}
 
-	/**
-	 * Mirrors another SkyMelloo user's magic missile locally, purely predicted from their swing +
-	 * look direction at that moment - there's no real position-sync packet for this (nor should
-	 * there be, for a purely cosmetic effect), so it's an approximation, not a synced projectile.
-	 * Always rendered in a fixed red rather than that player's own configured color, so at a glance
-	 * it's obvious which missiles are yours (always your own color) versus someone else's (always red).
-	 */
+	/** Predicted, unsynced approximation of another player's missile; always rendered red regardless of their color. */
 	public static void spawnRemote(Minecraft client, AbstractClientPlayer other) {
 		if (!SkyMellooConfig.HANDLER.instance().magicMissileEnabled || !PermissionsManager.has("spell")) {
 			return;
@@ -425,13 +329,11 @@ public final class MagicMissileManager {
 		active.add(new Missile(origin, velocity, REMOTE_RGB, false, other, "MISSILE", null));
 	}
 
-	/** Whether {@code entity} should currently render as invisible from a recent missile hit. */
 	public static boolean isTemporarilyInvisible(Entity entity) {
 		Long until = invisibleUntilTick.get(entity.getId());
 		return until != null && until > currentTick;
 	}
 
-	/** Whether {@code entity} is currently the target of an in-progress Plasma or Levitate sequence - see {@link #findHitPlayer}'s doc comment for why this matters. */
 	private static boolean isInActiveSequence(Entity entity) {
 		int id = entity.getId();
 		for (PlasmaSequence seq : plasmaSequences) {
@@ -461,11 +363,7 @@ public final class MagicMissileManager {
 
 		active.removeIf(missile -> {
 			if ("ARROW".equalsIgnoreCase(missile.spellType) && client.level instanceof ClientLevel arrowLevel) {
-				// Keeps looking for a valid target the whole flight, not just once at launch -
-				// re-scanning every
-				// tick would be wasteful for something this cheap-but-not-free (a per-candidate
-				// raycast), so it's throttled instead, and only actually re-scans when the current
-				// target isn't usable anymore (lost, hit-invisible, or no longer in clear sight).
+				// Throttled re-scan, only when the current target is no longer usable.
 				boolean targetUsable = missile.homingTarget != null && missile.homingTarget.isAlive()
 						&& !isTemporarilyInvisible(missile.homingTarget)
 						&& hasLineOfSight(arrowLevel, missile.pos, missile.homingTarget.position().add(0, missile.homingTarget.getBbHeight() / 2, 0));
@@ -479,22 +377,13 @@ public final class MagicMissileManager {
 				if (toTarget.lengthSqr() > 0.01) {
 					Vec3 targetDir = toTarget.normalize();
 					Vec3 steeredDir;
-					// Close-range terminal guidance: once genuinely close, ignore wall-proximity entirely
-					// and beeline straight at the target - UNLESS an actual solid block sits directly on
-					// that line (not just nearby), in which case it still steers around it.
 					if (toTarget.lengthSqr() < HOMING_DIRECT_APPROACH_DISTANCE_SQ
 							&& hasLineOfSight(steerLevel, missile.pos, missile.homingTarget.position().add(0, missile.homingTarget.getBbHeight() / 2, 0))) {
 						steeredDir = targetDir;
 					} else {
-						// Steers gradually toward the target rather than snapping straight at it - a real
-						// "homing" curve, not a laser-straight correction every tick - and the direction
-						// fed in isn't the raw straight line but one nudged around nearby obstacles
-						// first, see steerAroundObstacles().
 						steeredDir = steerAroundObstacles(steerLevel, missile.pos, targetDir);
 					}
 					Vec3 desired = steeredDir.scale(SPEED);
-					// A bit more agile than before - reacts to a steering change
-					// faster instead of easing into every turn quite so gradually.
 					Vec3 blended = missile.velocity.scale(0.65).add(desired.scale(0.35));
 					double len = blended.length();
 					missile.velocity = len > 0.001 ? blended.scale(SPEED / len) : blended;
@@ -530,9 +419,6 @@ public final class MagicMissileManager {
 			}
 
 			client.level.addParticle(new DustParticleOptions(missile.rgb, 1.2F), missile.pos.x, missile.pos.y, missile.pos.z, 0, 0, 0);
-			// Icy keeps the original white spiral trail; the other spell types each get their own look
-			// rather than all sharing it - a straight sharp streak for the Arrow, a denser crackling
-			// trail for Plasma.
 			if ("ARROW".equalsIgnoreCase(missile.spellType)) {
 				spawnArrowTrail(client, missile);
 			} else if ("PLASMA".equalsIgnoreCase(missile.spellType)) {
@@ -540,10 +426,7 @@ public final class MagicMissileManager {
 			} else {
 				spawnSpiralTrail(client, missile);
 			}
-			// A homing arrow that's still actively chasing a real target doesn't time out mid-chase -
-			// only the ordinary age limit applies once it has
-			// nobody to home in on (or a hard safety cap far beyond that, so a target that somehow
-			// never dies or goes out of range doesn't keep it alive forever).
+			// An arrow actively chasing a target gets a longer age limit before timing out mid-chase.
 			if ("ARROW".equalsIgnoreCase(missile.spellType) && missile.homingTarget != null && missile.homingTarget.isAlive()) {
 				return missile.age >= MAX_AGE_TICKS * 4;
 			}
@@ -551,12 +434,6 @@ public final class MagicMissileManager {
 		});
 	}
 
-	/**
-	 * Homing Arrow's own look, completely redone with all-new particles - a tight double-helix of
-	 * electric sparks winding right around the core (a much smaller radius than Icy's loose white
-	 * spiral, reading as fast/precise instead of lazy), reusing {@code spiralAngle} the same way Icy
-	 * does but with its own faster spin rate so the two never look alike.
-	 */
 	private static void spawnArrowTrail(Minecraft client, Missile missile) {
 		missile.spiralAngle += 1.4F;
 		if (missile.spiralAngle > (float) (Math.PI * 2)) {
@@ -579,7 +456,6 @@ public final class MagicMissileManager {
 		}
 	}
 
-	/** Plasma's travel trail - denser, larger dust with the occasional spark, foreshadowing the crackling energy-ball it becomes on impact. */
 	private static void spawnPlasmaTravelTrail(Minecraft client, Missile missile) {
 		ThreadLocalRandom random = ThreadLocalRandom.current();
 		for (int i = 0; i < 3; i++) {
@@ -593,12 +469,6 @@ public final class MagicMissileManager {
 		}
 	}
 
-	/**
-	 * A white double-helix of small particles winding around the missile's core dust particle as it
-	 * flies - each one starts right at the core and drifts slowly outward (via its own particle
-	 * velocity) instead of sitting at a fixed radius, so the spiral visibly expands as it trails
-	 * behind the missile instead of just being a thin static ring.
-	 */
 	private static void spawnSpiralTrail(Minecraft client, Missile missile) {
 		missile.spiralAngle += 0.9F;
 		if (missile.spiralAngle > (float) (Math.PI * 2)) {
@@ -624,13 +494,7 @@ public final class MagicMissileManager {
 		}
 	}
 
-	/**
-	 * "Kill Tracker" is about Magic Missile hits, not real combat kills - the missile never deals
-	 * real damage (no packets, purely client-side), so a hit here is the closest thing SkyMelloo has
-	 * to a "kill" worth counting and announcing. The same target only counts once per 60 minutes -
-	 * without this, repeatedly hitting the same nearby player would inflate the counter every tick
-	 * they're in range, unlike real kills, which can only happen once per life anyway.
-	 */
+	/** Same target only counts once per 60 minutes, since a missile hit has no real death to gate on. */
 	private static void announceMissileKill(Minecraft client, AbstractClientPlayer hitPlayer) {
 		if (client.player == null) {
 			return;
@@ -646,14 +510,9 @@ public final class MagicMissileManager {
 		SkyMellooConfig.HANDLER.saveDebounced();
 		String key = pickKillMessageTemplate();
 		Component text = Component.translatable(key, hitPlayer.getName().getString(), config.totalPlayersKilled);
-		// Always LOCAL-only, never sent to party.
 		client.player.sendSystemMessage(ChatUtil.prefixed(text));
 	}
 
-	/**
-	 * Fixed pool, not user-editable - one picked at random per kill, never repeating one of the last
-	 * {@link #MESSAGE_HISTORY_SIZE} used so it doesn't feel too samey back-to-back.
-	 */
 	private static final List<String> KILL_MESSAGES = List.of(
 			"skymelloo.chat.kill.message_01", "skymelloo.chat.kill.message_02", "skymelloo.chat.kill.message_03",
 			"skymelloo.chat.kill.message_04", "skymelloo.chat.kill.message_05", "skymelloo.chat.kill.message_06",
@@ -700,19 +559,13 @@ public final class MagicMissileManager {
 		}
 	}
 
-	// "Plasma" spell type - impact doesn't kill immediately like Missile/Lightning: particles spawn
-	// around the target and get pulled inward, bundling into a growing ball that shifts toward a bright
-	// blue glow, then throws off sparks once "unstable", then detonates - THAT'S the actual kill moment
-	// (see recordOwnKill at the end of tickPlasmaSequences), not the initial impact.
-	private static final int PLASMA_DURATION_TICKS = 110; // ~5.5s - longer, more intense charge-up
-	private static final int PLASMA_CHARGE_SOUND_INTERVAL_TICKS = 22; // spaced out for the longer anchor-charge sound
+	// "Plasma" - impact doesn't kill immediately; the actual kill is the detonation at the end of tickPlasmaSequences.
+	private static final int PLASMA_DURATION_TICKS = 110;
+	private static final int PLASMA_CHARGE_SOUND_INTERVAL_TICKS = 22;
 	private record PlasmaSequence(AbstractClientPlayer target, long startTick, int baseRgb) {
 	}
 	private static final List<PlasmaSequence> plasmaSequences = new ArrayList<>();
 
-	// Warden's own sonic-charge buildup - a genuinely long (multi-second), rising, unmistakably
-	// "charging up" sound in vanilla, not just a short blip.
-	// Retriggered again partway through tickPlasmaSequences() so it spans the whole sequence.
 	private static void startPlasmaSequence(Minecraft client, AbstractClientPlayer target, int rgb) {
 		plasmaSequences.add(new PlasmaSequence(target, currentTick, rgb));
 		Vec3 pos = target.position();
@@ -733,8 +586,6 @@ public final class MagicMissileManager {
 				burstOnPlayerHit(client, center, 0x66CCFF);
 				burstOnPlayerHit(client, center, 0xFFFFFF);
 				burstOnPlayerHit(client, center, seq.baseRgb());
-				// A real expanding shockwave ring (the same particle the Warden's sonic attack uses),
-				// on top of the hand-rolled spark ring inside burstOnPlayerHit.
 				level.addParticle(ParticleTypes.SONIC_BOOM, center.x, center.y, center.z, 0, 0, 0);
 				level.playLocalSound(center.x, center.y, center.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 3.2F, 0.6F, false);
 				level.playLocalSound(center.x, center.y, center.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 2.0F, 1.3F, false);
@@ -770,15 +621,8 @@ public final class MagicMissileManager {
 				double hy = center.y + Math.sin(elapsed * 0.4 + i * Math.PI) * 1.2;
 				level.addParticle(new DustParticleOptions(0xDDEEFF, 1.0F), hx, hy, hz, 0, 0, 0);
 			}
-			// Particles are pulled in from progressively farther out as it builds, and more of them -
-			// the pull itself
-			// ramps up hard over the sequence AND the spawn ring itself
-			// shrinks in toward the end so the bundle visibly compresses into a much
-			// denser, tighter core instead of just orbiting at the same spread.
 			int particleCount = 1 + (int) (progress * 10);
 			double outerRadius = (0.6 + progress * 3.2) * (1.0 - progress * 0.55);
-			// Pushed further still - particles now snap in
-			// noticeably faster/harder, especially in the back half of the buildup.
 			double pullStrength = 0.5 + progress * 2.0;
 			for (int i = 0; i < particleCount; i++) {
 				double angle = random.nextDouble() * Math.PI * 2;
@@ -792,7 +636,6 @@ public final class MagicMissileManager {
 				double vz = (center.z - sz) * pullStrength;
 				level.addParticle(new DustParticleOptions(rgb, 1.0F + (float) progress), sx, sy, sz, vx, vy, vz);
 			}
-			// "Unstable" phase - little sparks shoot outward far past the ball right before it pops.
 			if (progress > 0.7) {
 				for (int i = 0; i < 2; i++) {
 					double angle = random.nextDouble() * Math.PI * 2;
@@ -806,50 +649,30 @@ public final class MagicMissileManager {
 		});
 	}
 
-	// "Levitate" spell type sequence - see triggerLevitate() for the German request this implements.
-	private static final int LEVITATE_DURATION_TICKS = 65; // ~3.25s
-	private static final double LEVITATE_MAX_LIFT = 3.5; // blocks
-	private static final double LEVITATE_RISE_END = 0.55; // rise phase covers the first 55% of the sequence
-	private static final double LEVITATE_BOOM_AT = 0.75; // shockwave fires once, at 75% through
-	private static final double LEVITATE_HOVER_AMPLITUDE = 0.3; // blocks - gentle bob once at the top
-	private static final double LEVITATE_HOVER_SPEED = 0.07; // radians/tick - slow, smooth
+	private static final int LEVITATE_DURATION_TICKS = 65;
+	private static final double LEVITATE_MAX_LIFT = 3.5;
+	private static final double LEVITATE_RISE_END = 0.55;
+	private static final double LEVITATE_BOOM_AT = 0.75;
+	private static final double LEVITATE_HOVER_AMPLITUDE = 0.3;
+	private static final double LEVITATE_HOVER_SPEED = 0.07;
 	private record LevitateSequence(AbstractClientPlayer target, long startTick, Vec3 anchor, int baseRgb) {
 	}
 	private static final List<LevitateSequence> levitateSequences = new ArrayList<>();
-	// Tracks which sequences have already fired their one-shot shockwave, keyed by the target's entity
-	// id - a plain elapsed-tick equality check (like Plasma's charge-sound retrigger) is unreliable
-	// here since the rise phase's particle math doesn't tick on a fixed-size step.
 	private static final java.util.Set<Integer> levitateBoomFired = new java.util.HashSet<>();
 
-	/** Shared by {@link #tickLevitateSequences} (for the particle effigy's position) and {@link #getLevitateLiftOffset} (for actually raising the real player's rendered position). */
 	private static double computeLevitateLift(long startTick) {
 		int elapsed = (int) (currentTick - startTick);
 		double progress = Math.min(1.0, elapsed / (double) LEVITATE_DURATION_TICKS);
 		double liftProgress = Math.min(1.0, progress / LEVITATE_RISE_END);
-		// Eased rather than linear - starts slow (like actually lifting off against gravity), then
-		// accelerates upward.
 		double lift = LEVITATE_MAX_LIFT * (liftProgress * liftProgress);
 		if (progress >= LEVITATE_RISE_END) {
-			// Once at the top, a gentle continuous up/down bob instead of just hanging static there.
-			// Starts exactly at the rise
-			// phase's end height (sin(0) = 0) so there's no sudden jump into the hover.
 			double hoverElapsedTicks = elapsed - LEVITATE_RISE_END * LEVITATE_DURATION_TICKS;
 			lift += Math.sin(hoverElapsedTicks * LEVITATE_HOVER_SPEED) * LEVITATE_HOVER_AMPLITUDE;
 		}
 		return lift;
 	}
 
-	/**
-	 * Where to actually RENDER {@code entity} right now, if they're the target of an in-progress
-	 * Levitate sequence - {@code null} otherwise. Applied by
-	 * {@link com.melloo.skymelloo.client.mixin.ForcedInvisibilityExtractionMixin} and
-	 * {@link com.melloo.skymelloo.client.mixin.AvatarForcedInvisibilityExtractionMixin} (the same
-	 * extraction tail-inject already used for forced invisibility) - the REAL player model now
-	 * actually rises, not just a separate particle effigy while the real one stood still on the
-	 * ground. Locks X/Z to the anchor too, not just raising Y -
-	 * otherwise the real player (still free to walk around under their own control the whole time)
-	 * could visibly wander off while the particle effigy stays behind at the original spot.
-	 */
+	/** Render-position override for a Levitate target, applied via the forced-invisibility extraction mixins. Null if not levitating. */
 	public static Vec3 getLevitateRenderOverride(Entity entity) {
 		for (LevitateSequence seq : levitateSequences) {
 			if (seq.target().getId() == entity.getId()) {
@@ -882,10 +705,6 @@ public final class MagicMissileManager {
 				return true;
 			}
 
-			// Rising phase, redone with a more elaborate animation
-			// (REVERSE_PORTAL/SOUL read as too plain/dark). A proper rising double-helix of end-rod
-			// sparkles winding around the body as it climbs, trailing below the current height, plus a
-			// denser ambient scatter that thickens the higher it gets.
 			float helixAngle = elapsed * 0.45F;
 			double helixRadius = 0.4 + progress * 0.3;
 			for (int i = 0; i < 2; i++) {
@@ -905,7 +724,6 @@ public final class MagicMissileManager {
 				level.addParticle(ParticleTypes.END_ROD, px, py, pz, 0, 0.04 + random.nextDouble() * 0.04, 0);
 			}
 
-			// A one-shot expanding shockwave ring right at the peak.
 			if (progress >= LEVITATE_BOOM_AT && levitateBoomFired.add(seq.target().getId())) {
 				level.addParticle(ParticleTypes.SONIC_BOOM, center.x, center.y, center.z, 0, 0, 0);
 				level.playLocalSound(center.x, center.y, center.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 2.0F, 1.0F, false);
@@ -914,7 +732,6 @@ public final class MagicMissileManager {
 		});
 	}
 
-	/** Linear channel-wise interpolation between two RGB ints, {@code t} clamped to 0-1. */
 	private static int lerpColor(int fromRgb, int toRgb, double t) {
 		double clamped = Math.max(0, Math.min(1, t));
 		int r = (int) (((fromRgb >> 16) & 0xFF) + (((toRgb >> 16) & 0xFF) - ((fromRgb >> 16) & 0xFF)) * clamped);
@@ -923,12 +740,6 @@ public final class MagicMissileManager {
 		return (r << 16) | (g << 8) | b;
 	}
 
-	/**
-	 * Runs every tick regardless of whether a missile is currently in flight - an essence item can sit
-	 * on the ground waiting to be collected long after its missile is gone. "Collecting" is just a
-	 * distance check against the LOCAL player (this is a fake entity with no real pickup logic to hook
-	 * into); uncollected essence quietly despawns after {@link #ESSENCE_DESPAWN_TICKS}.
-	 */
 	private static void tickEssenceCollection(Minecraft client) {
 		if (pendingEssence.isEmpty() || !(client.level instanceof ClientLevel level) || client.player == null) {
 			return;
@@ -943,9 +754,6 @@ public final class MagicMissileManager {
 				SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 				config.totalSpellEssenceCollected++;
 				SkyMellooConfig.HANDLER.saveDebounced();
-				// Just a counter tick + sound/particles, deliberately NOT the real inventory - that was
-				// a misunderstanding of an earlier report about a different (now-removed) fake-gear-drop
-				// feature, not essence. Essence is just "collected".
 				level.playLocalSound(entity.getX(), entity.getY(), entity.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.5F, 1.4F, false);
 				for (int i = 0; i < 8; i++) {
 					level.addParticle(new DustParticleOptions(0xAA55FF, 1.0F), entity.getX(), entity.getY() + 0.2, entity.getZ(), 0, 0.05, 0);
@@ -961,22 +769,9 @@ public final class MagicMissileManager {
 		});
 	}
 
-	/**
-	 * Checks the whole segment the missile just traveled, not just its new endpoint - at
-	 * {@link #SPEED} 0.9 blocks/tick, a single-point check at the end of each step can tunnel
-	 * straight through a player's ~1.1-block-wide (with inflate) hit zone entirely, especially at
-	 * a glancing angle or against a moving target. This was the actual cause of "the missile flies
-	 * through people" reports - happens to anyone, just far more noticeable on a target you can't
-	 * see (e.g. one already turned invisible by a recent hit), since a visible near-miss at least
-	 * looks like a miss.
-	 */
+	/** Checks the whole travel segment, not just the endpoint, so a fast missile can't tunnel through a hit zone. */
 	private static AbstractClientPlayer findHitPlayer(Minecraft client, Vec3 from, Vec3 to, AbstractClientPlayer shooter) {
 		for (AbstractClientPlayer other : client.level.players()) {
-			// Already invisible from a recent hit (still in their HIT_INVISIBLE_TICKS cooldown) - fly
-			// straight through instead of re-triggering the hit. Also excludes anyone already
-			// mid-Plasma/mid-Levitate, since those don't set the invisibility flag until the very end
-			// of their multi-second sequence - without this a second hit mid-animation would start an
-			// overlapping second sequence on the same target.
 			if (other == shooter || HighlightManager.isNpc(other) || isTemporarilyInvisible(other) || isInActiveSequence(other)) {
 				continue;
 			}
@@ -1000,8 +795,6 @@ public final class MagicMissileManager {
 			double vz = Math.sin(yaw) * Math.sin(pitch) * speed;
 			client.level.addParticle(new DustParticleOptions(rgb, 1.6F), pos.x, pos.y, pos.z, vx, vy, vz);
 		}
-		// A ring of bright white sparks right at the moment of impact, on top of the colored burst,
-		// for a punchier "flash" without needing the color-parameterized FLASH particle type.
 		int ringPoints = 20;
 		for (int i = 0; i < ringPoints; i++) {
 			double angle = Math.PI * 2 * i / ringPoints;
@@ -1017,19 +810,10 @@ public final class MagicMissileManager {
 			double oz = (random.nextDouble() - 0.5) * 0.4;
 			client.level.addParticle(ParticleTypes.POOF, pos.x + ox, pos.y + oy, pos.z + oz, 0, 0, 0);
 		}
-		// Explosion boom plays at the hit location (falls off with distance, like a real impact) - the
-		// separate hit-confirm "pling" for the shooter specifically is playHitConfirmSound() below.
 		client.level.playLocalSound(pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.2F, 1.1F, false);
 	}
 
-	/**
-	 * A "pling" hit-confirm for the shooter specifically - played AT the shooter's own position rather
-	 * than the (possibly far-away) impact point, so it's always heard clearly regardless of how far
-	 * the missile traveled, the same way a hit-marker sound in most shooters is a fixed UI cue rather
-	 * than a positional world sound. Always the same pitch now - it used to vary based on whether the
-	 * target had ever been hit before at all (not just recently), which read as an inconsistent,
-	 * confusing "bling" rather than a reliable hit-confirm cue.
-	 */
+	/** Played at the shooter's own position, not the impact point, so it's always heard clearly. */
 	private static void playHitConfirmSound(Minecraft client) {
 		if (client.player == null) {
 			return;

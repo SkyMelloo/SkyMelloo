@@ -16,79 +16,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Party-wide dungeon-run sync (room/secrets, floor, run-active), in
- * the spirit of Skyblocker's own "Dungeon Secret Sync" (which relays over a separate opt-in websocket
- * - see {@link SkyblockerBridge}'s own doc comment). Relayed over sky.melloo.me's existing presence
- * rendezvous ({@link ModPresenceManager}) rather than a new connection of its own - that system
- * already has every SkyMelloo client reporting in and querying nearby players every few seconds for
- * mod-user detection, so this just rides along as an extra opaque payload on the same report/query
- * cycle instead of standing up a second channel. Unlike an earlier version of this that went over
- * {@code /pc} party chat, this is genuinely invisible to everyone except other SkyMelloo clients - the
- * backend only ever forwards it, never renders it anywhere a human would see it. Renamed from
- * "SecretSyncManager" - it grew beyond just secrets (floor, run-active) and the name should reflect
- * that it's the general dungeon sync channel, not add a second one alongside it.
- * <p>
- * Run-wide state (floor/runActive/score/cleared%/secrets%/deaths/roster) comes straight from
- * {@link DungeonRunTracker}'s own scoreboard reading and needs no Skyblocker at all. Only the current
- * room's NAME and per-secret found/not-found detail specifically come from {@link SkyblockerBridge},
- * which itself only works if Skyblocker is installed and has matched the room - this never invents
- * its own room database, matching the constraint documented there - so those two fields are simply
- * absent from the payload rather than blocking everything else whenever Skyblocker hasn't resolved a
- * room yet (or isn't installed at all).
- */
+// Party-wide dungeon-run sync, relayed over sky.melloo.me's existing presence rendezvous.
+// Run-wide state comes from DungeonRunTracker; room name/per-secret detail need Skyblocker installed.
 public final class DungeonSyncManager {
 	private record TeammateProgress(String room, int found, int max, List<SkyblockerBridge.SecretRow> details, String floor, boolean runActive, int score, double clearedPercent, double secretsPercentage, int deaths, List<String> roster, boolean hasTimeLimit, int timeRemainingSeconds, int witherKeysObtained, int witherDoorsOpened, boolean bloodRoomEntered, boolean bloodRoomCleared, boolean bossRoomEntered, boolean bossRoomCleared) {
 	}
 
 	private static final Map<String, TeammateProgress> teammateProgress = new LinkedHashMap<>();
 
-	// Bandwidth-savings tracking for the stand-still dedup below (see compactStandStillRuns) - reset
-	// at the start of each run, reported once via DebugLog (Category.DUNGEON, so off by default like
-	// every other debug category, and already goes to both the debug log file and chat when that
-	// toggle's on) the moment the run ends. Purely diagnostic - doesn't affect what actually gets
-	// sent either way.
+	// Diagnostic-only bandwidth tracking for compactStandStillRuns; reset per run, reported via DebugLog.
 	private static boolean wasRunActive = false;
 	private static long runRawHistoryBytes = 0;
 	private static long runSavedHistoryBytes = 0;
 
-	/** One timestamped position - the building block for a real, dense path on the website instead of one sparse point per report cycle. */
 	private record PositionSample(double mapX, double mapY, float yaw, long atMillis) {
 	}
 
-	// Sampled every client tick (see sampleTick, called from SkyMellooClient's tick handler) rather
-	// than once per presence-report cycle (fixed at 1s, see MellooEssentials'
-	// PresenceManager#REPORT_INTERVAL_TICKS): a single position
-	// per report is too sparse for the website to draw anything smoother than a rough guess between
-	// two far-apart points - sampling every tick (20/s) and bundling the whole buffer into the NEXT
-	// report instead gives it a real, dense recorded path to draw through. Cleared every time
-	// buildOutgoingPayload() actually drains it into a report.
+	// Sampled every tick, not once per report, for a dense path instead of one sparse point.
 	private static final List<PositionSample> selfHistory = new ArrayList<>();
 	private static final Map<UUID, List<PositionSample>> otherHistory = new LinkedHashMap<>();
-	// Reworked back to the original
-	// working design after a "drain only the newly-added samples" version looked broken in
-	// practice: every report now resends the last HISTORY_SEND_WINDOW_MS of samples (overlapping
-	// with the previous report, not just the delta since then), and the buffer itself is never
-	// fully drained - only time-trimmed - so a single delayed/dropped report can't create a gap.
-	// The server (lib/presence.js#mergePositionHistory) and website (app.js#mergeMarkerHistory)
-	// both already dedupe incoming samples by their exact atMillis, so resending overlapping data
-	// is free/harmless on that end.
-	// 0.5s of overlap padded onto both edges of the 1s report interval, so consecutive reports still
-	// overlap even if one is delayed or dropped outright.
+	// Every report resends this whole window (overlapping the previous one), so a dropped report
+	// can't create a gap; the server/website dedupe incoming samples by atMillis.
 	private static final long HISTORY_SEND_WINDOW_MS = 2000;
-	// A bit more than the send window so two consecutive reports' windows always overlap even with
-	// some jitter in the report timer, rather than bounding memory as tightly as possible.
 	private static final long HISTORY_RETAIN_MS = 3000;
 
 	private DungeonSyncManager() {
 	}
 
-	/**
-	 * Called every client tick (not just once per report cycle) - appends this instant's exact
-	 * position for self and every visible roster member, if available right now. Cheap: the same
-	 * map-projection math buildOutgoingPayload already did once per report, just done every tick
-	 * instead of once every several seconds.
-	 */
 	public static void sampleTick(Minecraft client) {
 		if (client.level == null || client.player == null) {
 			return;
@@ -120,7 +74,6 @@ public final class DungeonSyncManager {
 		}
 	}
 
-	/** Just the samples from the last {@link #HISTORY_SEND_WINDOW_MS} - the buffer itself (see appendSample) keeps a bit more than this so reports can overlap. */
 	private static List<PositionSample> recentWindow(List<PositionSample> history) {
 		long cutoff = System.currentTimeMillis() - HISTORY_SEND_WINDOW_MS;
 		List<PositionSample> recent = new ArrayList<>();
@@ -135,8 +88,6 @@ public final class DungeonSyncManager {
 	private static JsonArray historyToJson(List<PositionSample> history) {
 		JsonArray raw = sampleListToJson(history);
 		JsonArray compacted = sampleListToJson(compactStandStillRuns(history));
-		// Only tallied while an actual run is active - the report at the end is meant to answer "what
-		// did THIS run cost", not include idle time standing around in the dungeon hub between runs.
 		if (DungeonRunTracker.isRunActive()) {
 			int rawBytes = raw.toString().getBytes(StandardCharsets.UTF_8).length;
 			int compactedBytes = compacted.toString().getBytes(StandardCharsets.UTF_8).length;
@@ -159,15 +110,7 @@ public final class DungeonSyncManager {
 		return arr;
 	}
 
-	/**
-	 * Same dedup the website's own lib/dungeonRuns.js#compactPositionHistory already applies on the
-	 * storage side (T43, filed by the website session) - applied here too so a long stand-still
-	 * doesn't cost real upload bandwidth either, not just server storage. A run of consecutive
-	 * samples with IDENTICAL mapX/mapY/yaw collapses to just its first and last tick - never fewer,
-	 * so how long the stand-still actually lasted is never lost. A yaw-only change (turning in place,
-	 * position unchanged) is NOT collapsed - position and rotation are independent signals here, same
-	 * as the website side, never silently merged into one.
-	 */
+	/** Collapses a run of identical mapX/mapY/yaw samples to its first and last tick, so a stand-still doesn't cost bandwidth. */
 	private static List<PositionSample> compactStandStillRuns(List<PositionSample> samples) {
 		if (samples.size() <= 2) {
 			return samples;
@@ -193,10 +136,9 @@ public final class DungeonSyncManager {
 		return a.mapX() == b.mapX() && a.mapY() == b.mapY() && a.yaw() == b.yaw();
 	}
 
-	/** Fired once, right as a run ends - see {@link #runRawHistoryBytes}/{@link #runSavedHistoryBytes}'s own comment for why this only covers the run itself, not idle time around it. */
 	private static void reportBandwidthSavings() {
 		if (runRawHistoryBytes <= 0) {
-			return; // dungeonSync was off (or nothing was ever sent) for the whole run - nothing to report
+			return;
 		}
 		double percent = 100.0 * runSavedHistoryBytes / runRawHistoryBytes;
 		DebugLog.log(DebugLog.Category.DUNGEON, String.format(
@@ -204,7 +146,6 @@ public final class DungeonSyncManager {
 				formatBytes(runSavedHistoryBytes), formatBytes(runRawHistoryBytes), percent));
 	}
 
-	/** {@code 1536} -> "1.5 KB", decimal (1000-based, matching how the website's own byte counts are usually shown) not binary (1024-based) - not a precision-critical figure, just a rough "was this worth it" sense. */
 	private static String formatBytes(long bytes) {
 		if (bytes < 1_000) {
 			return bytes + " B";
@@ -218,11 +159,7 @@ public final class DungeonSyncManager {
 		return String.format("%.1f GB", bytes / 1_000_000_000.0);
 	}
 
-	/**
-	 * Called from MellooEssentials' {@code PresenceManager#reportSelf} every ~1s - {@code null} if
-	 * there's nothing worth sharing right now (feature off, no permission, or neither an active run
-	 * nor a Skyblocker room match).
-	 */
+	/** Null if there's nothing worth sharing (feature off, or neither an active run nor a Skyblocker room match). */
 	public static JsonObject buildOutgoingPayload() {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		if (!config.dungeonSyncEnabled) {
@@ -237,14 +174,6 @@ public final class DungeonSyncManager {
 			reportBandwidthSavings();
 		}
 		wasRunActive = runActive;
-		// Run-wide state (floor/runActive/score/roster/etc., all below) comes straight from
-		// DungeonRunTracker's own scoreboard reading, NOT from Skyblocker at all - only the room
-		// NAME/secrets fields actually need Skyblocker's room match. This used to bail out on the
-		// WHOLE payload whenever Skyblocker simply hadn't matched a room yet (no Skyblocker installed,
-		// or just a few seconds into a fresh run before the first room resolves) - meaning the website
-		// showed nothing but "online" for however long that took, even though "run active, floor X"
-		// was already known and ready to share. Now only skips entirely if there's truly nothing to
-		// say at all (not in a run AND no Skyblocker room match either - e.g. standing in the hub).
 		if (!runActive && current == null) {
 			return null;
 		}
@@ -267,34 +196,18 @@ public final class DungeonSyncManager {
 		}
 		payload.addProperty("floor", DungeonRunTracker.getFloor());
 		payload.addProperty("runActive", runActive);
-		// "completed" | "wiped" | "left" - only present once a run has actually ended, so the website
-		// can show why instead of just guessing from runActive going false. See DungeonRunTracker#getRunEndReason.
 		String runEndReason = DungeonRunTracker.getRunEndReason();
 		if (!runActive && runEndReason != null) {
 			payload.addProperty("runEndReason", runEndReason);
 		}
-		// Real wall-clock start time of THIS specific run - lets the run-recording
-		// backend tell "still the same run" from "a genuinely new run started" independent of
-		// runActive's own timing, which no longer flips false right away (see DungeonRunTracker's
-		// choice to only end a run after leaving the dungeon and waiting 20s).
-		// Root-caused as a real bug from a live report: with runActive staying true through that whole
-		// wait, a fast requeue into a brand new run could start being recorded as a continuation of the
-		// PREVIOUS run's still-open recording, making a replay look like it "starts mid-run" - the new
-		// run's real start was actually somewhere in the middle of the merged snapshot list. See
-		// lib/dungeonRuns.js's own use of this field.
+		// Lets the backend tell "still the same run" apart from a fast requeue into a new one.
 		payload.addProperty("runStartedAtMillis", DungeonRunTracker.getRunStartedAtMillis());
-		// Broader run-wide info ("alles an infos durchgeben was skymelloo ehh sammelt") so the website
-		// and teammates get the whole picture, not just this one room - lets missing/failed data from
-		// one player be filled in by whichever other party member's own report has it (see
-		// getTeammateProgress()'s doc comment on how these merge).
 		payload.addProperty("score", DungeonRunTracker.currentDisplayedScore());
 		payload.addProperty("grade", DungeonRunTracker.gradeForTotal(DungeonRunTracker.currentDisplayedScore()));
 		payload.addProperty("clearedPercent", DungeonRunTracker.getClearedPercent());
 		payload.addProperty("secretsPercentage", DungeonRunTracker.getSecretsPercentage());
 		payload.addProperty("deaths", DungeonRunTracker.getTotalDeaths());
-		// Every death this run so far, with position/death-number, for the website's "X" death
-		// markers on the map. The FULL list every report (not a delta) - same pattern as roomNames/
-		// secretsLog below, small enough that this isn't a real storage concern.
+		// Full list every report (not a delta), for the website's death markers.
 		JsonArray deathMarkersArr = new JsonArray();
 		for (DungeonRunTracker.DeathMarker marker : DungeonRunTracker.getDeathMarkers()) {
 			JsonObject markerObj = new JsonObject();
@@ -308,8 +221,6 @@ public final class DungeonSyncManager {
 			deathMarkersArr.add(markerObj);
 		}
 		payload.add("deathMarkers", deathMarkersArr);
-		// Score breakdown (same skill/explore/speed/bonus split DungeonScoreHud shows locally),
-		// S+ pace, and the puzzle-by-puzzle log - all previously computed but website-invisible.
 		DungeonRunTracker.ScoreEstimate estimate = DungeonRunTracker.calculateScore();
 		JsonObject scoreBreakdown = new JsonObject();
 		scoreBreakdown.addProperty("skill", estimate.skill());
@@ -336,17 +247,11 @@ public final class DungeonSyncManager {
 			puzzlesArr.add(puzzleObj);
 		}
 		payload.add("puzzles", puzzlesArr);
-		// Previously tracked (DungeonRunTracker/DungeonDebugHud) but never actually sent anywhere -
-		// only visible locally on the Dungeon Debug HUD. Added so the website's /dungeon page can show
-		// more than the run-wide score numbers - "generelle daten wie zeit time until time left ...
-		// bloodkeys etc".
 		payload.addProperty("hasTimeLimit", DungeonRunTracker.hasTimeLimit());
 		payload.addProperty("timeRemainingSeconds", DungeonRunTracker.getTimeRemainingSeconds());
 		List<Boolean> witherDoors = DungeonRunTracker.getWitherDoors();
 		payload.addProperty("witherKeysObtained", witherDoors.size());
 		payload.addProperty("witherDoorsOpened", (int) witherDoors.stream().filter(Boolean::booleanValue).count());
-		// Per-door state, not just the aggregate count above - the
-		// same individual breakdown the local Dungeon Debug HUD already shows, now also on the website.
 		JsonArray witherDoorsArr = new JsonArray();
 		for (boolean opened : witherDoors) {
 			witherDoorsArr.add(opened);
@@ -356,14 +261,9 @@ public final class DungeonSyncManager {
 		payload.addProperty("bloodRoomCleared", DungeonRunTracker.isBloodRoomCleared());
 		payload.addProperty("bossRoomEntered", DungeonRunTracker.isBossRoomEntered());
 		payload.addProperty("bossRoomCleared", DungeonRunTracker.isBossRoomCleared());
-		// "Run failed" state - same local-death/party-wipe distinction the Dungeon Debug HUD already
-		// shows.
 		payload.addProperty("localPlayerDied", DungeonRunTracker.hasLocalPlayerDied());
 		payload.addProperty("partyWiped", DungeonRunTracker.isEntirePartyDead());
-		// Client performance stats - fps and ping. Real Hypixel
-		// server TPS is NOT included - unlike FPS/ping, there's no vanilla-client-visible source for it
-		// (Hypixel doesn't expose it to the client the way it does latency), so sending a made-up number
-		// would just be wrong; leaving it out rather than guessing.
+		// Server TPS isn't sent - Hypixel doesn't expose it to the client the way it does latency.
 		Minecraft mcInstance = Minecraft.getInstance();
 		payload.addProperty("fps", mcInstance.getFps());
 		if (mcInstance.player != null && mcInstance.getConnection() != null) {
@@ -372,18 +272,11 @@ public final class DungeonSyncManager {
 				payload.addProperty("pingMs", playerInfo.getLatency());
 			}
 		}
-		// First 3D boss-room viewer prototype (see BossRoomScanner's own doc comment) -
-		// only present while actively scanning, and only the NEWLY discovered blocks since the last
-		// report (delta-encoded, drained), not the whole accumulated set every time.
+		// 3D boss-room viewer: only while actively scanning, only newly discovered blocks since the last report.
 		if (BossRoomScanner.isActive()) {
 			payload.addProperty("bossRoomScanId", BossRoomScanner.getScanId());
 			payload.add("bossRoomBlocks", BossRoomScanner.drainPendingJson());
-			// Min-corner of everything scanned so far, relative to the same origin bossRoomBlocks uses -
-			// lets the website re-align this encounter's blocks onto the same frame as a different
-			// encounter of the same boss room (see BossRoomScanner's own doc comment on why origin
-			// alone isn't a stable anchor across runs). Resent (not just once) since it gets more
-			// accurate as more of the room is scanned - the website should always use the latest value
-			// for a given bossRoomScanId, not the first.
+			// Resent every report since it gets more accurate as more of the room is scanned.
 			int[] anchor = BossRoomScanner.getAnchorOffset();
 			if (anchor != null) {
 				JsonObject anchorObj = new JsonObject();
@@ -392,10 +285,6 @@ public final class DungeonSyncManager {
 				anchorObj.addProperty("dz", anchor[2]);
 				payload.add("bossRoomAnchor", anchorObj);
 			}
-			// Real 3D player positions inside the boss room ("dass Player dort drin angezeigt werden,
-			// also in dem drei-d-Room") - self plus every currently-visible roster member, in the same
-			// relative-to-origin coordinate space as bossRoomBlocks/bossRoomAnchor, so the website can
-			// place a simple avatar/marker directly in its existing three.js scene.
 			Minecraft bossRoomClient = Minecraft.getInstance();
 			BlockPos scanOrigin = BossRoomScanner.getOrigin();
 			if (bossRoomClient.level != null && bossRoomClient.player != null && scanOrigin != null) {
@@ -416,11 +305,7 @@ public final class DungeonSyncManager {
 				payload.add("bossRoomPlayers", bossRoomPlayersArr);
 			}
 		}
-		// Real floor-plan data (see DungeonRoomTracker's own doc comment - a faithful port of
-		// Skyblocker's map-pixel room detection) - "die map wo ich die map sehe... map von oben wo
-		// räume sind... standort der leute". Grid position is room-units relative to the entrance
-		// (0,0), not raw map pixels or world coordinates, so the website can lay it out as a simple
-		// grid without needing to know anything about Hypixel's actual map pixel format.
+		// Grid position is room-units relative to the entrance, not raw map pixels or world coordinates.
 		int[] gridPos = DungeonRoomTracker.getCurrentRoomGridPos();
 		if (gridPos != null) {
 			payload.addProperty("roomGridX", gridPos[0]);
@@ -454,8 +339,6 @@ public final class DungeonSyncManager {
 			roomNamesArr.add(entryObj);
 		}
 		payload.add("roomNames", roomNamesArr);
-		// Per-secret found/missing breakdown, same visited-only constraint as roomNames/secretsLog
-		// above.
 		JsonArray secretDetailsArr = new JsonArray();
 		for (DungeonRoomTracker.SecretDetailEntry entry : DungeonRoomTracker.getSecretDetailsLog()) {
 			JsonObject entryObj = new JsonObject();
@@ -472,18 +355,12 @@ public final class DungeonSyncManager {
 			secretDetailsArr.add(entryObj);
 		}
 		payload.add("secretDetails", secretDetailsArr);
-		// Map-pixel anchor + per-room pixel size - lets the website convert layout's dx,dy grid
-		// offsets into real pixel bounds, for drawing room labels/hover targets directly on the map.
 		DungeonRoomTracker.MapGridMeta gridMeta = DungeonRoomTracker.getMapGridMeta();
 		if (gridMeta != null) {
 			payload.addProperty("mapEntranceX", gridMeta.entranceMapX());
 			payload.addProperty("mapEntranceY", gridMeta.entranceMapY());
 			payload.addProperty("mapRoomSize", gridMeta.roomSize());
 		}
-		// Pixel-accurate map + exact live position ("wie ingame mit pixeln, ein pixel ein block...
-		// genau koordinaten und richtung") - see DungeonRoomTracker#getRawMapData/
-		// getExactPlayerMapPosition's own doc comments for why this supersedes the room-grid
-		// approximation above (kept for the fallback path on older reports/clients).
 		DungeonRoomTracker.MapPixelData mapData = DungeonRoomTracker.getRawMapData(Minecraft.getInstance());
 		if (mapData != null) {
 			payload.addProperty("mapColors", mapData.colorsBase64());
@@ -497,14 +374,6 @@ public final class DungeonSyncManager {
 			payload.addProperty("exactMapY", exactPos.mapY());
 			payload.addProperty("yaw", exactPos.yaw());
 		}
-		// reportIntervalMs used to be sent here so the website could size its render delay per player
-		// - removed alongside making the report interval itself fixed (not adjustable, see
-		// ModPresenceManager#REPORT_INTERVAL_TICKS) - every client reports at the same fixed rate
-		// now, so the website just uses one matching fixed delay instead (see app.js).
-		// The dense per-tick history buffer (see sampleTick) - kept SEPARATE from exactMapX/Y/yaw
-		// above rather than replacing them, so anything only reading the single latest position still
-		// works unchanged. Sends the recent WINDOW, not a drain - see HISTORY_SEND_WINDOW_MS's own
-		// comment on why overlapping reports are intentional now.
 		List<PositionSample> recentSelf = recentWindow(selfHistory);
 		if (!recentSelf.isEmpty()) {
 			payload.add("positionHistory", historyToJson(recentSelf));
@@ -518,21 +387,13 @@ public final class DungeonSyncManager {
 			}
 		}
 		payload.add("roster", rosterArr);
-		// Mutual party attestation - which of the roster above this client can
-		// currently ALSO confirm seeing as a real, server-confirmed connected player (not just a
-		// self-reported name) - see DungeonRunTracker#getVisibleTeammates. The backend only trusts a
-		// teammate's live data if BOTH sides' independently-computed reports agree on seeing each other.
+		// Mutual attestation: the backend only trusts a teammate's live data if both sides confirm seeing each other.
 		JsonArray visibleArr = new JsonArray();
 		for (UUID visible : DungeonRunTracker.getVisibleTeammates()) {
 			visibleArr.add(visible.toString());
 		}
 		payload.add("visibleTeammates", visibleArr);
-		// Exact map positions for OTHER roster members too, not just self - this client already
-		// knows every visible party member's real world position
-		// (that's how their entity renders at all), so it can report positions for teammates who don't
-		// have SkyMelloo installed themselves, as long as THIS client can see them. The backend merges
-		// these in as a fallback wherever a teammate has no exactMapX/Y of their own to report (see
-		// server.js's playerPositions merge).
+		// Reports positions for visible teammates who don't have SkyMelloo installed themselves.
 		Minecraft mcClient = Minecraft.getInstance();
 		if (mcClient.level != null && mcClient.player != null) {
 			UUID self = mcClient.player.getUUID();
@@ -555,8 +416,6 @@ public final class DungeonSyncManager {
 				posObj.addProperty("mapX", otherPos.mapX());
 				posObj.addProperty("mapY", otherPos.mapY());
 				posObj.addProperty("yaw", otherPos.yaw());
-				// Same dense per-tick history as self above, so a teammate's dot can be drawn just as
-				// smoothly on the website, not just the viewer's own.
 				List<PositionSample> history = otherHistory.get(id);
 				if (history != null) {
 					List<PositionSample> recentOther = recentWindow(history);
@@ -567,13 +426,10 @@ public final class DungeonSyncManager {
 				otherPositionsArr.add(posObj);
 			}
 			payload.add("otherPlayerPositions", otherPositionsArr);
-			// No longer cleared here (see HISTORY_SEND_WINDOW_MS's own comment) - each entry now
-			// self-trims by age in appendSample instead of being fully drained every report.
 		}
 		return payload;
 	}
 
-	/** Appends one entry to a bossRoomPlayers array - real (sub-block-precision) position relative to {@code origin}, plus yaw/pitch. */
 	private static void addBossRoomPlayer(JsonArray array, String username, Player player, BlockPos origin) {
 		JsonObject obj = new JsonObject();
 		obj.addProperty("username", username);
@@ -585,7 +441,6 @@ public final class DungeonSyncManager {
 		array.add(obj);
 	}
 
-	/** Called from {@link ModPresenceManager} for every queried player who reported a dungeonSync payload - stored by username, same as before. */
 	public static void onReceivedPayload(String uuid, String username, JsonObject payload) {
 		if (username == null || username.isBlank()) {
 			return;
@@ -630,19 +485,7 @@ public final class DungeonSyncManager {
 		teammateProgress.put(username, new TeammateProgress(room, found, max, details, floor, runActive, score, clearedPercent, secretsPercentage, deaths, roster, hasTimeLimit, timeRemainingSeconds, witherKeysObtained, witherDoorsOpened, bloodRoomEntered, bloodRoomCleared, bossRoomEntered, bossRoomCleared));
 	}
 
-	/**
-	 * Every teammate's last-known room-secrets progress, freshest first-seen order - naturally ages
-	 * out on its own since {@link ModPresenceManager}'s own presence entries expire (~20s) if a
-	 * teammate stops reporting (run ended, they left, closed the game).
-	 * <p>
-	 * Each teammate's own {@code score}/{@code clearedPercent}/{@code secretsPercentage}/{@code deaths}
-	 * is whatever THEIR client last calculated for the whole run (not just this room) - since these
-	 * numbers are supposed to already agree across every SkyMelloo client in the same run, a reader
-	 * that wants "the run's" number rather than one specific player's can just take the freshest
-	 * non-zero value across everyone here, which naturally fills in from whoever's client still has
-	 * good data if one player's own run tracking dropped out (disconnected, game closed) - filling in
-	 * missing data from teammates rather than showing a gap.
-	 */
+	/** Ages out naturally as presence entries expire (~20s) once a teammate stops reporting. */
 	public static Map<String, TeammateProgressView> getTeammateProgress() {
 		Map<String, TeammateProgressView> result = new LinkedHashMap<>();
 		teammateProgress.forEach((name, p) -> result.put(name, new TeammateProgressView(p.room(), p.found(), p.max(), p.details(), p.floor(), p.runActive(), p.score(), p.clearedPercent(), p.secretsPercentage(), p.deaths(), p.roster(), p.hasTimeLimit(), p.timeRemainingSeconds(), p.witherKeysObtained(), p.witherDoorsOpened(), p.bloodRoomEntered(), p.bloodRoomCleared(), p.bossRoomEntered(), p.bossRoomCleared())));
