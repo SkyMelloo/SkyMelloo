@@ -16,30 +16,20 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/**
- * Tracks the local player's current Hypixel party via the official HypixelModAPI - a
- * request/response packet, not a push event, so something has to actively ask. Checks once shortly
- * after joining a server, then re-checks only when a chat line plausibly relates to party
- * membership (broad "party" substring match, debounced) - covers invites/joins/leaves without
- * needing to match Hypixel's exact wording for each case.
- */
+// Tracks the local player's current Hypixel party via HypixelModAPI's request/response packet.
+// Refreshes shortly after join, then whenever a chat line loosely mentions "party" (debounced).
 public final class PartyTracker {
 	private static final int JOIN_DELAY_TICKS = 40;
-	private static final int REFRESH_DEBOUNCE_TICKS = 40; // ~2s - avoid re-asking repeatedly if several party-related lines land close together
-	// Backs off much harder specifically on RATE_LIMITED - the normal 2s debounce just re-triggers
-	// into the same rate limit, so the next attempt needs real breathing room to land.
+	private static final int REFRESH_DEBOUNCE_TICKS = 40; // ~2s
+	// Rate-limit errors need more breathing room than the normal debounce before retrying.
 	private static final int RATE_LIMIT_BACKOFF_TICKS = 400; // ~20s
 
-	// Matches three specific leave/disband chat lines (self-leave, auto-disband, leader disbanding),
-	// not a loose "disbanded" keyword that could false-positive on casual chat. Matched by suffix,
-	// not anchored to the start, since a name can have a rank/cosmetic icon glued to it with no
-	// space. Cleared IMMEDIATELY on a match rather than waiting on a fresh info request, since that
-	// request can itself fail once you're no longer in a party (see onError below).
+	// Matches self-leave/auto-disband/leader-disband chat lines by suffix (a name may have a
+	// rank/cosmetic icon glued to it).
 	private static final Pattern CONFIRMED_LEFT_PARTY = Pattern.compile("(?i)you left the party\\.|the party was disbanded because|has disbanded the party!");
 
 	private static volatile Set<UUID> members = Collections.emptySet();
-	// Tracked separately from members.isEmpty() - an empty member set is ambiguous (genuinely no
-	// party vs. no response received yet), but the packet's own isInParty() flag isn't.
+	// Separate from members.isEmpty(): an empty set is ambiguous (no party vs. no response yet).
 	private static volatile boolean inParty = false;
 	private static volatile UUID leaderUuid = null;
 	private static boolean handlerRegistered = false;
@@ -59,13 +49,8 @@ public final class PartyTracker {
 			members = inParty ? packet.getMembers() : Collections.emptySet();
 			leaderUuid = inParty ? packet.getLeader().orElse(null) : null;
 		}).onError(error -> {
-			// A failed/errored response means "we don't know right now" (a transient network hiccup,
-			// timeout, etc.), NOT "confirmed no party" - wiping the cached members here used to make
-			// the Party HUD suddenly collapse to just the local player mid-party on a single blip,
-			// since requestRefreshNow() fires often (every ~2s after any "party"-containing chat line,
-			// see the GAME listener below). A genuine leave/disband is still a "party"-containing chat
-			// line either way, so it already triggers its own fresh, hopefully-successful refresh -
-			// this fix only stops a FAILED one from prematurely clearing good data.
+			// A failed response means "unknown right now", not "confirmed no party" - keep the last
+			// known state instead of collapsing the Party HUD on a transient blip.
 			if (error == BuiltinErrorReason.RATE_LIMITED) {
 				refreshCooldownTicks = Math.max(refreshCooldownTicks, RATE_LIMIT_BACKOFF_TICKS);
 			}
@@ -96,7 +81,7 @@ public final class PartyTracker {
 		});
 	}
 
-	/** Call once per client tick - just counts down the join-delay/debounce timers above, no per-tick network work anymore. */
+	// Counts down the join-delay/debounce timers above; no per-tick network work.
 	public static void tick() {
 		if (refreshCooldownTicks > 0) {
 			refreshCooldownTicks--;
@@ -109,7 +94,7 @@ public final class PartyTracker {
 		}
 	}
 
-	/** Sends an immediate out-of-cycle party info request (e.g. right after detecting you just joined one) - no-op if not actually connected to a server. */
+	// No-op if not connected to a server.
 	public static void requestRefreshNow() {
 		if (Minecraft.getInstance().getConnection() == null) {
 			return;
@@ -121,7 +106,6 @@ public final class PartyTracker {
 		return members.contains(uuid);
 	}
 
-	/** Whether Hypixel actually reports the local player as being in a party right now - see {@link #members} for why this isn't just inferred from an empty member set. */
 	public static boolean isInParty() {
 		return inParty;
 	}
@@ -130,7 +114,7 @@ public final class PartyTracker {
 		return members;
 	}
 
-	/** Whether the LOCAL player is the current party leader - only the leader can actually /party kick someone, so kick buttons/auto-kick are meaningless (and just silently fail server-side) for anyone else. */
+	// Only the leader can actually /party kick; non-leaders would silently fail server-side.
 	public static boolean isLocalPlayerLeader() {
 		Minecraft client = Minecraft.getInstance();
 		return client.player != null && client.player.getUUID().equals(leaderUuid);

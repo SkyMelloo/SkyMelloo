@@ -10,12 +10,8 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Raw internal run-tracker state - only shown while actually in a dungeon (an active run, or a floor
- * already detected), not a permanent overlay everywhere on Hypixel. Separate from
- * {@link DungeonScoreHud}, which is the polished player-facing score panel; this one is unstyled on
- * purpose.
- */
+// Raw internal run-tracker state, only shown while actually in a dungeon. Unstyled on purpose,
+// unlike the polished player-facing DungeonScoreHud.
 public final class DungeonDebugHud implements HudElement {
 	public static final DungeonDebugHud INSTANCE = new DungeonDebugHud();
 
@@ -23,18 +19,13 @@ public final class DungeonDebugHud implements HudElement {
 	}
 
 	private static String flag(String label, boolean value) {
-		// Heavier ✔ (U+2714) instead of the thin ✓ (U+2713) - "anderes häkchen symbol eins wie das x
-		// nutzen", matching the visual weight of ✖ instead of looking noticeably thinner beside it.
+		// Heavier ✔ (U+2714) matches ✖'s visual weight better than the thinner ✓ (U+2713).
 		return (value ? "§a✔ " : "§c✖ ") + label;
 	}
 
-	/**
-	 * " [Xm Ys Zms]" - elapsed real time since the run started, for the moment {@code eventMillis}
-	 * happened. Empty string if the event hasn't happened yet (0) or no run is timed. Real
-	 * wall-clock millis, not the scoreboard's own elapsed time, which freezes for the whole boss fight
-	 * (see DungeonRunTracker's FLOOR_NULL_END_RUN_TICKS comment) - not useful for anything happening
-	 * during it, which is exactly when most of these events (Blood/Boss room) happen.
-	 */
+	// " [Xm Ys Zms]" of real wall-clock time since the run started, not the scoreboard's own
+	// elapsed time (which freezes during the boss fight). Empty if untimed.
+
 	private static String elapsedSuffix(long eventMillis) {
 		long runStart = DungeonRunTracker.getRunStartedAtMillis();
 		if (eventMillis == 0 || runStart == 0) {
@@ -57,21 +48,15 @@ public final class DungeonDebugHud implements HudElement {
 		if (client.player == null) {
 			return;
 		}
-		// Reported as showing constantly everywhere (other Hypixel games, lobbies, etc.) - the whole
-		// point is watching these flags transition DURING a dungeon, not a permanent overlay. Active
-		// run OR a floor already detected covers being in an actual instance; still hidden in the
-		// Dungeon Hub before a run starts, same as the Score HUD next to it.
+		// Hidden outside dungeons and in the Dungeon Hub, same as the Score HUD next to it.
 		if (!DungeonRunTracker.isRunActive() && DungeonRunTracker.getFloor() == null) {
 			return;
 		}
 
 		List<String> lines = new ArrayList<>();
 		lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.run_active").getString(), DungeonRunTracker.isRunActive()));
-		// One line per Wither Key obtained this run (a floor can have several Wither Doors) - added the
-		// moment a key is picked up, well before that door is actually opened, rather than one shared
-		// flag for the whole run. Label text used to always read "...opened (key: yes)" regardless of
-		// state, so a red ✖ next to the word "opened" looked like a contradiction ("it says opened but
-		// it's red?") - the text now actually says whether it's opened or not, matching the ✓/✖.
+		// One line per Wither Key obtained this run (a floor can have several Wither Doors), added
+		// the moment the key is picked up rather than once the door is opened.
 		List<Boolean> witherDoors = DungeonRunTracker.getWitherDoors();
 		List<Long> witherDoorMillis = DungeonRunTracker.getWitherDoorOpenedMillis();
 		String stateOpened = Component.translatable("skymelloo.chat.dungeon_debug.state_opened").getString();
@@ -85,10 +70,7 @@ public final class DungeonDebugHud implements HudElement {
 						i + 1, opened ? stateOpened : stateNotOpenedYet, elapsedSuffix(witherDoorMillis.get(i))).getString(), opened));
 			}
 		}
-		// Same "key obtained" framing as Wither Doors above - real bug fix: this used to gate on having
-		// entered the Blood Room instead of the actual key pickup, based on a wrong assumption that
-		// Hypixel sends no real "X has obtained Blood Key!" message - confirmed directly from a real
-		// log that it does (see BLOOD_KEY_OBTAINED_PATTERN, already tracked but never read here).
+		// Same "key obtained" framing as Wither Doors above, gated on the actual key pickup message.
 		boolean bloodKeyObtained = DungeonRunTracker.isBloodKeyObtained();
 		boolean bloodCleared = DungeonRunTracker.isBloodRoomCleared();
 		if (!bloodKeyObtained) {
@@ -104,13 +86,8 @@ public final class DungeonDebugHud implements HudElement {
 				bloodCleared ? stateCleared : stateNotClearedYet, elapsedSuffix(DungeonRunTracker.getBloodRoomClearedMillis())).getString(), bloodCleared));
 		lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.boss_room_entered", elapsedSuffix(DungeonRunTracker.getBossRoomEnteredMillis())).getString(), DungeonRunTracker.isBossRoomEntered()));
 		lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.boss_room_cleared", elapsedSuffix(DungeonRunTracker.getBossRoomClearedMillis())).getString(), DungeonRunTracker.isBossRoomCleared()));
-		// Only shown at all once it's actually happened - the death case that would otherwise make
-		// "Boss room cleared" look like a contradiction (it can legitimately still go green even after
-		// this, since the PARTY can finish the floor around a dead/ghosted player - see
-		// DungeonRunTracker#localPlayerDied's own doc comment) instead gets its own dedicated line here,
-		// rather than forcing some unrelated flag to (incorrectly) read as green. Covers
-		// BOTH ways a run can fail: the local player personally dying, and the local player surviving
-		// while the rest of the party wipes.
+		// Only shown once it's happened. A run can fail either by the local player dying (the party
+		// can still clear the floor around them) or by the whole party wiping while they survive.
 		if (DungeonRunTracker.hasLocalPlayerDied()) {
 			lines.add(flag(Component.translatable("skymelloo.chat.dungeon_debug.run_failed_died").getString(), true));
 		} else if (DungeonRunTracker.isEntirePartyDead()) {

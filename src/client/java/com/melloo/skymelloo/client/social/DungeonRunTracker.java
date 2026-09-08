@@ -1401,10 +1401,7 @@ public final class DungeonRunTracker {
 	public record ScoreEstimate(int skill, int explore, int speed, int bonus, int total, String grade) {
 	}
 
-	/**
-	 * Live score estimate, ported from Skyblocker's DungeonScore.java (LGPL-3.0). Skill/Explore/Speed/Bonus
-	 * per Hypixel's real formula; Entrance floor scores at 70%. Not ported: EZPZ perk, Spirit Pet death exemption.
-	 */
+	// Ported from Skyblocker's DungeonScore.java (LGPL-3.0). Not ported: EZPZ perk, Spirit Pet death exemption.
 	public static ScoreEstimate calculateScore() {
 		boolean isEntrance = "E".equalsIgnoreCase(floor);
 		int skillRaw = calculateSkillScore();
