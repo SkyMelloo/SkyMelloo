@@ -13,16 +13,8 @@ import net.minecraft.sounds.SoundEvents;
 import java.awt.Color;
 import java.util.regex.Pattern;
 
-/**
- * Highlights an incoming chat message when it actually mentions the local player's own username -
- * a whole-word, case-insensitive match against the message's plain flattened text, so e.g. "Steve"
- * doesn't also match "Steven". Bolds the whole message and prepends a colored marker rather than
- * recoloring the line outright - Hypixel bakes rank color into chat the same way it does nametags
- * (see HighlightManager#colorizeName's own doc comment on why that's preserved rather than flattened),
- * and bold is an additive style property that doesn't erase existing color. Also plays a short
- * sound, since a chat highlight alone is easy to miss if chat isn't actually being watched at the
- * moment it comes in.
- */
+// Highlights a chat message mentioning the local player's username (whole-word, case-insensitive).
+// Bolds the message and prepends a colored marker rather than recoloring, preserving rank color.
 public final class ChatMentionHighlighter {
 	private static boolean initialized = false;
 	private static volatile Pattern mentionPattern = null;
@@ -60,7 +52,7 @@ public final class ChatMentionHighlighter {
 		});
 	}
 
-	/** Rebuilds the compiled pattern only when the local username actually changes (practically never mid-session) rather than recompiling one on every single incoming chat line. */
+	// Rebuilds the compiled pattern only when the username changes, not on every chat line.
 	private static boolean mentions(String text, String name) {
 		if (!name.equals(patternForName)) {
 			mentionPattern = Pattern.compile("(?i)\\b" + Pattern.quote(name) + "\\b");

@@ -8,14 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 
-/**
- * Best-effort wipe of Lunar Client's own private per-profile resource-pack download cache
- * ({@code <gameDir>/downloads/}), used by ResourcePackFailureToastMixin after a "Failed to load
- * resource pack" disconnect. The pack that just failed to load can still have an open file handle
- * at the exact moment the disconnect screen appears (its zip reader hasn't released it yet), which
- * silently fails an immediate delete on Windows - so this sweeps once right away, then again a few
- * seconds later once that handle has had time to actually close.
- */
+// Best-effort wipe of Lunar Client's resource-pack download cache after a load-failure disconnect.
+// Sweeps once immediately, then again a few seconds later once a still-open file handle has closed.
 public final class LunarPackCacheCleaner {
 	private static final int RETRY_DELAY_TICKS = 3 * 20;
 
@@ -25,14 +19,12 @@ public final class LunarPackCacheCleaner {
 	private LunarPackCacheCleaner() {
 	}
 
-	/** Sweeps immediately, then schedules one more pass a few seconds later for anything still locked right now. */
 	public static void clearNowAndRetry() {
 		sweep();
 		pendingRetry = true;
 		retryTicks = RETRY_DELAY_TICKS;
 	}
 
-	/** Call every tick. */
 	public static void tick(Minecraft client) {
 		if (!pendingRetry) {
 			return;
