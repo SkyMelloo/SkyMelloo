@@ -10,21 +10,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Two independent overrides of {@code isInvisible()}, kept in this ONE mixin/method (not separate
- * classes) so their priority against each other is an explicit Java if/else instead of relying on
- * undefined ordering between two different {@code @Inject(at = @At("HEAD"))} handlers on the same
- * target method:
- * <ol>
- * <li>Briefly renders a player invisible right after a magic-missile cosmetic hit. Purely visual,
- * always takes priority - checked first, and returns before the second check ever runs.</li>
- * <li>Optionally makes another player's REAL vanilla invisibility (e.g. an Invisibility Potion) not
- * apply to how THIS client renders them: overriding isInvisible() to false makes
- * every vanilla system (model rendering, nametag, armor, etc.) treat them as a completely normal,
- * visible player - blocked by walls/line-of-sight like anyone else, NOT a highlight-style glow outline
- * visible through obstacles. Off by default - see SkyMellooConfig#showInvisiblePlayersEnabled.</li>
- * </ol>
- */
+// Two overrides of isInvisible() in one mixin so priority is an explicit if/else: (1) magic-missile
+// cosmetic hit always wins; (2) optional reveal of other players' real vanilla invisibility.
 @Mixin(Entity.class)
 public abstract class MissileHitInvisibilityMixin {
 
@@ -35,8 +22,7 @@ public abstract class MissileHitInvisibilityMixin {
 			cir.setReturnValue(true);
 			return;
 		}
-		// Never overrides the LOCAL player's own invisibility - this is about revealing OTHER
-		// players to you, not un-hiding yourself from your own client.
+		// Never overrides the local player's own invisibility.
 		if (self instanceof Player player && player != Minecraft.getInstance().player
 				&& SkyMellooConfig.HANDLER.instance().showInvisiblePlayersEnabled) {
 			cir.setReturnValue(false);

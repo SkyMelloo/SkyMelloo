@@ -11,22 +11,13 @@ import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
 
-/**
- * Popup for editing one string config field (name filters, message templates, ...) - a bordered,
- * branded card with a title, optional description (e.g. which placeholders a template supports),
- * a multi-line text area (long templates/comma-separated lists need more than one visible line,
- * unlike the old single-line EditBox this replaced), and explicit Save/Cancel buttons.
- * <p>
- * Cancel (and Esc) now genuinely discards - the previous version always saved on close regardless
- * of how you left, which wasn't a real "cancel" option at all.
- */
+// Popup for editing one string config field: a bordered branded card with a title, optional
+// description, a multi-line text area, and explicit Save/Cancel (Cancel/Esc discards, never saves).
 public class StringInputScreen extends Screen {
 	private static final int PANEL_MAX_WIDTH = 460;
 	private static final int PANEL_MAX_HEIGHT = 260;
 	private static final int BUTTON_WIDTH = 90;
 	private static final int BUTTON_HEIGHT = 20;
-	// Was 0xFF6EC7FF - a byte-order mistake that rendered as light blue instead of the intended pink
-	// (ARGB needs 0xAARRGGBB, this had the R/G/B bytes shuffled).
 	private static final int BORDER_COLOR = 0xFFFF6EC7;
 	private static final int PANEL_COLOR = 0xF0101018;
 	private static final int SAVE_ACCENT = 0xFF55FF55;
@@ -99,11 +90,7 @@ public class StringInputScreen extends Screen {
 				() -> Minecraft.getInstance().setScreen(parent)));
 	}
 
-	/**
-	 * Save/Cancel styled to match the rest of SkyMelloo's settings UI (flat accent-tinted fill,
-	 * colored border, brighter on hover) instead of vanilla's plain gray {@code Button} widget, which
-	 * looked out of place against the rest of this branded popup.
-	 */
+	// Save/Cancel styled to match the rest of SkyMelloo's settings UI instead of vanilla's plain Button.
 	private static final class StyledButton extends AbstractWidget {
 		private final int accentColor;
 		private final Runnable onClick;
