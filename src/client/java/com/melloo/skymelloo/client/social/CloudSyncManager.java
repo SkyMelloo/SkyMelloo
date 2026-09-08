@@ -14,9 +14,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.concurrent.CompletableFuture;
 
-// Syncs SkyMelloo settings to sky.melloo.me - requires both cloudSyncEnabled and a linked account.
-// Cloud is unconditionally authoritative on join, no timestamp/content-diff comparison: local edits
-// push on settings-close (see push), so the last install you changed settings on wins on every other install's next join.
+// Syncs SkyMelloo settings to sky.melloo.me - requires cloudSyncEnabled and a linked account.
+// Cloud is unconditionally authoritative on join, no timestamp/content-diff comparison.
 public final class CloudSyncManager {
 	// Color serialized as a plain RGB int - reflecting into its private fields can throw under the JDK module system.
 	private static final Gson GSON = new GsonBuilder()
