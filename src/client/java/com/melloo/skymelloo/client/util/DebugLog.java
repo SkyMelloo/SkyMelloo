@@ -18,55 +18,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Shared debug-message logging for background operations (syncs, permission/whitelist checks,
- * cloud sync, presence reporting, ...) that were previously silent even with debug messages on.
- * Gated by the master {@code debugMessagesEnabled} switch plus a per-category toggle, so a
- * player can narrow debug output down to just what they're actually trying to diagnose.
- * <p>
- * The IN-GAME CHAT echo specifically is throttled (see {@link #CHAT_THROTTLE_MILLIS}) - confirmed
- * directly from a real crash report: a burst of chat lines right as a dungeon starts (a lot happens
- * in Hypixel's own chat at that exact moment) tripped a null-pointer bug in Lunar Client's own
- * bundled "Enhanced Chat" mod ({@code ChatLineTracker.evictLine}) while it was evicting old lines -
- * our {@code sendSystemMessage} call was simply the one on the stack when it happened, not something
- * we can fix on our side directly. This USED to be deliberately unthrottled on the reasoning that
- * dropping a debug message meant losing real diagnostic info - but that's no longer true now that
- * {@link #log} always writes to the actual game log file first, completely unthrottled, regardless of
- * whether the chat echo below actually sends - so throttling the chat side costs nothing anymore.
- * <p>
- * "The actual game log file" turned out to mean a SECOND, dedicated file of our own
- * ({@code skymelloo-debug.log} in the game directory), not {@code SkyMellooClient.LOGGER.info(...)}
- * into {@code latest.log} like the rest of the mod's logging - confirmed live that under Lunar
- * Client, this mod's own SLF4J logger output never reaches {@code latest.log} at all (a whole
- * multi-hour session with this ticking constantly produced zero matching lines there, while other
- * mods' own loggers show up fine in the same file), for a reason not worth chasing further into
- * Lunar's closed-source logging setup. Writing our own file with plain {@code java.nio.file} I/O
- * sidesteps whatever's swallowing it, rather than depending on a routing path proven unreliable here.
- * Truncated fresh at the start of each launch (see {@link #FILE_WRITER}) so it only ever holds the
- * current session, not an ever-growing history.
- * <p>
- * Writes are buffered and flushed at most every {@link #FLUSH_INTERVAL_SECONDS} rather than after
- * every single line - presence reporting alone calls {@link #log} several times a second, and a
- * real {@code flush()} is a disk sync, not just an in-memory append. {@link Writer#write} still
- * happens immediately on every call (cheap, stays in the BufferedWriter's own in-memory buffer);
- * only the disk sync is debounced. A JVM shutdown hook does one final flush so a normal game close
- * doesn't lose whatever was written since the last periodic flush - this is a debug log, not
- * critical data, so losing the last couple seconds of it to a hard crash is an acceptable tradeoff
- * for not syncing to disk multiple times a second during normal play.
- */
+// Shared debug logging, gated by a master switch + per-category toggle. Writes to a dedicated
+// skymelloo-debug.log, since SLF4J output doesn't reach latest.log under Lunar Client.
 public final class DebugLog {
 	public enum Category {
 		SYNC, PERMISSIONS, CLOUD_SYNC, PRESENCE, PARTY, DUNGEON, STAFF
 	}
 
+	// Avoids tripping a null-pointer bug in Lunar Client's Enhanced Chat mod during a chat burst.
 	private static final long CHAT_THROTTLE_MILLIS = 250;
 	private static long lastChatMillis = 0;
 	private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
-	// Opened once, truncating any leftover file from a previous launch - kept open for the whole JVM
-	// lifetime rather than reopened per line, since this can be called several times a second
-	// (presence reporting) for a whole play session. null if it couldn't be opened at all (read-only
-	// game dir, etc.) - every write silently no-ops rather than risking anything over a logging
-	// nice-to-have.
+	// Opened once for the whole JVM lifetime; null if it couldn't be opened, in which case writes silently no-op.
 	private static final int FLUSH_INTERVAL_SECONDS = 5;
 	private static final Writer FILE_WRITER = openFile();
 	private static final AtomicBoolean DIRTY = new AtomicBoolean(false);
@@ -95,8 +58,7 @@ public final class DebugLog {
 			return thread;
 		});
 		executor.scheduleWithFixedDelay(DebugLog::flushIfDirty, FLUSH_INTERVAL_SECONDS, FLUSH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-		// Covers a normal game close (quit to title / process exit) between two periodic flushes -
-		// without this, whatever was written in the last few seconds before shutdown is silently lost.
+		// Flushes anything written since the last periodic flush on a normal game close.
 		Runtime.getRuntime().addShutdownHook(new Thread(DebugLog::flushIfDirty, "skymelloo-debuglog-shutdown-flush"));
 		return executor;
 	}
@@ -136,7 +98,7 @@ public final class DebugLog {
 		};
 	}
 
-	/** Per-category LOCAL/PARTY delivery, same idea as every other dungeon/kill message this mod sends - lets e.g. Dungeon debug go to the party while everything else stays local. */
+	// Per-category LOCAL/PARTY delivery - e.g. Dungeon debug can go to the party while others stay local.
 	private static String deliveryFor(Category category, SkyMellooConfig config) {
 		return switch (category) {
 			case SYNC -> config.debugSyncDelivery;
@@ -150,21 +112,14 @@ public final class DebugLog {
 	}
 
 	public static void log(Category category, String message) {
-		// Always written to skymelloo-debug.log (see class doc comment for why that's a dedicated
-		// file rather than latest.log), completely independent of the toggles below - those only ever
-		// gated the in-game CHAT echo. Without this, a bug that only shows up with a category's debug
-		// toggle off (the normal case - nobody plays with debug chat spam on) left literally zero
-		// evidence anywhere to diagnose it from afterward. Also still sent to the normal SLF4J logger -
-		// harmless, and still correct in whatever environment doesn't have Lunar's swallowing issue.
+		// Always written to the file and SLF4J logger, independent of the toggles below - those only gate the chat echo.
 		SkyMellooClient.LOGGER.info("[{}] {}", category, message);
 		writeToFile(category, message);
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		if (!config.debugMessagesEnabled || !categoryEnabled(category, config)) {
 			return;
 		}
-		// Permission internals (which feature keys exist, what this account is/isn't granted) are
-		// only useful for diagnosing the permission system itself - not something a normal user
-		// should see, even with debug messages on.
+		// Permission internals aren't something a normal user should see, even with debug messages on.
 		if (category == Category.PERMISSIONS && !WhitelistManager.isAdmin()) {
 			return;
 		}
@@ -172,8 +127,7 @@ public final class DebugLog {
 		if (client.player == null) {
 			return;
 		}
-		// Log file already has this line regardless (see above) - skipping the chat echo during a burst
-		// loses nothing, it just avoids being the message that triggers Enhanced Chat's eviction bug.
+		// The file already has this line regardless - skipping the chat echo during a burst loses nothing.
 		long now = System.currentTimeMillis();
 		if (now - lastChatMillis < CHAT_THROTTLE_MILLIS) {
 			return;
@@ -181,9 +135,7 @@ public final class DebugLog {
 		lastChatMillis = now;
 		String delivery = deliveryFor(category, config);
 		if ("PARTY SM".equalsIgnoreCase(delivery)) {
-			// Debug messages are inherently personal (each client's OWN sync/permission/presence
-			// activity), never a shared fact duplicated across every SM party member's client - unlike
-			// DungeonRunTracker's "PARTY SM" option, this one is never leader-gated.
+			// Debug messages are per-client, not a shared fact - unlike DungeonRunTracker's "PARTY SM", never leader-gated.
 			client.player.sendSystemMessage(ChatUtil.prefixed("§8[Debug] §7" + message));
 			com.melloo.mellooessentials.client.social.RelayChatManager.sendPartyAnnouncement(client, "§8[Debug] §7" + message);
 		} else if ("PARTY".equalsIgnoreCase(delivery) && com.melloo.skymelloo.client.party.PartyTracker.isInParty()) {

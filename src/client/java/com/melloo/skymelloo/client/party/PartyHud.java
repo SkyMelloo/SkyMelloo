@@ -17,22 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Shows your current Hypixel party - each member's name, face and Accessory Power (see
- * {@link PartyHudManager}) - only while you're actually in one. "Full" mode's per-member sub-line
- * shows different info depending on whether a dungeon run is active ({@link DungeonRunTracker#isRunActive()}):
- * DURING a run, a ready-up indicator, live HP%, death count, current room type, and a "near boss
- * portal" marker (room/portal resolved via {@link DungeonRoomTracker}/
- * {@link DungeonRunTracker#isNearBossPortal}, not just for the local player); BEFORE one starts, HP/
- * ready/room aren't meaningful yet, so each member's highest-completed Catacombs floor is shown
- * instead (from sky.melloo.me, see {@link PartyHudManager}), plus one extra line at the very bottom
- * of the box showing the whole party's floor "bottleneck" (the lowest of everyone's highest-completed
- * floor). Position is configurable via the HUD layout editor (default J).
- * <p>
- * Face icons are cached per-UUID ({@link #skinCache}) once successfully resolved from the local tab
- * list, and kept showing the last-known skin if a member's {@link PlayerInfo} briefly isn't
- * available (e.g. right after a reconnect) instead of the icon flickering away and back.
- */
+// Shows the current party (name/face/AP); Full mode adds live HP/ready/room during a run, or
+// highest-completed floor before one starts. Face icons are cached per-UUID to avoid flicker.
 public final class PartyHud implements HudElement {
 	private static final int ROW_HEIGHT = 14;
 	private static final int SUB_ROW_HEIGHT = 10;
@@ -56,7 +42,7 @@ public final class PartyHud implements HudElement {
 	// e.g. 0.5 means "half your AP or less is as bad as it gets", not literally zero.
 	private static final double AP_DEFICIT_FOR_FULL_RED = 0.5;
 
-	/** Default cyan unless {@code memberAp} is meaningfully LOWER than your own {@code localAp} - then a yellow-to-red gradient scaled by how big the gap is, not a flat "low AP" threshold. */
+	// Default cyan unless memberAp is meaningfully lower than localAp, then a yellow-to-red gradient.
 	private static int apColor(int memberAp, int localAp) {
 		if (memberAp < 0 || localAp <= 0 || memberAp >= localAp) {
 			return AP_NORMAL_COLOR;
@@ -89,11 +75,8 @@ public final class PartyHud implements HudElement {
 		if ("OFF".equalsIgnoreCase(config.partyHudMode)) {
 			return;
 		}
-		// SkyBlock's Dungeons only - not the main hub, other islands, or any other Hypixel gamemode.
-		// Covers both the dungeon hub (pre-run floor/AP readiness, see the class doc comment) and an
-		// actual run - HypixelLocationTracker#isLikelyInDungeon is a best-effort substring match on
-		// Hypixel's own (undocumented) location data, not a hardcoded room/floor check, so it already
-		// covers "somewhere in the Catacombs area" rather than just "mid-run".
+		// Covers both the dungeon hub and an actual run - isLikelyInDungeon is a substring match on
+		// Hypixel's own location data, not a hardcoded room/floor check.
 		if (!com.melloo.skymelloo.client.util.SkyblockDetector.isInSkyblock() || !com.melloo.mellooessentials.client.social.HypixelLocationTracker.isLikelyInDungeon()) {
 			return;
 		}
@@ -117,17 +100,14 @@ public final class PartyHud implements HudElement {
 		int textX = x + rowFaceSize + 4;
 
 		boolean runActive = DungeonRunTracker.isRunActive();
-		// Not in a run right now - HP/ready/room aren't meaningful yet, so show a party-wide
-		// bottleneck line instead: the group can only reliably handle whatever the WEAKEST member's
-		// highest-completed floor is, per sky.melloo.me stats (see PartyHudManager).
+		// Not in a run - show a bottleneck line instead: the group is only as strong as its weakest member.
 		String bottomLine = null;
 		if (!runActive) {
 			int minCompleted = members.values().stream().mapToInt(PartyHudManager.MemberInfo::highestFloor).filter(f -> f >= 0).min().orElse(-1);
 			int minQualifying = members.values().stream().mapToInt(PartyHudManager.MemberInfo::qualifyingFloor).filter(f -> f >= 0).min().orElse(-1);
 			int minReadiness = members.values().stream().mapToInt(PartyHudManager.MemberInfo::readinessScore).filter(f -> f >= 0).min().orElse(-1);
 			if (minCompleted >= 0 || minQualifying >= 0 || minReadiness >= 0) {
-				// "Weakest" called out explicitly in the label - every value here is a MINIMUM across
-				// the party, not an average or the local player's own stat, which wasn't obvious before.
+				// Every value here is the MINIMUM across the party, not an average or the local player's own.
 				StringBuilder line = new StringBuilder("Weakest: ");
 				boolean first = true;
 				if (minCompleted >= 0) {
@@ -151,11 +131,8 @@ public final class PartyHud implements HudElement {
 			}
 		}
 
-		// Pre-run sub-info is always 3 stacked lines (Done/Qualifies/Readiness); during a run each
-		// member can have a DIFFERENT number of extra lines now (the shared ready+HP+deaths+room line,
-		// plus one line per puzzle THEY specifically solved/failed, appended via
-		// PlayerHudManager/subInfoLines) - so heights/widths are computed per-member below rather than
-		// from one shared count, or a member with puzzle history would just clip into the row below.
+		// Each member can have a different number of sub-lines (puzzle history varies), so
+		// heights/widths are computed per-member below instead of from one shared count.
 		Map<UUID, java.util.List<String>> subLinesByMember = new HashMap<>();
 		if (full) {
 			for (Map.Entry<UUID, PartyHudManager.MemberInfo> entry : members.entrySet()) {
@@ -196,9 +173,7 @@ public final class PartyHud implements HudElement {
 		for (Map.Entry<UUID, PartyHudManager.MemberInfo> entry : members.entrySet()) {
 			PartyHudManager.MemberInfo member = entry.getValue();
 
-			// Only members currently in our own tab list have a bound skin texture available live -
-			// cache it per-UUID once seen so the icon doesn't flicker away and back for cross-instance
-			// party members or brief tab-list gaps (see PartyHudManager, skinCache).
+			// Cache per-UUID once seen so cross-instance members or brief tab-list gaps don't flicker.
 			PlayerInfo info = client.getConnection() != null ? client.getConnection().getPlayerInfo(entry.getKey()) : null;
 			Identifier skinTexture;
 			if (info != null && info.getSkin() != null) {
@@ -211,9 +186,7 @@ public final class PartyHud implements HudElement {
 				drawFace(gg, skinTexture, x, rowY - 2, rowFaceSize);
 			}
 
-			// A small marker after the name for party members also detected running SkyMelloo (via
-			// sky.melloo.me presence, same detection the highlight system already uses for its own mod-user color) -
-			// embedded §-code, honored regardless of the base color passed to gg.text below.
+			// Embedded §-code marker for other detected SkyMelloo users, honored regardless of the base color below.
 			String nameText = member.username() + (ModPresenceManager.isModUser(entry.getKey()) ? " §b◆" : "");
 			gg.text(client.font, nameText, textX, rowY, 0xFFFFFFFF);
 			String ap = apText(member.accessoryPower());
@@ -240,11 +213,7 @@ public final class PartyHud implements HudElement {
 
 	private static java.util.List<String> subInfoLines(UUID uuid, PartyHudManager.MemberInfo member, Minecraft client) {
 		if (!DungeonRunTracker.isRunActive()) {
-			// Pre-run: HP/ready/room don't exist yet - show what's actually useful before queueing:
-			// highest floor actually completed before, AND highest floor they're currently level-
-			// eligible for (Catacombs/Combat Skill requirements) - two different questions, see
-			// PartyHudManager.MemberInfo. Stacked one per line rather than crammed side by side, since
-			// that read as one confusing run-on line at a glance.
+			// Pre-run: highest floor completed and highest floor currently eligible for - see MemberInfo.
 			java.util.List<String> lines = new java.util.ArrayList<>(3);
 			lines.add("§7Done " + (member.highestFloor() < 0 ? "?" : "F" + member.highestFloor()));
 			lines.add("§7Qualifies " + (member.qualifyingFloor() < 0 ? "?" : "F" + member.qualifyingFloor()));
@@ -255,9 +224,7 @@ public final class PartyHud implements HudElement {
 		}
 		java.util.List<String> lines = new java.util.ArrayList<>();
 		lines.add(subInfoTextDuringRun(uuid, member, client));
-		// One extra line per puzzle THIS member specifically solved/failed - the row visually "folds
-		// open" underneath whenever they've actually been involved in a puzzle, and stays exactly as
-		// before for anyone who hasn't. Matched by username since that's all a PuzzleResult records.
+		// One extra line per puzzle this member solved/failed. Matched by username, all PuzzleResult has.
 		if (SkyMellooConfig.HANDLER.instance().partyHudShowPuzzleHistory) {
 			for (DungeonRunTracker.PuzzleResult puzzle : DungeonRunTracker.getPuzzleOutcomes()) {
 				if (puzzle.outcome() == DungeonRunTracker.PuzzleOutcome.PENDING || !puzzle.player().equalsIgnoreCase(member.username())) {
@@ -279,19 +246,13 @@ public final class PartyHud implements HudElement {
 		}
 		sub.append("§c").append(deathText(member.username()));
 
-		// Room/portal info is only knowable for members whose entity is currently tracked by the
-		// client (same limitation as HP/face icon above) - DungeonRoomTracker's map-reading anchors
-		// are shared for the whole run, so once resolved this works for ANY tracked member's
-		// position, not just the local player's own.
+		// Room/portal info needs the member's entity to be currently tracked by the client, same as HP.
 		AbstractClientPlayer player = findPlayer(uuid, client);
 		if (player != null) {
 			DungeonRoomTracker.RoomType type = DungeonRoomTracker.getRoomTypeAt(client, player.getX(), player.getZ());
 			if (type != null) {
 				sub.append("  §7").append(roomLabel(type));
-				// The specific catalogued room name (e.g. "Round Room") only via Skyblocker's own room
-				// database if it's also installed - our own map-color detection only knows the coarse
-				// RoomType, never the exact room. Only meaningful for the LOCAL player's own row, since
-				// Skyblocker (like our DungeonRoomTracker) only ever knows the local player's current room.
+				// The specific room name is only available via Skyblocker, and only for the local player's row.
 				if (client.player != null && uuid.equals(client.player.getUUID())) {
 					SkyblockerBridge.RoomSecrets roomSecrets = SkyblockerBridge.getCurrentRoomSecrets();
 					if (roomSecrets != null && roomSecrets.roomName() != null) {
@@ -326,7 +287,7 @@ public final class PartyHud implements HudElement {
 		return "☠" + DungeonRunTracker.getDeaths(username);
 	}
 
-	/** Only meaningful for members currently rendered as a visible entity nearby (same limitation as the face icon) - empty otherwise, since vanilla only syncs entity health for entities the client can actually see. */
+	// Empty unless the member is a currently-visible nearby entity - vanilla only syncs health for those.
 	private static String hpText(UUID uuid, Minecraft client) {
 		AbstractClientPlayer player = findPlayer(uuid, client);
 		if (player == null || player.getMaxHealth() <= 0) {
@@ -336,7 +297,7 @@ public final class PartyHud implements HudElement {
 		return percent + "%";
 	}
 
-	/** A §-formatting-code prefix (not an int color) since the whole sub-info line renders as one {@code gg.text} call with inline color codes. */
+	// A §-code prefix, not an int color - the sub-info line renders as one gg.text call with inline codes.
 	private static String hpColorCode(UUID uuid, Minecraft client) {
 		AbstractClientPlayer player = findPlayer(uuid, client);
 		if (player == null || player.getMaxHealth() <= 0) {
