@@ -21,23 +21,15 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-/**
- * A little "shooting gallery" to keep your hands busy while waiting for a bite: every few seconds
- * (while the rod is cast out and not currently biting), a handful of pufferfish targets pop up 5-10
- * blocks in front of you and slowly puff up. Click one before it fully inflates for points - the
- * fatter it gets, the fewer points it's worth, and if you let it fully inflate it just pops on its
- * own for nothing. Every hit adds to a running chain/combo (see {@link FishingScoreHud} for the
- * on-screen display) that only ends if you go more than {@link #NOT_FISHING_GRACE_MS} without the
- * rod cast out - reeling in a real catch and recasting within that window keeps the chain alive,
- * with a persisted best-chain highscore. Purely cosmetic, no gameplay effect.
- */
+// Pufferfish targets pop up while fishing and slowly puff up; click one before it fully inflates
+// for points, fewer the fatter it gets. Purely cosmetic, no gameplay effect.
 public final class FishingMinigameManager {
 	private static final int WAVE_INTERVAL_TICKS = 40;
 	private static final int TARGETS_PER_WAVE = 4;
 	private static final double MIN_DISTANCE = 5;
 	private static final double MAX_DISTANCE = 10;
 	private static final double CONE_HALF_ANGLE_DEG = 18;
-	/** How long you can go without actively fishing (rod not cast) before the chain/combo ends - recasting within this window keeps it going, same as if you'd never stopped. */
+	// How long you can go without the rod cast before the chain/combo ends.
 	private static final long NOT_FISHING_GRACE_MS = 10_000;
 
 	private static final int STAGE_DURATION_TICKS = 60;
@@ -73,7 +65,7 @@ public final class FishingMinigameManager {
 		return targets.containsKey(entity.getId());
 	}
 
-	/** For {@link FishingScoreHud} - whether there's an active chain worth showing on screen. */
+	// For FishingScoreHud - whether there's an active chain worth showing on screen.
 	public static boolean isDisplayActive() {
 		return chainScore > 0;
 	}
@@ -103,9 +95,7 @@ public final class FishingMinigameManager {
 
 		tickCounter++;
 
-		// Existing targets keep inflating/expiring even after you reel in - only new spawning is
-		// gated on still actively fishing, so a target that was up when you reeled in doesn't just
-		// vanish, it plays out (gets clicked or pops on its own) same as always.
+		// Existing targets keep inflating/expiring even after you reel in - only new spawning is gated on still fishing.
 		Iterator<Map.Entry<Integer, Target>> iterator = targets.entrySet().iterator();
 		while (iterator.hasNext()) {
 			Map.Entry<Integer, Target> entry = iterator.next();
@@ -152,7 +142,7 @@ public final class FishingMinigameManager {
 		}
 	}
 
-	/** @return whether a target was actually spawned (false if blocked/too close - try again next tick). */
+	// Returns false if blocked/too close - caller retries next tick.
 	private static boolean spawnOne(Minecraft client) {
 		LocalPlayer player = client.player;
 		RandomSource random = player.getRandom();
@@ -196,12 +186,7 @@ public final class FishingMinigameManager {
 		return true;
 	}
 
-	/**
-	 * Called on every left click from {@link com.melloo.skymelloo.client.mixin.FishingTargetHitMixin}.
-	 * Targets sit 5-10 blocks out, well beyond the vanilla interaction/attack reach used to compute
-	 * {@code Minecraft.hitResult} - relying on that hit result never picked them up at all, so this
-	 * does its own aim-cone check against the tracked targets directly instead.
-	 */
+	// Targets sit 5-10 blocks out, beyond vanilla's own interaction reach, so this does its own aim-cone check.
 	public static void tryHit(Minecraft client) {
 		if (targets.isEmpty() || client.player == null) {
 			return;
@@ -231,7 +216,7 @@ public final class FishingMinigameManager {
 		}
 	}
 
-	/** Called from {@link com.melloo.skymelloo.client.mixin.FishingTargetHitMixin} when you click one. */
+	// Called from FishingTargetHitMixin when you click one.
 	public static void onTargetHit(Minecraft client, Entity entity) {
 		Target target = targets.remove(entity.getId());
 		if (target == null) {
@@ -251,10 +236,6 @@ public final class FishingMinigameManager {
 				net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0F + comboCount * 0.05F)
 		);
 
-		// Shown on the persistent FishingScoreHud now (above the hotbar, not the vanilla actionbar -
-		// Hypixel's own health/mana/defense HUD keeps overwriting the actionbar every tick, so text
-		// posted there barely stays visible). A new highscore ALSO gets its own chat announcement,
-		// on top of the HUD update, instead of replacing it.
 		if (chainScore > config.fishingMinigameHighscore) {
 			config.fishingMinigameHighscore = chainScore;
 			SkyMellooConfig.HANDLER.save();
