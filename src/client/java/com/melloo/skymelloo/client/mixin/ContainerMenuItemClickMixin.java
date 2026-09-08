@@ -11,12 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Clicking the SkyMelloo Menu item's slot while your real inventory (E) is open also opens the menu -
- * left OR right click, same as punching air with it in hand. {@code hoveredSlot} is whatever the
- * vanilla screen already computed this frame, read here before the real click logic (which would
- * otherwise try to pick up/move the fake item) gets a chance to run.
- */
+// Clicking the SkyMelloo Menu item's slot while the real inventory (E) is open also opens the
+// menu, read before the vanilla click logic would try to pick up/move the fake item.
 @Mixin(AbstractContainerScreen.class)
 public abstract class ContainerMenuItemClickMixin {
 	@Shadow

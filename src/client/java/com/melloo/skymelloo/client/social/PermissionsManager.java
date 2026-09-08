@@ -8,10 +8,8 @@ import net.minecraft.client.Minecraft;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Every feature is available to everyone - {@link #has(String)} always returns {@code true}.
- * {@link #isAccountLinked()} is separate, still required by CloudSyncManager.
- */
+// has(String) always returns true - every feature is available to everyone. isAccountLinked() is
+// separate, still required by CloudSyncManager.
 public final class PermissionsManager {
 	private static final int PERIODIC_RECHECK_TICKS = 600; // 30s at 20 ticks/s
 
@@ -30,7 +28,6 @@ public final class PermissionsManager {
 		return Boolean.TRUE.equals(permissions.get("accountLinked"));
 	}
 
-	/** Bypasses the once-per-join gate and re-fetches right now - used when opening the settings menu, alongside {@link WhitelistManager#forceRecheck}. */
 	public static void forceRefetch(Minecraft client) {
 		fetchStarted = false;
 		fetchIfNeeded(client);
@@ -44,7 +41,6 @@ public final class PermissionsManager {
 		performFetch(client);
 	}
 
-	/** Call every tick - only actually re-fetches every {@link #PERIODIC_RECHECK_TICKS}, so a fresh account-link (e.g. just ran /skymelloo link) is picked up without reconnecting. */
 	public static void tickPeriodicRecheck(Minecraft client) {
 		if (!fetchStarted || client.player == null || !WhitelistManager.isAllowed()) {
 			return;
