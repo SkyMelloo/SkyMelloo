@@ -5,14 +5,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 
-/**
- * Prefixes a nearby SkyMelloo user's custom status text onto their nametag, from
- * {@link ModPresenceManager}. Deliberately NOT using {@code EntityRenderState.scoreText} (the
- * vanilla "below name" scoreboard line, which renders as a genuinely separate line above the
- * name tag) - Hypixel already drives that field with its own server-side scoreboard objective, and
- * overwriting it here would either get silently clobbered by the server or break Hypixel's own
- * display. A same-line prefix is the safe option that can never collide with server-driven state.
- */
+// Prefixes a nearby user's custom status text onto their nametag. Deliberately not using the
+// vanilla scoreText line, since Hypixel already drives that with its own scoreboard objective.
 public final class StatusTextDisplayManager {
 	private StatusTextDisplayManager() {
 	}

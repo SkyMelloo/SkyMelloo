@@ -11,10 +11,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.FishingHook;
 
-/**
- * Watches the local player's own fishing bobber and alerts on a bite.
- * No auto-actions are taken (no auto-reeling/auto-clicking) - it only notifies.
- */
+// Watches the local player's own fishing bobber and alerts on a bite. No auto-actions taken.
 public final class FishingHelper {
 	private static FishingHook trackedHook;
 	private static boolean wasBiting = false;
@@ -24,12 +21,10 @@ public final class FishingHelper {
 	private FishingHelper() {
 	}
 
-	/** Whether this entity is the bobber currently being watched - used by HighlightManager to glow it. */
 	public static boolean isTracked(Entity entity) {
 		return entity == trackedHook;
 	}
 
-	/** Whether the rod is currently cast out (used to gate the fishing shooting-gallery minigame). */
 	public static boolean isFishing() {
 		return trackedHook != null && !trackedHook.isRemoved();
 	}
@@ -82,7 +77,6 @@ public final class FishingHelper {
 		wasBiting = biting;
 	}
 
-	/** Big client-side title (same mechanism vanilla uses for server-sent titles) so a bite is impossible to miss instead of just another chat line. */
 	private static void showBiteTitle(Minecraft client) {
 		if (client.gui == null) {
 			return;
@@ -110,7 +104,6 @@ public final class FishingHelper {
 		}
 	}
 
-	/** Subtle ambient ripple around the bobber while waiting, so fishing doesn't feel dead until the bite. */
 	private static void spawnIdleRipple(Minecraft client, FishingHook hook) {
 		RandomSource random = hook.getRandom();
 		for (int i = 0; i < 3; i++) {

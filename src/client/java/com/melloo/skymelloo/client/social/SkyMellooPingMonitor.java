@@ -3,13 +3,8 @@ package com.melloo.skymelloo.client.social;
 import com.melloo.skymelloo.client.api.SkyMellooApiClient;
 import net.minecraft.client.Minecraft;
 
-/**
- * Tracks round-trip latency to sky.melloo.me itself (distinct from the Minecraft server ping) - fed
- * into MellooEssentials' ConnectionStatusHud as an extra line via its
- * {@code setExtraLineProvider} extension point (see SkyMellooClient#onInitializeClient), since this
- * mod no longer has its own status HUD. Purely informational, a slow/failed ping here doesn't gate
- * or disable anything.
- */
+// Tracks round-trip latency to sky.melloo.me itself, distinct from the Minecraft server ping. Fed
+// into MellooEssentials' ConnectionStatusHud as an extra line. Purely informational.
 public final class SkyMellooPingMonitor {
 	private static final int PING_INTERVAL_TICKS = 20; // 1s at 20 ticks/s - was 15s, far slower than useful for a live reading
 
@@ -20,7 +15,6 @@ public final class SkyMellooPingMonitor {
 	private SkyMellooPingMonitor() {
 	}
 
-	/** @return last measured round-trip ms, or -1 if never measured/failed. */
 	public static int getLastPingMs() {
 		return lastPingMs;
 	}
