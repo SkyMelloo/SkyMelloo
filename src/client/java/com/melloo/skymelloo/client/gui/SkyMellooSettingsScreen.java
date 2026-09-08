@@ -27,13 +27,7 @@ import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
-/**
- * The full custom (non-YACL) settings screen: a rotatable 3D preview of your own character on
- * the left, a slim non-boxy row list on the right, and a tab bar across the top of the list
- * covering every config category. Replaces YACL's generated screen entirely. Particle cosmetics
- * moved to MellooEssentials (a hard dependency now) - configured from its own settings screen, or
- * from SkyMelloo's H-menu (see SkyMellooMenuScreen's Cosmetics page), not here.
- */
+/** Custom settings screen: rotatable 3D character preview on the left, a tabbed row list on the right. Replaces YACL's generated screen. */
 public class SkyMellooSettingsScreen extends Screen {
 	private static final int PANEL_BG = 0x30000000;
 	private static final int PREVIEW_BG = 0x800C0C14;
@@ -55,15 +49,6 @@ public class SkyMellooSettingsScreen extends Screen {
 	};
 
 	public enum Tab {
-		// Item/Chest/Mob highlighting all relocated into DUNGEONS (see rowsFor), Player highlighting
-		// (now "Party Highlighting", including the admin/dev/owner gold color) moved here instead.
-		// HP Armor Stand highlighting is gone entirely, not relocated. FUN removed entirely - its one
-		// row (Spell enabled/color) is fully configurable from the item-menu now (Spells -> Switch
-		// Spell / Spell Color), so this tab was a pure duplicate. CLOUD removed entirely too - Account
-		// and Cloud Sync were pure duplicates of MellooEssentials' own Cloud tab; Presence Sharing and
-		// the custom status field moved to MellooEssentials (see EssentialsConfig#presenceSharingEnabled -
-		// status is now read from your linked sky.melloo.me account instead of typed locally); Dungeon
-		// Sync moved to DUNGEONS below instead, since it's SkyBlock-specific.
 		PARTY("skymelloo.gui.settings.tab.party"), HP("skymelloo.gui.settings.tab.hp"), FISHING("skymelloo.gui.settings.tab.fishing"), DUNGEONS("skymelloo.gui.settings.tab.dungeons"), GENERAL("skymelloo.gui.settings.tab.general"), DEBUG("skymelloo.gui.settings.tab.debug");
 
 		// Stores a translation key, not display text - resolved at render time (Tab constants are
@@ -108,9 +93,6 @@ public class SkyMellooSettingsScreen extends Screen {
 				case HP -> true;
 				case PARTY -> true;
 				case FISHING -> true;
-				// Chest/Item/Mob highlighting moved in here too, and Death Recap moved in from Fun
-				// the same day - this tab always shows since every feature it contains is available
-				// to everyone now.
 				case DUNGEONS -> true;
 				case GENERAL, DEBUG -> true;
 			};
@@ -121,10 +103,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		return tabs.toArray(new Tab[0]);
 	}
 
-	// Null for every existing open path (H-menu, SkyMelloo Menu item, /skymelloo) - those all close
-	// straight back to the game via vanilla's own default onClose(), same as before. Only set when
-	// opened FROM another screen (currently just Mod Menu's config button - see ModMenuIntegration),
-	// so closing this one returns to that screen instead of exiting to the game world underneath it.
+	// Non-null only when opened from another screen (see ModMenuIntegration) - closing returns there instead of to the game world.
 	private final Screen parent;
 
 	public SkyMellooSettingsScreen() {
@@ -188,21 +167,12 @@ public class SkyMellooSettingsScreen extends Screen {
 
 		buildRows();
 
-		// This screen (opened via key H) is a separate screen from the main SkyMelloo Menu item's
-		// nav row - Report a Bug living only there meant it was missing from the single most-used
-		// entry point into the mod's UI, so it's added here too. Uses the shared
-		// SkyMellooButtonWidget rather than vanilla Button - this was the one place in the mod's UI
-		// still using the plain grey Minecraft button style instead of matching everywhere else's
-		// pink-glow look.
 		int reportBugWidth = 90;
 		addRenderableWidget(new SkyMellooButtonWidget(this.width - MARGIN - reportBugWidth, MARGIN, reportBugWidth, 18,
 				Component.translatable("skymelloo.gui.settings.button.report_bug"), SkyMellooButtonWidget.RED, SkyMellooMenuScreen::openReportBug));
 	}
 
-	/**
-	 * Fixed-width tabs that scroll horizontally (mouse wheel over the tab bar) instead of shrinking
-	 * to fit - with 8 tabs now, equal-division would make labels unreadably cramped.
-	 */
+	/** Fixed-width tabs that scroll horizontally instead of shrinking to fit - equal-division gets cramped with many tabs. */
 	private void buildTabBar() {
 		for (AbstractWidget widget : tabWidgets) {
 			removeWidget(widget);
@@ -253,11 +223,7 @@ public class SkyMellooSettingsScreen extends Screen {
 		buildRows();
 	}
 
-	/**
-	 * Single scrollable column instead of the old multi-column layout - a tab with more rows than
-	 * fit on screen (Cosmetics has ~30) now scrolls down with the mouse wheel instead of spilling
-	 * into extra columns off to the right.
-	 */
+	/** Single scrollable column - a tab with more rows than fit on screen scrolls with the mouse wheel. */
 	private void buildRows() {
 		closeColorDropdown();
 		for (AbstractWidget widget : contentWidgets) {
@@ -295,12 +261,8 @@ public class SkyMellooSettingsScreen extends Screen {
 		List<RowFactory> rows = new ArrayList<>();
 		switch (tab) {
 			case PARTY -> {
-				// Party/staff/friend highlighting (toggle, colors, glow-outline opt-in) all moved to
-				// MellooEssentials' own Settings screen (General tab, "Friend Highlighting" - party/staff
-				// are fixed colors, always on, not user-adjustable there either). Low HP Blink stays here
-				// since SkyMelloo is the only one of the two mods that knows how to compute it, hooked
-				// into essentials' own color decision via setPartyBlinkColorOverride. Party Join Stats
-				// stays here too - that's a stats lookup, not highlighting.
+				// Friend/party/staff highlighting itself lives in MellooEssentials' Settings screen.
+				// Low HP Blink stays here (hooked into essentials via setPartyBlinkColorOverride) since only SkyMelloo computes it.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.party")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.party.low_hp_blink"), () -> c.lowHpBlinkEnabled, v -> c.lowHpBlinkEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.party.low_hp_blink")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.party.party_join_stats"), () -> c.partyJoinStatsEnabled, v -> c.partyJoinStatsEnabled = v, 0xFFFFAA00), Component.translatable("skymelloo.gui.settings.tip.party.party_join_stats")));
@@ -327,22 +289,15 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.minigame.minigame_glow_color"), () -> c.fishingMinigameColor, v -> c.fishingMinigameColor = v), Component.translatable("skymelloo.gui.settings.tip.minigame.minigame_glow_color")));
 			}
 			case DUNGEONS -> {
-				// Moved here from the (now-removed) Cloud tab's Sharing & Privacy section - kept in
-				// SkyMelloo rather than moving to MellooEssentials like Presence Sharing did, since this
-				// is Dungeon-specific (SkyBlock), not something the general mod should own.
+				// Dungeon Sync lives in SkyMelloo, not MellooEssentials - it's SkyBlock-specific.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.dungeon_sync")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.dungeon_sync.enabled"), () -> c.dungeonSyncEnabled, v -> c.dungeonSyncEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.dungeon_sync.enabled")));
 
-				// One bulk control for every LOCAL/PARTY/PARTY SM delivery setting on this tab (and Death
-				// Recap's, also here) - so switching how you want announcements delivered doesn't mean
-				// clicking through 18 separate rows one at a time.
+				// Applies a delivery mode to every LOCAL/PARTY/PARTY SM row on this tab at once.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.delivery_bulk")));
 				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.delivery_bulk.all_local"), tr("skymelloo.gui.settings.button.delivery_bulk.apply"), () -> setAllDungeonDeliveries(c, "LOCAL")), Component.translatable("skymelloo.gui.settings.tip.delivery_bulk.all_local")));
 				rows.add(tip(actionRow(tr("skymelloo.gui.settings.row.delivery_bulk.all_party"), tr("skymelloo.gui.settings.button.delivery_bulk.apply"), () -> setAllDungeonDeliveries(c, "PARTY")), Component.translatable("skymelloo.gui.settings.tip.delivery_bulk.all_party")));
 
-				// Chest/Item/Mob highlighting all relocated here from their previous tabs - purely a
-				// settings-screen reorg, the underlying scan/render logic (HighlightManager,
-				// BlockHighlightRenderer) is unchanged and still works everywhere in-game, not just dungeons.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.chest_highlight")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.chest_highlight.enabled"), () -> c.chestHighlightEnabled, v -> c.chestHighlightEnabled = v, 0xFFFFD700), Component.translatable("skymelloo.gui.settings.tip.chest_highlight.enabled")));
 				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.chest_highlight.color"), () -> c.chestHighlightColor, v -> c.chestHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.chest_highlight.color")));
@@ -353,15 +308,11 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.item_highlighting.name_filters"), () -> c.itemHighlightNameFilters, v -> c.itemHighlightNameFilters = v), Component.translatable("skymelloo.gui.settings.tip.item_highlighting.name_filters")));
 				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.item_highlighting.color"), () -> c.itemHighlightColor, v -> c.itemHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.item_highlighting.color")));
 
-				// Drastically simplified - the old general "highlight every hostile mob everywhere"
-				// system (name filters, friendly mobs, default/named colors) is gone entirely. Only
-				// the current-room highlight remains, and it's dungeon-only by nature
-				// (isInCurrentDungeonRoom requires an active run).
+				// Only highlights mobs in the current dungeon room - requires an active run.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.mob_highlighting")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.mob_highlighting.enabled"), () -> c.dungeonRoomMobHighlightEnabled, v -> c.dungeonRoomMobHighlightEnabled = v, 0xFFFF0000), Component.translatable("skymelloo.gui.settings.tip.mob_highlighting.enabled")));
 				rows.add(tip(colorRow(tr("skymelloo.gui.settings.row.mob_highlighting.color"), () -> c.dungeonRoomMobHighlightColor, v -> c.dungeonRoomMobHighlightColor = v), Component.translatable("skymelloo.gui.settings.tip.mob_highlighting.color")));
 
-				// Moved here from Fun, just relocated in the menu.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.death_recap")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.death_recap.enabled"), () -> c.deathRecapEnabled, v -> c.deathRecapEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.death_recap.enabled")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.death_recap.party_announce"), () -> c.deathRecapPartyAnnounceEnabled, v -> c.deathRecapPartyAnnounceEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.death_recap.party_announce")));
@@ -414,9 +365,7 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.run_tracker.final_result_duration"), () -> c.dungeonScoreFinalResultDurationSeconds, v -> c.dungeonScoreFinalResultDurationSeconds = v, 5, 60, 5), Component.translatable("skymelloo.gui.settings.tip.run_tracker.final_result_duration")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.run_tracker.debug_hud"), () -> c.dungeonDebugHudEnabled, v -> c.dungeonDebugHudEnabled = v, 0xFF66DDFF), Component.translatable("skymelloo.gui.settings.tip.run_tracker.debug_hud")));
 
-				// Each message below is fully self-contained (toggle, text, delivery) rather than
-				// scattered across sections with one shared delivery setting at the bottom - lets e.g.
-				// death spam stay local while a boss-room announcement goes to the whole party.
+				// Each message below has its own delivery setting, not one shared setting for all.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.boss_room")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.boss_room.enabled"), () -> c.dungeonBossRoomAnnounceEnabled, v -> c.dungeonBossRoomAnnounceEnabled = v, 0xFFAA33FF), Component.translatable("skymelloo.gui.settings.tip.boss_room.enabled")));
 				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.boss_room.message_text"), () -> c.dungeonBossRoomMessageTemplate, v -> c.dungeonBossRoomMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.boss_room.message_text")));
@@ -486,9 +435,7 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(stringRow(tr("skymelloo.gui.settings.row.floor_kick_max.message_text"), () -> c.dungeonFloorKickMaxMessageTemplate, v -> c.dungeonFloorKickMaxMessageTemplate = v), Component.translatable("skymelloo.gui.settings.tip.floor_kick_max.message_text")));
 				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_kick_max.delivery"), () -> c.dungeonFloorKickMaxDelivery, v -> c.dungeonFloorKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_kick_max.delivery")));
 
-				// Floor Requirement above only checks whether a member currently MEETS the level
-				// requirements; this checks whether they've actually COMPLETED that floor before
-				// (Hypixel's own record), an independent signal.
+				// Independent of Floor Requirement above - checks actual past completion, not current level.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.floor_completion")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.floor_completion_kick.enabled"), () -> c.dungeonFloorCompletionKickEnabled, v -> c.dungeonFloorCompletionKickEnabled = v, 0xFFFF5555), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick.enabled")));
 				rows.add(tip(intStepRow(tr("skymelloo.gui.settings.row.floor_completion_kick.required_floor"), () -> c.dungeonFloorCompletionKickThreshold, v -> c.dungeonFloorCompletionKickThreshold = v, 0, 7, 1), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick.required_floor")));
@@ -500,10 +447,7 @@ public class SkyMellooSettingsScreen extends Screen {
 				rows.add(tip(cycleRow(tr("skymelloo.gui.settings.row.floor_completion_kick_max.delivery"), () -> c.dungeonFloorCompletionKickMaxDelivery, v -> c.dungeonFloorCompletionKickMaxDelivery = v, new String[] { "LOCAL", "PARTY", "PARTY SM" }), Component.translatable("skymelloo.gui.settings.tip.floor_completion_kick_max.delivery")));
 			}
 			case GENERAL -> {
-				// Kept here (not removed with the rest of the old Cloud tab) - this gates SkyMelloo's
-				// OWN separate cloud-sync process (com.melloo.skymelloo.client.social.CloudSyncManager,
-				// syncs SkyMelloo's own settings/HUD positions), distinct from MellooEssentials' own
-				// Cloud Sync toggle for ITS settings - there's no single shared switch for both.
+				// Gates CloudSyncManager (SkyMelloo's own settings/HUD sync) - independent of MellooEssentials' Cloud Sync toggle.
 				rows.add(headerRow(tr("skymelloo.gui.settings.header.cloud_sync")));
 				rows.add(tip(boolRow(tr("skymelloo.gui.settings.row.cloud_sync.enabled"), () -> c.cloudSyncEnabled, v -> c.cloudSyncEnabled = v, 0xFF5599FF), Component.translatable("skymelloo.gui.settings.tip.cloud_sync.enabled")));
 
@@ -660,10 +604,7 @@ public class SkyMellooSettingsScreen extends Screen {
 
 	@Override
 	public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-		// A dropdown's own widgets (swatches/options) only cover their exact button rectangles -
-		// the panel background and gaps between them aren't widgets at all, so without this check
-		// a click there (or anywhere else outside the dropdown) fell straight through to whatever
-		// row happened to be underneath instead of just closing the dropdown like a normal menu.
+		// The dropdown's background/gaps aren't widgets - without this check, a click there falls through to the row underneath.
 		if (!dropdownWidgets.isEmpty()) {
 			double mouseX = event.x();
 			double mouseY = event.y();
@@ -781,10 +722,8 @@ public class SkyMellooSettingsScreen extends Screen {
 			int x2 = getX() + getWidth();
 			int y2 = getY() + getHeight();
 
-			// Scrolling the tab bar can push a tab partially past listX1, into the character
-			// preview box on the left - clip it there instead of letting it overlap on top.
-			// (enableScissor(x1,y1,x2,y2) really does take corner coordinates, verified via
-			// javap - unlike gg.outline(), which takes width/height and was the actual bug.)
+			// Clips a scrolled tab at listX1 instead of letting it overlap the preview box on the left.
+			// enableScissor takes corner coordinates (x1,y1,x2,y2), unlike gg.outline()'s width/height.
 			gg.enableScissor(listX1, tabBarY, listX2, tabBarY + tabBarH);
 
 			int bg = active ? 0x40FF6EC7 : (this.isHovered() ? 0x20FFFFFF : 0x00000000);
