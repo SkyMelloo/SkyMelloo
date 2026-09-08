@@ -14,12 +14,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Reacts to players you've personally killed for real (flash highlight) - the actual "kill"
- * counter/announcement lives in {@link com.melloo.skymelloo.client.cosmetics.MagicMissileManager}
- * instead, since that's the feature this permission is really about. Only reacts once per victim
- * per lobby/world (cleared on reconnect).
- */
+// Reacts to players killed for real (flash highlight only); the kill counter/announcement lives
+// in MagicMissileManager instead. Only reacts once per victim per lobby/world.
 public final class PlayerKillTracker {
 	private static final Logger LOGGER = LoggerFactory.getLogger("SkyMelloo/PlayerKillTracker");
 	private static final Set<UUID> killedThisSession = new HashSet<>();
@@ -31,7 +27,6 @@ public final class PlayerKillTracker {
 		killedThisSession.clear();
 	}
 
-	/** Called from {@link com.melloo.skymelloo.client.mixin.PlayerKillMixin} whenever any player entity dies. */
 	public static void onPlayerDied(Player victim, Entity killer) {
 		if (!WhitelistManager.isAllowed()) {
 			return;
@@ -45,10 +40,6 @@ public final class PlayerKillTracker {
 		}
 
 		boolean firstTimeThisSession = killedThisSession.add(victim.getUUID());
-
-		// Counting/announcing "kills" now lives in MagicMissileManager (missile hits, since that's
-		// the closest thing SkyMelloo has to a real kill - no real combat damage/packets happen here).
-		// This real-death path still triggers the flash highlight + death double reactions below.
 		if (firstTimeThisSession) {
 			client.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0F));
 		}

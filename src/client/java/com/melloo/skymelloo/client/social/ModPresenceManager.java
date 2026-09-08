@@ -6,14 +6,15 @@ import com.melloo.mellooessentials.client.social.PresenceManager;
 import java.util.List;
 import java.util.UUID;
 
-/** SkyMelloo's contribution to MellooEssentials' presence report/query loop - registers extension points instead of running a second competing loop. */
+// SkyMelloo's contribution to MellooEssentials' presence report/query loop - registers extension
+// points instead of running a second competing loop.
 public final class ModPresenceManager {
-	// Counts only reports that actually had ≥1 boss-room block, confirming the HTTP send succeeded (not just drained locally).
+	// Counts only reports that had >=1 boss-room block, confirming the HTTP send actually succeeded.
 	private static volatile long bossRoomSendAttempts = 0;
 	private static volatile long bossRoomSendSuccesses = 0;
 	private static volatile long bossRoomSendFailures = 0;
 	private static volatile String lastBossRoomSendError = null;
-	// Set right before the report fires, read back in the completion listener - safe since only one report is ever in flight.
+	// Set right before the report fires, read back in the completion listener.
 	private static volatile boolean lastReportHadBossRoomBlocks = false;
 	private static boolean registered = false;
 
@@ -26,9 +27,6 @@ public final class ModPresenceManager {
 		}
 		registered = true;
 		PresenceManager.setSkyMellooInstalled(true);
-		// Status text is no longer set here - MellooEssentials' own presence.js on the server now
-		// derives it from the linked website account's statusText directly (see T-website task filed
-		// for that), not from anything the mod self-reports.
 		PresenceManager.setExtraCosmeticsSupplier(ModPresenceManager::collectEnabledCosmetics);
 		PresenceManager.setDungeonSyncSupplier(ModPresenceManager::buildDungeonSyncPayload);
 		PresenceManager.setDungeonSyncEnabledSupplier(() -> SkyMellooConfig.HANDLER.instance().dungeonSyncEnabled);
@@ -72,22 +70,19 @@ public final class ModPresenceManager {
 		return lastBossRoomSendError;
 	}
 
-	/** Whether this UUID has reported presence recently (i.e. is running SkyMelloo or MellooEssentials right now). */
 	public static boolean isModUser(UUID uuid) {
 		return PresenceManager.isModUser(uuid);
 	}
 
-	/** @return true if that player reported the "magicMissile" cosmetic as currently enabled. */
 	public static boolean hasCosmetic(UUID uuid, String effectKey) {
 		return PresenceManager.hasCosmetic(uuid, effectKey);
 	}
 
-	/** @return that player's custom status text, or "" if they haven't set one (or aren't a known mod user). */
 	public static String getStatusText(UUID uuid) {
 		return PresenceManager.getStatusText(uuid);
 	}
 
-	/** Only "magicMissile" - every other cosmetic is MellooEssentials' own. */
+	// Only "magicMissile" - every other cosmetic is MellooEssentials' own.
 	private static List<String> collectEnabledCosmetics() {
 		if (PermissionsManager.has("spell") && SkyMellooConfig.HANDLER.instance().magicMissileEnabled) {
 			return List.of("magicMissile");
