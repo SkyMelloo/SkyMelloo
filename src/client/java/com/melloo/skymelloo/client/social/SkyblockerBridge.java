@@ -12,21 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Optional soft integration with the Skyblocker mod (LGPL-3.0-or-later, github.com/SkyblockerMod/
- * Skyblocker), read via reflection only if it happens to also be installed - Skyblocker maintains
- * its own large database of catalogued dungeon room layouts (hundreds of variants) with the exact
- * position of every secret in each one, matched live against the room the player is standing in.
- * That database is a huge, separately-maintained dataset well beyond anything reasonable to port or
- * rebuild here, so this reads Skyblocker's own already-computed result instead of reimplementing it.
- * <p>
- * No compile-time dependency on Skyblocker at all - SkyMelloo builds and runs identically whether or
- * not Skyblocker is present, this class just reports "unavailable" if it isn't. Only ever reads
- * Skyblocker's state (current room's matched secret count), never calls anything that could affect
- * Skyblocker's own behavior. Like the local player's own {@link DungeonRoomTracker}, this only ever
- * reflects the LOCAL player's current room - Skyblocker doesn't know a teammate's room either unless
- * that teammate is also running Skyblocker AND its (separate, opt-in) websocket sync is connected.
- */
+/** Optional soft integration with Skyblocker, read via reflection only if it's installed - no compile-time dependency, read-only. */
 public final class SkyblockerBridge {
 	private static final String DUNGEON_MANAGER_CLASS = "de.hysky.skyblocker.skyblock.dungeon.secrets.DungeonManager";
 	private static final String ROOM_CLASS = "de.hysky.skyblocker.skyblock.dungeon.secrets.Room";
@@ -47,12 +33,7 @@ public final class SkyblockerBridge {
 	private static Method vector2icX;
 	private static Method vector2icY;
 
-	// Deeper, more fragile reflection than the rest of this class - secretWaypoints is a PROTECTED
-	// field (a Guava Table<Integer, BlockPos, SecretWaypoint>), not part of Room's public API, so
-	// this needs Field#setAccessible rather than a plain getMethod lookup. Kept optional/best-effort:
-	// if this specific piece breaks on a future Skyblocker update, per-secret rows just report
-	// unavailable while everything else in this class (score, room name/type, aggregate counts,
-	// which only use public methods) keeps working.
+	// secretWaypoints is a protected field, not public API - needs Field#setAccessible, kept optional/best-effort.
 	private static boolean secretDetailChecked = false;
 	private static boolean secretDetailAvailable = false;
 	private static Field secretWaypointsField;
@@ -82,11 +63,7 @@ public final class SkyblockerBridge {
 			getFoundSecretCount = roomClass.getMethod("getFoundSecretCount");
 			getScore = dungeonScoreClass.getMethod("getScore");
 			isDungeonStarted = dungeonScoreClass.getMethod("isDungeonStarted");
-			// Public field, not a method - Room#clearState directly mirrors the real in-game dungeon-map
-			// checkmark icon colour (GREEN_CHECKED/WHITE_CHECKED/FAILED/UNCLEARED, see Room$ClearState,
-			// javap-confirmed), which Hypixel keeps accurate the moment a room truly completes regardless
-			// of whether it also sends a chat line for it - used as a fallback signal for puzzle rooms that
-			// get solved on a retry, since Hypixel doesn't always re-send "PUZZLE SOLVED!" for those.
+			// Room#clearState mirrors the in-game checkmark icon - fallback for puzzle rooms Hypixel doesn't re-announce on retry.
 			clearStateField = roomClass.getField("clearState");
 			getSegments = roomClass.getMethod("getSegments");
 			Class<?> vector2icClass = Class.forName("org.joml.Vector2ic");
@@ -95,14 +72,7 @@ public final class SkyblockerBridge {
 			available = true;
 			DebugLog.log(DebugLog.Category.DUNGEON, "Skyblocker detected - reading its room-secrets/score data");
 		} catch (ReflectiveOperationException | LinkageError e) {
-			// Skyblocker isn't installed, or a future version renamed/removed one of these methods -
-			// either way, just report unavailable rather than crashing anything. Previously logged
-			// NOTHING on this path at all - a real "score frozen at 120 the whole run" bug report
-			// turned out to trace back to currentDisplayedScore() silently falling
-			// through to our OWN (also broken, see DungeonTabList's doc comment) tab-list-based
-			// calculation, and there was zero evidence anywhere to tell whether that was because
-			// Skyblocker genuinely wasn't detected, or because it WAS detected and its own score just
-			// wasn't preferred/available at the time - completely unverifiable after the fact.
+			// Not installed, or a future version renamed/removed a method - report unavailable, don't crash.
 			available = false;
 			DebugLog.log(DebugLog.Category.DUNGEON, "Skyblocker NOT available (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ") - falling back to our own tab-list-based score/room tracking");
 		}
@@ -138,11 +108,7 @@ public final class SkyblockerBridge {
 	public record RoomSecrets(String roomName, int found, int max) {
 	}
 
-	/**
-	 * Secrets found/total for the room the LOCAL player is CURRENTLY in, per Skyblocker's own
-	 * room-database match - {@code null} if Skyblocker isn't installed, or hasn't matched/identified
-	 * the current room yet (e.g. just walked in, or an unrecognized/new room layout).
-	 */
+	/** Secrets found/total for the local player's current room. {@code null} if unmatched or Skyblocker isn't installed. */
 	public static RoomSecrets getCurrentRoomSecrets() {
 		if (!isAvailable()) {
 			return null;
@@ -161,13 +127,7 @@ public final class SkyblockerBridge {
 		}
 	}
 
-	/**
-	 * Every physical grid-cell corner ({@code {x, z}}, same format as our own room-position math) that
-	 * belongs to the LOCAL player's current room, per Skyblocker's own shape/door match - correct even
-	 * for a multi-cell room (1x2/L-shaped/etc.) the player hasn't fully walked into yet, unlike our own
-	 * map-color read which only sees a cell once it's actually revealed. {@code null} if Skyblocker
-	 * isn't installed or hasn't matched the room yet.
-	 */
+	/** Grid-cell corners for the current room's full shape - unlike our map-color read, correct even for cells not yet revealed. */
 	public static List<int[]> getCurrentRoomSegments() {
 		if (!isAvailable()) {
 			return null;
@@ -188,15 +148,7 @@ public final class SkyblockerBridge {
 		}
 	}
 
-	/**
-	 * The CONFIRMED room type for the LOCAL player's current room, per Skyblocker's own shape/door
-	 * match against its room database - {@code null} if Skyblocker isn't installed or hasn't matched
-	 * the room yet. Unlike our own {@link DungeonRoomTracker}'s single-pixel map-color read (available
-	 * instantly, but can misfire right at a ROOM/TRAP color-brightness boundary), this only reports a
-	 * type once Skyblocker is actually sure - it's the authoritative answer once present, just slower
-	 * to arrive. The enum constant name (e.g. "PUZZLE") matches {@link DungeonRoomTracker.RoomType}'s
-	 * own names exactly, since both enumerate the same real Hypixel room categories.
-	 */
+	/** Confirmed room type, slower but more authoritative than {@link DungeonRoomTracker}'s map-color read. Names match {@link DungeonRoomTracker.RoomType}. */
 	public static String getCurrentRoomTypeName() {
 		if (!isAvailable()) {
 			return null;
@@ -207,21 +159,14 @@ public final class SkyblockerBridge {
 				return null;
 			}
 			Object type = getType.invoke(room);
-			// .name() (the enum constant identifier, e.g. "PUZZLE"), not .toString() - Type doesn't
-			// override toString() today so they'd currently agree, but .name() is guaranteed stable.
+			// .name() not .toString() - the enum constant identifier is guaranteed stable.
 			return type instanceof Enum<?> enumType ? enumType.name() : null;
 		} catch (ReflectiveOperationException e) {
 			return null;
 		}
 	}
 
-	/**
-	 * The LOCAL player's current room's real in-game dungeon-map checkmark state - one of
-	 * "GREEN_CHECKED", "WHITE_CHECKED" (both mean the room actually completed; WHITE specifically means
-	 * completed with a fail recorded somewhere along the way, e.g. a puzzle that failed once but was then
-	 * solved on retry), "FAILED", or "UNCLEARED" - {@code null} if Skyblocker isn't installed or hasn't
-	 * matched the room yet. See {@link #getCurrentRoomSecrets()} for the equivalent secrets-count read.
-	 */
+	/** Real in-game checkmark state: GREEN_CHECKED/WHITE_CHECKED (completed, WHITE = with a recorded fail)/FAILED/UNCLEARED. */
 	public static String getCurrentRoomClearState() {
 		if (!isAvailable()) {
 			return null;
@@ -243,12 +188,7 @@ public final class SkyblockerBridge {
 		return rawName != null ? rawName.replaceFirst("-\\d+$", "") : null;
 	}
 
-	/**
-	 * Skyblocker's own live dungeon score total, calculated from the SAME sidebar/tab-list data our
-	 * own {@link DungeonRunTracker#calculateScore()} uses - preferred over our estimate when available
-	 * since Skyblocker's read has been battle-tested far longer. {@code null} if Skyblocker isn't
-	 * installed or hasn't detected an active dungeon run.
-	 */
+	/** Skyblocker's own live score - preferred over {@link DungeonRunTracker#calculateScore()} when available. */
 	public static Integer getScore() {
 		if (!isAvailable()) {
 			return null;
@@ -266,16 +206,7 @@ public final class SkyblockerBridge {
 	public record SecretRow(int secretIndex, boolean found) {
 	}
 
-	/**
-	 * Per-secret found/missing state for the LOCAL player's current room, one row per distinct secret
-	 * index (a secret can have multiple possible waypoint spots sharing one index - e.g. a chest that
-	 * can spawn in one of a few positions - they always share the same found state, so only one row
-	 * per index is returned). {@code null} if unavailable for any reason: Skyblocker not installed,
-	 * current room not matched yet, or {@code secretWaypoints} - a non-public field on Skyblocker's
-	 * side - isn't reachable (e.g. renamed in a future Skyblocker version). This is deeper, more
-	 * fragile reflection than the rest of this class (bypassing a protected field, not just calling a
-	 * public method) - see {@link #ensureSecretDetailChecked}.
-	 */
+	/** One row per distinct secret index (multiple waypoint spots sharing an index collapse to one row). See {@link #ensureSecretDetailChecked}. */
 	public static List<SecretRow> getCurrentRoomSecretDetails() {
 		ensureSecretDetailChecked();
 		if (!secretDetailAvailable) {
