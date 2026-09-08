@@ -12,12 +12,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Targets BOTH Entity and Player: Player.getDisplayName() is a full override (calls
- * decorateDisplayNameComponent, not Entity's default team-formatting logic), so a mixin on
- * Entity.class alone silently never runs for Player instances at all - which was the actual
- * root cause of colored names/distance never appearing for other players.
- */
+// Targets both Entity and Player: Player.getDisplayName() is a full override, so a mixin on
+// Entity.class alone never runs for Player instances at all.
 @Mixin({Entity.class, Player.class})
 public abstract class EntityDisplayNameMixin {
 
@@ -26,17 +22,12 @@ public abstract class EntityDisplayNameMixin {
 		Entity self = (Entity) (Object) this;
 		Component result = cir.getReturnValue();
 		if (self instanceof ItemEntity item) {
-			// Entity#getDisplayName() falls back to the generic item-type name (e.g. "Diamond
-			// Sword") instead of the item's actual hover name, which includes anvil-renamed
-			// names, enchantments and rarity color - use that directly instead.
+			// Falls back to the generic item-type name otherwise, losing anvil renames/enchants/rarity.
 			result = item.getItem().getHoverName();
 		}
 		if (self instanceof Player player) {
 			result = HighlightManager.colorizeName(player, result);
 			result = StatusTextDisplayManager.apply(player, result);
-			// No marker logic here anymore - MellooEssentials' own EntityDisplayNameMixin is the only
-			// place a nametag marker gets added now, even for SkyMelloo users (see
-			// ModMarkerManager.setSpriteOverride, registered once in SkyMellooClient's init).
 		}
 		if (HighlightManager.isHighlightTarget(self)) {
 			result = DistanceDisplayManager.apply(self, result);
