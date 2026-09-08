@@ -48,12 +48,7 @@ public final class HighlightManager {
 		return expiry != null && expiry > System.currentTimeMillis();
 	}
 
-	/**
-	 * Whether the entity's outline should be forced to glow right now. Player/mob highlighting still
-	 * glows through walls (that's the point - knowing where your party is). Chests and items are
-	 * different: they only glow when there's an actual clear line of sight, so they read as a normal
-	 * outline effect rather than seeing through walls.
-	 */
+	/** Player/mob highlighting glows through walls; chests/items only glow with a clear line of sight. */
 	public static boolean shouldGlow(Entity entity) {
 		if (!WhitelistManager.isAllowed()) {
 			return false;
@@ -61,16 +56,11 @@ public final class HighlightManager {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 
 		if (MagicMissileManager.isTemporarilyInvisible(entity)) {
-			// A player briefly hidden by a magic-missile hit should actually disappear from this
-			// user's view, not turn into a glowing silhouette (which is what invisible+glowing
-			// normally renders as) - suppress all highlighting for the duration.
+			// Suppress highlighting entirely - otherwise invisible+glowing renders as a visible silhouette.
 			return false;
 		}
 
 		if (BlockHighlightRenderer.isChestMarker(entity)) {
-			// Only actually visible chests get the outline - a genuine clear line of sight from the
-			// player's eyes, checked fresh every frame so it tracks camera movement/corners in real
-			// time, not seeing through walls.
 			return VisibilityUtil.hasLineOfSight(entity.position().add(0.5, 0.5, 0.5));
 		}
 
@@ -87,9 +77,7 @@ public final class HighlightManager {
 		}
 
 		if (entity instanceof Player player && isKillFlashing(player.getUUID())) {
-			// Must be checked before the isDeadOrDying() gate below - the kill flash is meant to
-			// show exactly while/right after the victim is dying, which isDeadOrDying() would
-			// otherwise immediately short-circuit to "don't glow" before we ever get here.
+			// Must run before isDeadOrDying() below, which would otherwise suppress the flash.
 			return true;
 		}
 
@@ -98,30 +86,15 @@ public final class HighlightManager {
 		}
 
 		if (living instanceof Player player) {
-			// /sm search - a deliberate one-off command action (see LobbySearchManager) - the ONLY
-			// player-highlighting SkyMelloo still decides on its own. Party/staff/friend
-			// highlighting are entirely MellooEssentials' job now (see its own highlight.HighlightManager)
-			// - this mod's own PlayerCategory/classifyPlayer, and the config fields that used to drive
-			// them, are gone.
+			// The only player-highlighting SkyMelloo decides itself - party/staff/friend highlighting is MellooEssentials' job.
 			return LobbySearchManager.isSearchedPlayer(player.getUUID());
 		}
 
-		// Only the dungeon current-room mob highlight remains - isInCurrentDungeonRoom already
-		// requires an active run, so this is inherently dungeon-only. The old general "highlight
-		// every hostile mob everywhere" system (name filters, friendly mobs, default/named colors)
-		// is gone entirely, not just defaulted off.
 		return config.dungeonRoomMobHighlightEnabled
 				&& isDungeonMobEntity(living) && isInCurrentDungeonRoom(living);
 	}
 
-	/**
-	 * Whether a living entity is a real (possibly Hypixel-disguised) dungeon mob rather than a
-	 * player. Many dungeon mobs - bosses and unique reskins especially - aren't actual vanilla
-	 * hostile mobs (Enemy) at all, just an ArmorStand or other passive entity type wearing a
-	 * custom skin, so instanceof Enemy alone misses them. A non-marker ArmorStand still counts;
-	 * marker stands are excluded since Hypixel also uses those for pure decoration (secret
-	 * indicators, labels) that never attacks and shouldn't glow.
-	 */
+	/** Many dungeon bosses/reskins are a disguised ArmorStand, not a real Enemy; marker stands are pure decoration, excluded. */
 	private static boolean isDungeonMobEntity(LivingEntity living) {
 		if (living instanceof Enemy) {
 			return true;
@@ -150,15 +123,7 @@ public final class HighlightManager {
 		return shouldGlow(entity);
 	}
 
-	/**
-	 * Hypixel NPCs (shopkeepers, dungeon NPCs, etc.) are implemented as real Player entities with a
-	 * fake GameProfile. Used to check tab-list absence for this, but that's not reliable at range -
-	 * Hypixel apparently does put some NPCs in the tab list under some circumstances, which let them
-	 * slip through (e.g. get hit by Magic Missile) once far enough away. A real Mojang account UUID
-	 * is always version 4 (random); Hypixel's fake NPC UUIDs aren't - same signal a proven, actively
-	 * maintained SkyBlock mod (SkyHanni) uses for exactly this, and it's a static property of the
-	 * UUID itself, not dependent on tab-list/network timing or distance at all.
-	 */
+	/** Hypixel NPCs are real Player entities with a fake GameProfile - detected by UUID version (real accounts are always v4). */
 	public static boolean isNpc(Player player) {
 		if (Minecraft.getInstance().player == player) {
 			return false;
@@ -218,27 +183,7 @@ public final class HighlightManager {
 	private static final int LOW_HP_BLINK_INTERVAL_MS = 400;
 	private static final double LOW_HP_BLINK_THRESHOLD = 0.25;
 
-	/**
-	 * A party member's highlight normally stays their fixed party color, but blinks bright red once
-	 * their HP drops under 25% - an urgent "someone needs help" signal readable at a glance during a
-	 * fight. This mod no longer decides party glow at all (MellooEssentials owns that entirely now,
-	 * same treatment STAFF got earlier) - this is registered as
-	 * {@code com.melloo.mellooessentials.client.highlight.HighlightManager#setPartyBlinkColorOverride}
-	 * in {@code SkyMellooClient#onInitializeClient} instead, so essentials' own glow-color computation
-	 * calls back into this mod only for the one piece of data (live HP) it has no way to know itself.
-	 * Blinks (alternates every ~400ms) rather than just going solid red, so it's noticeably distinct
-	 * from a static color choice. Returns {@code null} (not {@code normalColor}) when the blink
-	 * shouldn't apply, matching the override hook's own null-means-"leave as-is" contract.
-	 * <p>
-	 * Dungeon-only, same restriction {@link com.melloo.skymelloo.client.party.PartyHud}'s own HP%
-	 * display already applies (see its {@code subInfoLines}) - Hypixel only keeps another player's
-	 * vanilla health attribute meaningfully in sync with their real SkyBlock HP during an active
-	 * dungeon run. Outside one, {@code getHealth()/getMaxHealth()} for a party member is close to
-	 * arbitrary, so this used to blink constantly for anyone whose real (large, SkyBlock-scaled) HP
-	 * happened to sit under whatever fraction that stale vanilla attribute pair worked out to -
-	 * reported live: a player sitting at a perfectly healthy 130 HP outside a dungeon, blinking red
-	 * non-stop.
-	 */
+	/** Blinks a party member's highlight red under 25% HP (MellooEssentials' override callback). Dungeon-only - vanilla HP isn't synced with real SkyBlock HP outside a run. */
 	public static Integer partyBlinkOverride(java.util.UUID uuid, int normalColor) {
 		SkyMellooConfig config = SkyMellooConfig.HANDLER.instance();
 		if (!config.lowHpBlinkEnabled) {
@@ -262,12 +207,7 @@ public final class HighlightManager {
 		return blinkOn ? LOW_HP_BLINK_COLOR : normalColor;
 	}
 
-	/**
-	 * Whether {@code living} is inside the LOCAL player's current dungeon room right now - used to
-	 * highlight the mobs still standing between you and the next door, distinct from mobs elsewhere
-	 * on the floor. Only meaningful during an active run; {@link DungeonRoomTracker#getCurrentRoomBounds}
-	 * documents why the vertical bound is only approximate.
-	 */
+	/** Whether {@code living} is in the local player's current dungeon room, not just anywhere on the floor. Only meaningful during an active run. */
 	private static boolean isInCurrentDungeonRoom(LivingEntity living) {
 		if (!com.melloo.skymelloo.client.social.DungeonRunTracker.isRunActive()) {
 			return false;
@@ -280,12 +220,7 @@ public final class HighlightManager {
 		return bounds != null && bounds.intersects(living.getBoundingBox());
 	}
 
-	/**
-	 * Appends a small colored highlight-category marker after a player's nametag, instead of the old
-	 * behavior of overwriting the whole name's style - Hypixel bakes rank color (MVP+/VIP/etc.)
-	 * into the name via the scoreboard team style, and flattening the whole component to one
-	 * color wiped that out. This way the real rank color stays intact and only a marker is added.
-	 */
+	/** Appends a colored marker after the nametag rather than recoloring it, so Hypixel's own rank color stays intact. */
 	public static Component colorizeName(Player player, Component original) {
 		if (!WhitelistManager.isAllowed()) {
 			return original;
@@ -304,15 +239,8 @@ public final class HighlightManager {
 		return copy;
 	}
 
-	// Staff, party, AND friend highlighting are all MellooEssentials' job now - see its own
-	// com.melloo.mellooessentials.client.highlight.HighlightManager, which glows all three (staff pink
-	// via PresenceManager.isStaff, party light-blue via PartyTracker, friend via its own configurable
-	// color, with SkyMelloo's low-HP blink preserved through
-	// HighlightManager#setPartyBlinkColorOverride/partyBlinkOverride above). Both mods' glow mixins
-	// inject into the same vanilla Entity#isCurrentlyGlowing/getTeamColor methods (cancellable, HEAD) -
-	// keeping a second, separate branch here for any of the three would race the two mixins against
-	// each other with no defined winner, the exact bug that originally made staff highlighting look
-	// broken/inconsistent before that consolidation. /sm search is the only player highlight left here.
+	// Staff/party/friend highlighting is entirely MellooEssentials' job now - both mods' glow mixins
+	// hook the same vanilla methods, so a second branch here would race them with no defined winner.
 
 	private static int toRgb(Color color) {
 		return color.getRGB() | 0xFF000000;
