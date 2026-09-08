@@ -25,8 +25,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 // A fake chest-style menu opened via the hotbar item, purely client-drawn (no real Container/Slot).
-// Pages produce a flat MenuAction list; this screen auto-flows it into a grid, splitting into
-// sub-pages with Prev/Next arrows once a page has more entries than fit on one sheet.
+// Pages produce a flat MenuAction list, auto-flowed into a grid with Prev/Next sub-pages as needed.
 public class SkyMellooMenuScreen extends Screen {
 	private record MenuAction(ItemStack icon, Runnable onClick, Runnable onRightClick) {
 		MenuAction(ItemStack icon, Runnable onClick) {
